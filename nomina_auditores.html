@@ -192,7 +192,7 @@
   .estado.no{background:var(--no-soft);color:var(--no);}
   .estado .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 
-  .cert-cell{display:flex;gap:6px;flex-wrap:wrap;}
+  .cert-cell{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
   .cert-btn{
     display:inline-flex;align-items:center;gap:5px;
     font-family:inherit;font-size:12px;font-weight:500;
@@ -203,6 +203,12 @@
   .cert-btn:hover{border-color:var(--navy);}
   .cert-btn.linked{background:var(--seal-soft);border-color:#e0c690;color:#7a5a1e;}
   .cert-btn .ic{font-size:13px;line-height:1;}
+  .cert-edit{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:7px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:12px;
+  }
+  .cert-edit:hover{border-color:var(--navy);color:var(--navy);}
   .obs-flag{
     width:22px;height:22px;border-radius:50%;
     border:1px solid var(--line);background:#fff;
@@ -482,9 +488,11 @@ async function deleteLink(key){
 function certButton(id, tipo, label, ref){
   const key = keyFor(id, tipo);
   const linked = !!linkMap[key];
-  return `<button class="cert-btn ${linked?'linked':''}" data-key="${key}" data-label="${label}" data-ref="${(ref||'').replace(/"/g,'&quot;')}">
+  const main = `<button class="cert-btn ${linked?'linked':''}" data-key="${key}" data-label="${label}" data-ref="${(ref||'').replace(/"/g,'&quot;')}">
     <span class="ic">${linked?'📄':'🔗'}</span>${label}
   </button>`;
+  const edit = linked ? `<button class="cert-edit" data-key="${key}" data-label="${label}" data-ref="${(ref||'').replace(/"/g,'&quot;')}" title="Editar o quitar enlace">✏️</button>` : '';
+  return main + edit;
 }
 
 function renderMain(list){
@@ -604,6 +612,11 @@ function showToast(msg){
 
 /* ============ EVENTS ============ */
 document.addEventListener('click', async (e)=>{
+  const editBtn = e.target.closest('.cert-edit');
+  if(editBtn){
+    openModal(editBtn.dataset.key, editBtn.dataset.label, editBtn.dataset.ref);
+    return;
+  }
   const btn = e.target.closest('.cert-btn');
   if(btn){
     const key = btn.dataset.key;
