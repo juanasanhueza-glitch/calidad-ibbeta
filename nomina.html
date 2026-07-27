@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Nómina de Auditores Internos — IBBeta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --ink:#182430;
+    --ink-soft:#4b5b6b;
+    --paper:#f6f8fa;
+    --card:#ffffff;
+    --line:#dbe3ea;
+    --navy:#0e3b5c;
+    --navy-deep:#092a42;
+    --teal:#1c7293;
+    --seal:#b8863a;
+    --seal-soft:#f3e6cf;
+    --ok:#2e7d46;
+    --ok-soft:#e5f3e8;
+    --no:#a63a2e;
+    --no-soft:#fbe8e5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 28px 64px;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    color:#fff;
+    border-radius:14px;
+    padding:28px 32px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+    position:relative;
+    overflow:hidden;
+  }
+  header.top::after{
+    content:"";
+    position:absolute;
+    right:-60px;top:-60px;
+    width:220px;height:220px;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:50%;
+  }
+  header.top::before{
+    content:"";
+    position:absolute;
+    right:10px;top:30px;
+    width:140px;height:140px;
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:50%;
+  }
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    font-size:11.5px;
+    color:#a9c3d6;
+    font-weight:500;
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:Arial, sans-serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:.2px;
+  }
+  .sub{color:#c7d8e4;font-size:14px;margin:0;}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:1;}
+  .stat{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.18);
+    border-radius:10px;
+    padding:10px 14px;
+    min-width:84px;
+    text-align:center;
+  }
+  .stat b{display:block;font-size:20px;font-family:Arial, sans-serif;}
+  .stat span{font-size:10.5px;color:#c7d8e4;text-transform:uppercase;letter-spacing:.06em;}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:22px 0 16px;
+  }
+  .toolbar input[type=search], .toolbar select{
+    font-family:inherit;
+    font-size:13.5px;
+    padding:9px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .toolbar input[type=search]{min-width:220px;}
+  .toolbar label.chk{
+    display:flex;align-items:center;gap:6px;
+    font-size:13px;color:var(--ink-soft);
+    cursor:pointer;user-select:none;
+  }
+  .spacer{flex:1;}
+  .btn{
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:500;
+    padding:9px 16px;
+    border-radius:8px;
+    border:1px solid var(--navy);
+    background:var(--navy);
+    color:#fff;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn:hover{background:var(--navy-deep);}
+  .btn.ghost{
+    background:#fff;color:var(--navy);border-color:var(--line);
+  }
+  .btn.ghost:hover{border-color:var(--navy);}
+  .btn.small{padding:5px 10px;font-size:12px;border-radius:6px;}
+
+  /* ---------- Section labels ---------- */
+  .section-title{
+    display:flex;align-items:baseline;gap:10px;
+    margin:30px 0 12px;
+  }
+  .section-title h2{
+    font-family:Arial, sans-serif;
+    font-size:19px;font-weight:600;margin:0;
+  }
+  .section-title .count{
+    font-size:12.5px;color:var(--ink-soft);
+    background:#e9eef2;padding:2px 9px;border-radius:20px;
+  }
+
+  /* ---------- Table card ---------- */
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    background:#eef2f6;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:middle;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#fafcfe;}
+  .nombre{font-weight:600;}
+  .rut{font-family:Arial, sans-serif;font-size:12.5px;color:var(--ink-soft);}
+  .n-cell{font-family:Arial, sans-serif;color:var(--ink-soft);font-size:12.5px;width:34px;}
+  .area-tag{
+    display:inline-block;font-size:11.5px;
+    padding:3px 9px;border-radius:20px;
+    background:#e7eef4;color:var(--navy);
+    white-space:nowrap;
+  }
+
+  .estado{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;
+  }
+  .estado.si{background:var(--ok-soft);color:var(--ok);}
+  .estado.no{background:var(--no-soft);color:var(--no);}
+  .estado .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  .cert-cell{display:flex;gap:6px;flex-wrap:wrap;align-items:center;max-width:340px;}
+  .cert-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    font-family:inherit;font-size:12px;font-weight:500;
+    padding:6px 10px;border-radius:7px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--navy);
+    white-space:nowrap;
+  }
+  .cert-btn:hover{border-color:var(--navy);}
+  .cert-btn.linked{background:var(--seal-soft);border-color:#e0c690;color:#7a5a1e;}
+  .cert-btn .ic{font-size:13px;line-height:1;}
+  .cert-edit{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:7px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:12px;
+  }
+  .cert-edit:hover{border-color:var(--navy);color:var(--navy);}
+  .cert-add{
+    display:inline-flex;align-items:center;gap:4px;
+    font-family:inherit;font-size:12px;font-weight:500;
+    padding:6px 10px;border-radius:7px;cursor:pointer;
+    border:1px dashed var(--line);background:#fff;color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .cert-add:hover{border-color:var(--navy);color:var(--navy);}
+  .obs-flag{
+    width:22px;height:22px;border-radius:50%;
+    border:1px solid var(--line);background:#fff;
+    color:var(--ink-soft);font-size:12px;
+    display:inline-flex;align-items:center;justify-content:center;
+    cursor:default;
+  }
+  .obs-flag[data-has="1"]{
+    background:#eef2f6;color:var(--navy);cursor:help;
+  }
+
+  .hint{font-size:12px;color:var(--ink-soft);margin:10px 2px 0;}
+
+  /* ---------- Modal ---------- */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(9,26,42,0.45);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:16px;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:12px;padding:24px;max-width:440px;width:100%;
+    box-shadow:0 20px 50px rgba(9,26,42,0.25);
+  }
+  .modal h3{margin:0 0 4px;font-family:Arial, sans-serif;font-size:18px;}
+  .modal p.desc{margin:0 0 16px;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+  .modal input[type=text]{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-family:inherit;font-size:13.5px;margin-bottom:6px;
+  }
+  .modal .ref{
+    font-size:11.5px;color:var(--ink-soft);background:var(--paper);
+    padding:8px 10px;border-radius:7px;margin-bottom:14px;word-break:break-word;
+  }
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
+  .modal .row .btn.text{
+    background:transparent;border:none;color:var(--ink-soft);padding:9px 10px;
+  }
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--navy-deep);color:#fff;padding:11px 18px;border-radius:8px;
+    font-size:13px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---------- Print sheet (hidden on screen) ---------- */
+  #printSheet{display:none;}
+
+  footer.note{
+    margin-top:26px;font-size:11.5px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+
+  @media (max-width:720px){
+    header.top{flex-direction:column;align-items:flex-start;}
+    .wrap{padding:20px 14px 48px;}
+    table{font-size:12.5px;}
+    thead th, tbody td{padding:9px 8px;}
+  }
+
+  /* =========== PRINT =========== */
+  @media print{
+    body{background:#fff;}
+    .wrap{max-width:none;padding:0;}
+    header.top, .toolbar, .section-title, .card, footer.note{display:none !important;}
+    #printSheet{display:block;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow">Instituto Bioquímico Beta S.A. · Aseguramiento de Calidad</p>
+      <h1>Nómina de Auditores Internos</h1>
+      <p class="sub">Registro de personal calificado para auditorías internas BPM — Vigencia 2026</p>
+    </div>
+    <div class="stats" id="statsBox"></div>
+  </header>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Buscar por nombre, RUT o cargo…">
+    <select id="areaFilter"><option value="">Todas las áreas</option></select>
+    <label class="chk"><input type="checkbox" id="onlyHabilitados" checked> Solo habilitados</label>
+    <div class="spacer"></div>
+    <button class="btn" id="btnPrint">🖶 Vista para imprimir y firmar</button>
+  </div>
+
+  <div class="section-title">
+    <h2>Auditores habilitados 2026</h2>
+    <span class="count" id="countMain">— registros</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>N°</th><th>Nombre</th><th>RUT</th><th>Cargo</th><th>Área</th>
+          <th>Curso(s)</th><th>Estado</th><th>Certificados</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbodyMain"></tbody>
+    </table>
+  </div>
+  <p class="hint">El botón de certificado abre el enlace guardado en Google Drive. Si aún no tiene enlace, se abrirá un formulario para pegarlo — queda guardado para la próxima vez.</p>
+
+  <footer class="note">
+    <span>Fuente: Nómina de Auditores IBBeta 2026.</span>
+    <span id="lastGen"></span>
+  </footer>
+</div>
+
+<!-- ================= PRINT-ONLY SHEET ================= -->
+<div id="printSheet">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+    <tr>
+      <td style="border:1px solid #000;padding:14px;width:34%;text-align:center;vertical-align:middle;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAABNCAIAAAAEtD6aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABA8SURBVHhe7Z0JVFVVF8fFCQfUxIGyUnEIHDBtQMsRzRRRKsdcoiHSAJg55gCpOKXiPBQSlmZa6jK1rByaFIdEwkycSmOlOYTiCA6g3e/33r6+9bqfij6G5+qe3zrLde4Z9jn33f/ZZx/efVVIUyhMgBK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRL6/c65c+fmzZt3+vRp/VrhEPcg9A8+0Pz88izFxmppabplxR2YOnVqcHDwpUuX9GuFQ9yt0OPitEKF8jh5e2v79un2HWPv3r1jxoz5559/Zs+e/fXXX1OSmZkZFRV16NChGzduUEjtO++8k5qaunv3bvJURUZGktmwYUNcXNw333wTHx8/evRoCmk2ceLEHTt2jBs37uLFi5j6/vvv58+fv2nTJukIZLZs2ULVokWLBg8eTJc1a9ZY5nGTrVu3in149913r1+//vfff48aNYp/qd2+fTv5YcOGnTx5Utrjrd9++20sMwqXjEv+yJEj5A8cOMDEsDBjxozNmzfj0ani0tpPO3PmDKauXLmyePHiZcuWSeH48ePpQgn3zuXhw4eHDx8+cuTIX3/9VRoItJd7gYULF/LpJScn26bNcDt37iTD3Umh2N+1a9eUKVPEgkDH7777jhFps3TpUhnUBtNYtWqVfnEfcFdCnzPHqNG8Sj4++hCO8cknnxQqVIiPuH79+mSQ77Vr18igDFReuXJlnvGQIUMeeOCBv/76i+fXokWLhx9+mMyff/5ZpUqV8PDwffv2rV+/ni6TJ0/mWX7++efkjx8/jnFUUr58+aNHj9K+Zs2avr6+ZKjCcr169TDLY/b29mYOMhlAVa6urgwKdevWHTRo0B9//IFBtPvTTz899thjK1asmDBhwtNPP41Z1M98hg4d+tVXX9WuXZtpoHsas/wwhUrIZ2VlMcTAgQP37NnD5bfffisDvf/++1zSvmnTph07dkTxvXv37ty587Zt2xiFiaFyHx8fpvrRRx/VqVOHW5OOwOjPPPMMM8Qms127di3rFmtcUojvOHXqFHfaq1ev4sWLk8Fr8Kn26NGDNr/99ptuRdN+//33woULM8+kpCSq7Nc8Fh588EHGPXv2rF7kbHIW+uzZRnXmYSpaVPvwQ30gB1i5cmXJkiURup+fX4kSJZo3b84ny8NDVXimSpUqoe/Lly/bnkG/fv14xpJHEHhTMmwCRYsWFZ/6ww8/8PDE40ZHR1etWtXSVNPatGnTs2dPyRcrVozdQPIjRoxg5Uge8KmsH5QBSBCny4pCBPhj5NihQwdpVq5cOZSKwhhXSl555ZWnnnoKvTI6MqXkyy+/RGcInQXG+jl48CB2uM3s7GzuqHr16i4uLuwA2OSmZBT+pSP/Mn/Wj6enp9W29uSTT3bv3l3y8Nxzz/n7+zNDbDJbdsLPPvuMKXFJYUZGhjSbNGkSo0j+/PnzFSpUcHd3Z5uSEkD0DMo8yW/cuFFGF1irZcuWdXNzS0xM1IucTQ5Cj4kxSvNeE4/SUGJI4eH6WA5gE3qjRo1wezhaIloPD49169ZRO2fOHJ4xAYmEIoCeGjduLHkvLy8ROmEAgpMuiMxe6NWqVbM01ThU+IlW2K953oQ0Uo4F7Ege2BZQDLoEJoNN3B5qSEtLoztal2bMkJgBR16mTJmrV69SEhoayipFwXcWOhBmfPrpp2RYzyL0kJCQY8eOUUK0YzVvAaHbJsYtc+OSh4CAAHytTBKvv3//fgIPPkYpwUdIM/vbnzt3Lga5l/bt26enp0shEKr16dPnpZdeIuTTizSN+IpC7o7opX///nqps7mT0CdNMory7lNQkJacrB06pM2YYawypMqVHY/UbUIndMEDcYl08LiE1/hyfAyulGCawIPNl/Y5Cl3CGHw8eUJSYh5L038LvUiRIsQDUk6w+9BDD0kexo4dW6NGDcm3bdu2a9euTAODTAMnGhgYKFWyVFavXo2UuSSuQK/NmjVjXBoTLVDILZC3CT0lJYVeERER+GncMKuaO8XR2nt0xqIjhYQ0NKhVq5ZlME3DQpcuXSQPLVu2JM6RPH73448/JqCqWLGilNiwFzpd2AlpySgEXVLIsvzll1/YYZgqq46PTsqB5UqIHxYWRuynFzmb2wp9wgSjIu8+8THKqYl1zuZvqP3/dNOJ3DO4Ij56hP7II48QNF+6dAkdi1ZEpoTUxDBENeI4ed6EvNIXtyr+BhXSheicPFoh5GABELuzS7AbWNtadn+UKnlkh3SmT59ORItHJCPlQFWpUqWIyIEqdMk5GOP8i4djvXF4wJezxvC+qLNBgwaE0SxF2pBBNARIOEi6o+C+fftya/R66623OEzThgCaeKBhw4YJCQlcImiWB+uHG2/Xrt3rr79OOEEITiCB46fj8uXLiUxYe5ToU7TG6JwNZJIIlBvH9WJNSpiqHHk5orAMyOCtCQJjYmJmzpxJfPXaa69ZzWiyyaBvDhtkCFdwFsRyRGWsxlmzZnFHPJclS5aw6jiISy9ncWuhR0UZtXj3KTRUN8IKL1XKWHvLZHVhjkAIiD/Dy6IwNnRKePa4bQRBrMmj4jjIiRN50YbaBQsW4HStXS1RB7EpGVQSHByMkqT8woUL2ERbPCcpAbaLefPm6RfWSxQ5YMCA2NhYvcgKqsIUgwIWCC1YabhPOd1yVMDJsa3bYgy0Ti2hfFBQkO1QS5BAdxQjl5GRkXhcghNxw8RmXHKbdGEHmDZtGnEF5SwSjCMp5iarmg+HqAZd4nEthm7CfREpySRZyTSWCERKGFciPTYcLsmwqDiYWrtqrBzuWvKMiKPhkmasdpYHnyeXRIw2B4G1+Pj4V199lUcgJc7CKHQ27dyo/I03dDtffKGVLm2svWUiOti7V++lUOQTRqEnJBiFePcpIkI3gsrv0peTBg/WeykU+YdR6Fu2GIV4l8m6y1lYuTLnv7TYUuvWmvW7FIUif8kbj25TOUGvq6ux9napXDnN7nsMhSIfyQOhjxql9+U05eJirL1D8vHhNKb3VSjyldwKffRovePChVqRIsbaHFOjRtqJE7oFhSL/yJXQb/6lzqLye/Ll9qlePe3MGd2OQpFPOC70yZP1Lu+9Z6y612T3F2qFIl9wROg475gYvf3cucZaB1KNGtp985ab4r+JI0K3fec9a5axyj65umojR2rR0drEiZq7u7HWkGbO1G06hbNnz547d06/sCLfpMINu9esKYQLFy6kp6dnZGRQRUZ+EmFrL20kL9DG9laZwFjy5aUBTNHYvvu1a9coAQbVi27CBGyF9oNKxlYi/9ojo8Dly5f1IhPgiNB9fDQvL612bWO5fSpVSrO+PGIBrZcoYWxgSNOm6Y0LmLS0tN69e4eHh/ft2zc0NPT8+fMUrl+/vhHHZCuRkZFt27YVpbZv337KlCkzZszo37//Cy+8ULduXTJxcXFDhw7t06ePtG/dunV8fLzkT5061aZNG9p06dJl+PDhsmYYq1+/fs2bN7f/VjwrK+vZZ5/t3LkzjVu0aCGvvA4cOJBCSoBBpaWwZMmS559/vlu3bmPGjOGSiU2dOpUMS6hOnTp79uyJjY0NCAhgRB8fH3nBHexHAfvXsP7z5OoweruEL7e+C2ghLMxYe8v07+dYcCxfvrwQw1tF6ebmts/6ImWzZs0oXLRoEXkEQR75kq9evTriIwNz5swpwfK1gujlNXd5+bFGjRp4zczMzHr16o1kU9O0EydOBAYGosIBAwbQ8sqVK5s2bXJ3d7e9E4uDt70UiWSxgLf29/dHrNLAnlWrVlWsWHH//v3MuWPHjozl6ekpA12/fp0JbN++PTo6umbNmgidS3kLCBjFxcVlxYoVcmkq8l7oZctqNz2I1revsfZ2yVlC37t3b+3atZHF4cOHxePi1H19fV9++eU333yTSxxwtWrVHn300R9//JHyYcOGWftp8+fPR6mS7969u5+fH5nJkye/+OKLTzzxxLFjx5A1Itu5c6eYBTK1atWSN6WIKFD20qVLpQoJlilTRpaW/KABEQcHB7NpTLdyxu4vUyNGjLD9IgQwy/7DBKZNmzZu3LjChQsnJSVNmjSpfv36VJUsWXLlypXSklEqVarUs2dPDC5evFgKTUIeC93NTduwwWKHhxsSYqy9Q3KW0IHHP3r0aDzu+PHj8YhIOSgoiHIPD4+TJ0+GhYV16tQJbbVq1aphw4biOEGELhEwQid4wE9XqVKF0Hns2LGEQ0TA6PXnn3/euHFjr169iDQwjiLZIuhCraurK/uJ1di/hC6/miOmYhosrXVW7KN8Zmt7U1wgPiE6otmyZctYP7t27bqd0JkzK42WTn+dsIDJS6Hj4OTT4+n36mWsvXNyltCTk5OHDBlC5vjx48gLb0qw7uXlRdjNZUpKCn6doDk7O5tAhRLbC6gIvXz58iJ0YuUOHTrIa9kRERFNmjRp2bIloQtxApKiwdq1a6lC6E2bNpVXXhEuJfISPCDB0qVLiyIJPKg6ffo02sWyNLAHEds2k4ULF7K0vL29o6KiuOTwitCJiGhD4ITQWU62GB3QvUzJbOSZ0CtW1FV+9arWo4exNsdk+6t8AbNjxw6kgGpR8OOPP47UuExMTCSkkXiaU2aDBg1oSWSMcG2vic+cObNYsWIidHYDHDaROhDlHzhwgFWxxgqxB6fVmJgYFk96evqhQ4fYFojCOeCywNgExBpCL168OC58wYIFuGe6oFECdEIdSoClIi2BoLxHjx40ZvPhcMkREwcvr4nLj0hYKhxSOVFghDmHhISIETx9uXLlWGlyySIXg2Ygb4ReoYLlx0SQna117WqszTH5+mqpqdbhncHBgweJlTmxcWTEDcuvfSE1NZW4HMXbfhC5detW+99M2H6Tv3v3bkIU5CVnWeBUKn852bZtG8axQNSOQCk5evQoAcbq1autDXVQJGOxzGhs+50EQ6NvSsD+J0LA5kDYw5zlr6LEIdwFGUTP0Bwzjhw5kpCQwDrEmpgFpoezt11i32rMFOSB0KtU0X8ilJmpdepkrM0xoXL1uosiv8mt0D08tKQkS8eMDEdU3rSp+k5UURDkSuhVq2opKZZe+PJ27Yy1OaZWrdTrXIoCwnGhe3pqe/ZYuuCS27Y11uaYULn1W0iFoiBwUOiNG+shx8WLFskaanNM/v6a+o9mKgoSB4UeEGB5YWvQIK1JE2NVjkmpXFHw5PYweq8pMFDLytLHUigKjAIVeteumpneDFXcRxSc0Lt1U75c4TQKSOi9e1u+NFUonEVBCD0oSKlc4WTyXeghIbplhcKJ5K/Qw8Isr+wqFE4nH4Wem/+VhUKRtxiFvnmzUa+OJdt/jVGhuB8wCj0xUatWLbfJ+pMdheI+wih0QuqsrNwmheJ+wyh0heI/iRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgKb9Dz9a/SVk844ZAAAAAElFTkSuQmCC" alt="Logo IBBeta" style="width:34px;height:auto;">
+          <div style="text-align:left;">
+            <div style="font-weight:700;font-size:10.5px;">INSTITUTO BIOQUÍMICO BETA S.A.</div>
+            <div style="font-size:9px;margin-top:2px;">SANTIAGO DE CHILE</div>
+          </div>
+        </div>
+      </td>
+      <td style="border:1px solid #000;padding:16px;text-align:center;vertical-align:middle;">
+        <div style="font-weight:700;font-size:13px;letter-spacing:5px;">C O N F I D E N C I A L</div>
+        <div style="font-size:11.5px;margin-top:10px;">Sección:</div>
+        <div style="font-size:12px;">Aseguramiento de Calidad</div>
+        <div style="font-weight:700;font-size:14px;margin-top:10px;">NOMINA DE AUDITORES AÑO 2026</div>
+      </td>
+    </tr>
+  </table>
+
+  <p style="font-size:11.5px;color:#182430;line-height:1.5;margin:0 0 14px;">
+    El presente documento constituye la nómina oficial de auditores internos del Instituto Bioquímico Beta S.A. para el período 2026, quienes cuentan con la certificación vigente que los habilita para ejecutar auditorías internas de primera parte conforme al procedimiento QA-009. La nómina se presenta ordenada alfabéticamente según nombre completo del auditor.
+  </p>
+
+  <table style="width:100%;border-collapse:collapse;font-size:10px;">
+    <thead>
+      <tr style="background:#0e3b5c;color:#fff;">
+        <th style="border:1px solid #0e3b5c;padding:6px;text-align:center;width:24px;">N°</th>
+        <th style="border:1px solid #0e3b5c;padding:6px;text-align:center;width:78px;white-space:nowrap;">RUT</th>
+        <th style="border:1px solid #0e3b5c;padding:6px;text-align:left;">Nombre Completo</th>
+        <th style="border:1px solid #0e3b5c;padding:6px;text-align:left;">Cargo</th>
+        <th style="border:1px solid #0e3b5c;padding:6px;text-align:left;">Título del Certificado / Curso</th>
+      </tr>
+    </thead>
+    <tbody id="printBody"></tbody>
+  </table>
+
+  <div style="margin-top:14px;font-size:11.5px;font-weight:600;">Total de auditores registrados: <span id="printTotal"></span></div>
+
+  <div style="margin-top:50px;display:flex;gap:60px;font-size:11px;">
+    <div style="flex:1;text-align:center;">
+      <div style="border-top:1px solid #333;padding-top:6px;">Firma de Aprobación</div>
+      <div style="color:#4b5b6b;">Aseguramiento de Calidad</div>
+    </div>
+    <div style="flex:1;text-align:center;">
+      <div style="border-top:1px solid #333;padding-top:6px;">Fecha</div>
+      <div style="color:#4b5b6b;">DD / MM / AAAA</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Vincular certificado</h3>
+    <p class="desc">Pega el enlace para compartir de Google Drive de este certificado. Quedará guardado y el botón lo abrirá directamente la próxima vez.</p>
+    <div class="ref" id="modalRef"></div>
+    <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Nombre del certificado</label>
+    <input type="text" id="modalName" placeholder="Ej: Auditor BPM, ISO 17075, Diploma 2024…" style="margin-bottom:10px;">
+    <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Enlace de Google Drive</label>
+    <input type="text" id="modalInput" placeholder="https://drive.google.com/file/d/…">
+    <div class="row">
+      <button class="btn text" id="modalDelete" style="color:var(--no);display:none;">Eliminar certificado</button>
+      <button class="btn ghost small" id="modalClear" style="display:none;">Quitar enlace</button>
+      <button class="btn text" id="modalCancel">Cancelar</button>
+      <button class="btn" id="modalSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ DATA ============ */
+const auditoresPrincipal = [
+ {n:1,nombre:'Gabriel Ignacio González Benavides',rut:'14.169.982-2',cargo:'Supervisor Aseguramiento de la Calidad',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas','(2022) BPM (Wackeling)'],obs:null},
+ {n:2,nombre:'Camila Del Pilar Espinosa Espinoza',rut:'17.901.333-9',cargo:'Supervisor Materiales, Envases y Empaques',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas','Certificado Técnicas de Auditorías en BPM','Técnicas de Auditorías en BPM'],obs:null},
+ {n:3,nombre:'Juana Del Carmen Sanhueza Trangolao',rut:'15.465.938-2',cargo:'Analista de Calidad - DOC',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Certificado Técnicas de Auditorías en BPM','Técnicas de Auditorías en BPM'],obs:null},
+ {n:4,nombre:'Davis Junior Martínez Muñoz',rut:'18.794.022-2',cargo:'Encargado de Proyectos y Sistemas de Apoyo Crítico',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Técnicas de Auditorías en BPM','Certificado Técnicas de Auditorías en BPM'],obs:null},
+ {n:5,nombre:'Ingrid Norma Castro Santana',rut:'9.004.045-6',cargo:'Jefe de Producción II',area:'Producción II',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas','Técnicas de Auditorías en BPM'],obs:null},
+ {n:6,nombre:'Marcia Andrea Olivares Rodríguez',rut:'12.912.381-8',cargo:'Asistente Documentación y Laboratorio',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas','Técnicas de Auditorías en BPM','Certificado Técnicas de Auditorías en BPM'],obs:null},
+ {n:7,nombre:'Catalina Jacqueline Figueroa González',rut:'15.664.772-1',cargo:'Analista de Calidad - DOC',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:8,nombre:'Joscelyn Melissa Bazaes Zúñiga',rut:'12.039.652-8',cargo:'Supervisor de Calificación y Validación',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Formación de Auditores en Sistemas de Calidad en la Industria Farmacéutica','Formación de Auditores Para la Norma 147 Sobre Almacenamiento y Distribución'],obs:null},
+ {n:9,nombre:'Alice Hellen Muñoz Castro',rut:'19.631.898-4',cargo:'Coordinador de Producción',area:'Producción II',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:10,nombre:'Ana María Alegría Troncoso',rut:'8.006.179-K',cargo:'Jefe de Bodega',area:'Bodega',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:11,nombre:'Ariel Andrés Duque Duque',rut:'16.603.556-2',cargo:'Jefe de Laboratorio Químico',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:12,nombre:'Bastián Ignacio Torres Díaz',rut:'20.109.444-5',cargo:'Asistente en Calificación y Validación',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:13,nombre:'Christian Ignacio Jerez Silva',rut:'18.865.022-8',cargo:'Técnico en Climatización',area:'Mantenimiento',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:14,nombre:'Cristian Andrés Moreno Carrasco',rut:'16.955.475-7',cargo:'Jefe de Producción',area:'Producción',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:15,nombre:'Esteban Humberto Fernández Monje',rut:'16.535.650-0',cargo:'Analista Químico Documental Funcional',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:16,nombre:'Joel Savid Jara Rodríguez',rut:'16.937.839-8',cargo:'Planificador de Mantención',area:'Mantenimiento',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:17,nombre:'Lidia Soledad Rivero Morales',rut:'18.977.809-0',cargo:'Analista de Validaciones',area:'Aseguramiento de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:18,nombre:'María Alicia Machuca Gálvez',rut:'12.263.438-8',cargo:'Jefe de Métodos Analíticos y Estabilidad',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:19,nombre:'María Angélica Rojas Ferrando',rut:'22.718.220-2',cargo:'Analista de Microbiología',area:'Control de Calidad',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:20,nombre:'Pablo Manuel Garrido Alarcón',rut:'13.466.363-4',cargo:'Supervisor de Bodega',area:'Bodega',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:21,nombre:'Patricia Ivone Yáñez Pinto',rut:'11.630.382-5',cargo:'Asistente de Producción II',area:'Producción II',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:22,nombre:'Romina Paz Tranamil Núñez',rut:'21.061.669-1',cargo:'Coordinador de Producción',area:'Producción I',hab:true,cursos:'BPM',certs:['Aplicación de Técnicas Para Auditorías Internas'],obs:'Realizado los días 17, 18 y 19 de marzo de 2026, con una duración total de 08 horas cronológicas, en modalidad e-learning sincrónico.'},
+ {n:23,nombre:'Ana Millaray Obreque Sánchez',rut:'12.925.681-8',cargo:'Inspector de Control en Proceso',area:'Aseguramiento de Calidad',hab:true,cursos:'ISO 9001:2015',certs:['Interpretación y Análisis del Sistema de Gestión de Calidad ISO 9001:2015','Auditor Interno del Sistema de Gestión de Calidad ISO 9001:2015'],obs:'Datos completados: RUT verificado (dígito verificador correcto) y cursos confirmados con la Nómina de Auditores Internos oficial.'},
+ {n:24,nombre:'Oswaldo José Tamayo Guerra',rut:'25.582.729-4',cargo:'Jefe de Turno PI',area:'Producción I',hab:true,cursos:'HACCP, GMP',certs:['Auditor Interno de la Norma 2861:2011 – Sistema de Análisis de Peligro y Puntos Críticos de Control (HACCP)','Certificado de Capacitación Auditor Interno GMP Farmacéutico ICH Q','Formación de Auditores GMP'],obs:'Datos completados: RUT verificado (dígito verificador correcto) y cursos confirmados con la Nómina de Auditores Internos oficial.'}
+];
+
+
+let certLists = {};   // key: id (rut o nombre) -> array de {id, name, url}
+let modalCtx = null;  // { ownerId, certId } — certId es null cuando se está agregando uno nuevo
+
+/* ============ STORAGE ============ */
+// Se guarda en el navegador (localStorage) bajo el prefijo ibbeta_nomina_,
+// para que los certificados queden disponibles cada vez que abras este archivo
+// desde el mismo computador y navegador.
+const STORAGE_PREFIX = 'ibbeta_nomina_';
+function listKeyFor(id){ return STORAGE_PREFIX + 'certlist::' + id; }
+function oldKeyFor(id, tipo){ return STORAGE_PREFIX + 'cert::' + id + '::' + tipo; }
+function genId(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function loadCertList(a, isND){
+  const id = isND ? a.nombre : a.rut;
+  const raw = localStorage.getItem(listKeyFor(id));
+  if(raw){
+    try{ certLists[id] = JSON.parse(raw); return; }catch(e){ /* corrupto, se reconstruye abajo */ }
+  }
+  // Primera carga: se arma a partir de los cursos/certificados reales de la nómina verificada,
+  // y se migra cualquier enlace guardado con el sistema anterior (por auditor/rut, hasta 2 slots).
+  const nombresCursos = a.certs && a.certs.length ? a.certs : (a.certAuditorRef || a.certBpmRef ? [a.certAuditorRef, a.certBpmRef].filter(Boolean) : []);
+  const list = nombresCursos.map((nombreCurso, idx) => ({
+    id: genId(),
+    name: nombreCurso,
+    url: localStorage.getItem(oldKeyFor(id, idx===0?'auditor':'bpm')) || ''
+  }));
+  certLists[id] = list;
+  saveCertList(id);
+}
+
+function saveCertList(id){
+  try{
+    localStorage.setItem(listKeyFor(id), JSON.stringify(certLists[id] || []));
+    return true;
+  }catch(e){ return false; }
+}
+
+function loadAllCertLists(){
+  auditoresPrincipal.forEach(a=>loadCertList(a, false));
+}
+
+/* ============ RENDER ============ */
+function certCell(id){
+  const list = certLists[id] || [];
+  const pills = list.map(c=>{
+    const linked = !!c.url;
+    const main = `<button class="cert-btn ${linked?'linked':''}" data-owner="${id}" data-cert="${c.id}">
+      <span class="ic">${linked?'📄':'🔗'}</span>${esc(c.name)}
+    </button>`;
+    const edit = `<button class="cert-edit" data-owner="${id}" data-cert="${c.id}" title="Editar o quitar">✏️</button>`;
+    return main + edit;
+  }).join('');
+  const addBtn = `<button class="cert-add" data-owner="${id}" title="Agregar otro certificado">➕ Agregar</button>`;
+  return pills + addBtn;
+}
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function renderMain(list){
+  const tbody = document.getElementById('tbodyMain');
+  tbody.innerHTML = list.map(a=>`
+    <tr>
+      <td class="n-cell">${a.n}</td>
+      <td class="nombre">${a.nombre}</td>
+      <td class="rut">${a.rut}</td>
+      <td>${a.cargo}</td>
+      <td><span class="area-tag">${a.area}</span></td>
+      <td>${a.cursos}</td>
+      <td><span class="estado ${a.hab?'si':'no'}"><span class="dot"></span>${a.hab?'Habilitado':'No habilitado'}</span></td>
+      <td><div class="cert-cell">${certCell(a.rut)}</div></td>
+      <td>${a.obs ? `<span class="obs-flag" data-has="1" title="${a.obs.replace(/"/g,'&quot;')}">i</span>` : `<span class="obs-flag">–</span>`}</td>
+    </tr>
+  `).join('');
+  document.getElementById('countMain').textContent = list.length + (list.length===1?' registro':' registros');
+}
+
+function renderStats(){
+  const total = auditoresPrincipal.length;
+  const hab = auditoresPrincipal.filter(a=>a.hab).length;
+  const areas = {};
+  auditoresPrincipal.forEach(a=>{ areas[a.area] = (areas[a.area]||0)+1; });
+  const nAreas = Object.keys(areas).length;
+  document.getElementById('statsBox').innerHTML = `
+    <div class="stat"><b>${total}</b><span>En nómina</span></div>
+    <div class="stat"><b>${hab}</b><span>Habilitados</span></div>
+    <div class="stat"><b>${nAreas}</b><span>Áreas</span></div>
+  `;
+}
+
+function renderPrintSheet(){
+  const list = auditoresPrincipal.filter(a=>a.hab).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  document.getElementById('printBody').innerHTML = list.map((a,i)=>{
+    const cursos = certLists[a.rut] && certLists[a.rut].length
+      ? certLists[a.rut].map(c=>'• '+esc(c.name)).join('<br>')
+      : '<span style="color:#4b5b6b;">Sin registrar</span>';
+    return `
+    <tr>
+      <td style="border:1px solid #ccc;padding:5px 6px;text-align:center;">${i+1}</td>
+      <td style="border:1px solid #ccc;padding:5px 6px;text-align:center;white-space:nowrap;">${esc(a.rut)}</td>
+      <td style="border:1px solid #ccc;padding:5px 6px;">${esc(a.nombre)}</td>
+      <td style="border:1px solid #ccc;padding:5px 6px;">${esc(a.cargo)}</td>
+      <td style="border:1px solid #ccc;padding:5px 6px;">${cursos}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('printTotal').textContent = list.length;
+}
+
+function populateAreaFilter(){
+  const sel = document.getElementById('areaFilter');
+  const areas = [...new Set(auditoresPrincipal.map(a=>a.area))].sort();
+  areas.forEach(ar=>{
+    const opt = document.createElement('option');
+    opt.value = ar; opt.textContent = ar;
+    sel.appendChild(opt);
+  });
+}
+
+/* ============ FILTER ============ */
+function applyFilters(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const areaSel = document.getElementById('areaFilter').value;
+  const onlyHab = document.getElementById('onlyHabilitados').checked;
+  let list = auditoresPrincipal.filter(a=>{
+    if(onlyHab && !a.hab) return false;
+    if(areaSel && a.area !== areaSel) return false;
+    if(q){
+      const hay = (a.nombre+' '+a.rut+' '+a.cargo).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  renderMain(list);
+}
+
+/* ============ MODAL ============ */
+function findCert(ownerId, certId){
+  return (certLists[ownerId] || []).find(c=>c.id===certId);
+}
+
+function openModal(ownerId, certId){
+  modalCtx = { ownerId, certId };
+  const isNew = !certId;
+  const cert = isNew ? null : findCert(ownerId, certId);
+  document.getElementById('modalTitle').textContent = isNew ? 'Agregar certificado' : 'Editar certificado';
+  document.getElementById('modalRef').textContent = isNew
+    ? 'Escribe un nombre para identificar este certificado (ej: "ISO 17075", "Diploma 2024").'
+    : 'Vinculando el certificado de esta persona.';
+  document.getElementById('modalName').value = isNew ? '' : cert.name;
+  document.getElementById('modalInput').value = isNew ? '' : (cert.url || '');
+  document.getElementById('modalClear').style.display = (!isNew && cert.url) ? 'inline-block' : 'none';
+  document.getElementById('modalDelete').style.display = isNew ? 'none' : 'inline-block';
+  document.getElementById('modalBg').classList.add('show');
+  setTimeout(()=>document.getElementById(isNew ? 'modalName' : 'modalInput').focus(),50);
+}
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  modalCtx = null;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function refreshTables(){
+  applyFilters();
+}
+
+/* ============ EVENTS ============ */
+document.addEventListener('click', (e)=>{
+  const addBtn = e.target.closest('.cert-add');
+  if(addBtn){
+    openModal(addBtn.dataset.owner, null);
+    return;
+  }
+  const editBtn = e.target.closest('.cert-edit');
+  if(editBtn){
+    openModal(editBtn.dataset.owner, editBtn.dataset.cert);
+    return;
+  }
+  const btn = e.target.closest('.cert-btn');
+  if(btn){
+    const cert = findCert(btn.dataset.owner, btn.dataset.cert);
+    if(cert && cert.url){
+      window.open(cert.url, '_blank', 'noopener');
+    } else {
+      openModal(btn.dataset.owner, btn.dataset.cert);
+    }
+    return;
+  }
+  if(e.target.id === 'modalCancel' || e.target === document.getElementById('modalBg')){ closeModal(); return; }
+
+  if(e.target.id === 'modalSave'){
+    const name = document.getElementById('modalName').value.trim();
+    const url = document.getElementById('modalInput').value.trim();
+    if(!name){ showToast('Ponle un nombre al certificado'); return; }
+    const { ownerId, certId } = modalCtx;
+    if(!certLists[ownerId]) certLists[ownerId] = [];
+    if(certId){
+      const cert = findCert(ownerId, certId);
+      if(cert){ cert.name = name; cert.url = url; }
+    } else {
+      certLists[ownerId].push({ id: genId(), name, url });
+    }
+    const ok = saveCertList(ownerId);
+    if(ok){
+      showToast('Certificado guardado');
+      closeModal();
+      refreshTables();
+    } else {
+      showToast('No se pudo guardar. Intenta de nuevo.');
+    }
+    return;
+  }
+
+  if(e.target.id === 'modalClear'){
+    const { ownerId, certId } = modalCtx;
+    const cert = findCert(ownerId, certId);
+    if(cert) cert.url = '';
+    saveCertList(ownerId);
+    showToast('Enlace eliminado');
+    closeModal();
+    refreshTables();
+    return;
+  }
+
+  if(e.target.id === 'modalDelete'){
+    const { ownerId, certId } = modalCtx;
+    certLists[ownerId] = (certLists[ownerId] || []).filter(c=>c.id!==certId);
+    saveCertList(ownerId);
+    showToast('Certificado eliminado');
+    closeModal();
+    refreshTables();
+    return;
+  }
+
+  if(e.target.id === 'btnPrint'){
+    renderPrintSheet();
+    window.print();
+    return;
+  }
+});
+
+document.getElementById('search').addEventListener('input', applyFilters);
+document.getElementById('areaFilter').addEventListener('change', applyFilters);
+document.getElementById('onlyHabilitados').addEventListener('change', applyFilters);
+
+/* ============ INIT ============ */
+(function init(){
+  loadAllCertLists();
+  populateAreaFilter();
+  renderStats();
+  applyFilters();
+  document.getElementById('lastGen').textContent = 'Generado ' + new Date().toLocaleDateString('es-CL', {year:'numeric',month:'long',day:'numeric'});
+})();
+</script>
+</body>
+</html>
