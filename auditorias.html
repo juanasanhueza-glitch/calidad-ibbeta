@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panel de Auditorías a Proveedores — Instituto Bioquímico Beta</title>
+<style>
+  body{margin:0;padding:24px 16px;background:#F0F4F8;font-family:'Segoe UI',Arial,sans-serif;}
+  .apqa-backlink{max-width:900px;margin:0 auto 12px;}
+  .apqa-backlink a{color:#1F4E79;text-decoration:none;font-size:13px;font-weight:600;}
+  .apqa-backlink a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="apqa-backlink"><a href="index.html">&larr; Volver al Registro de Proveedores</a></div>
+<!-- Panel de Auditorías a Proveedores 2026 · complemento de Registro de Proveedores Calificados (PL-QA-019) -->
+<style>
+  .apqa-scope{
+    font-family:'Segoe UI',Arial,sans-serif;background:#F0F4F8;color:#1a2332;font-size:14px;
+    max-width:900px;margin:0 auto;border-radius:11px;overflow:hidden;border:1px solid #dde3ea;
+  }
+  .apqa-scope *{box-sizing:border-box}
+  .apqa-mono{font-family:monospace}
+
+  .apqa-topbar{background:#1F4E79;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .apqa-topbar h1{font-size:15px;font-weight:600}
+  .apqa-topbar .sub{font-size:11px;opacity:.72;margin-top:3px}
+  .apqa-stats{display:flex;gap:18px}
+  .apqa-st{text-align:center}
+  .apqa-stv{font-size:18px;font-weight:700;line-height:1}
+  .apqa-stl{font-size:10px;opacity:.72;margin-top:2px;text-transform:uppercase;letter-spacing:.03em}
+
+  .apqa-progress-wrap{background:#fff;border-bottom:1px solid #dde3ea;padding:12px 20px}
+  .apqa-progress-title{font-size:11px;font-weight:700;color:#556677;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .apqa-progress-bar{height:8px;background:#e8edf3;border-radius:4px;overflow:hidden}
+  .apqa-progress-fill{height:100%;border-radius:4px;transition:width .3s ease}
+  .apqa-progress-meta{display:flex;justify-content:space-between;font-size:11px;color:#7a8ea0;margin-top:5px}
+
+  .apqa-toolbar{background:#fff;border-bottom:1px solid #dde3ea;padding:10px 20px;display:flex;gap:6px;flex-wrap:wrap}
+  .apqa-chip{font-size:11.5px;padding:5px 11px;border-radius:20px;border:1.5px solid #c5d0dd;background:#fff;color:#556677;cursor:pointer}
+  .apqa-chip:hover{border-color:#1F4E79;color:#1F4E79}
+  .apqa-chip.active{background:#1F4E79;border-color:#1F4E79;color:#fff}
+
+  .apqa-list{background:#fff}
+  .apqa-row{display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid #eef1f5;cursor:pointer}
+  .apqa-row:hover{background:#fafbfc}
+  .apqa-check{width:20px;height:20px;flex-shrink:0;accent-color:#1F4E79;cursor:pointer}
+  .apqa-badge{width:34px;height:34px;min-width:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff}
+  .apqa-nprov{font-family:monospace;font-size:10px;color:#1557A0;background:#E3F0FF;padding:1px 6px;border-radius:5px;font-weight:600}
+  .apqa-row-main{flex:1;min-width:0}
+  .apqa-row-name{font-size:13px;font-weight:600}
+  .apqa-row-meta{font-size:11px;color:#7a8ea0;margin-top:1px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .apqa-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.2px}
+  .p-realizada{background:#D1F0DC;color:#1A6B3A}
+  .p-programada{background:#E3F0FF;color:#1557A0}
+  .p-pendiente{background:#EAEEF3;color:#556677}
+  .apqa-chevron{color:#8a9bb0;font-size:11px;transition:transform .15s ease}
+  .apqa-row.open .apqa-chevron{transform:rotate(90deg)}
+
+  .apqa-panel{display:none;padding:14px 16px 16px 61px;background:#f7f9fc;border-bottom:1px solid #eef1f5}
+  .apqa-panel.open{display:block}
+  .apqa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .apqa-field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#7a8ea0;margin-bottom:4px;font-weight:600}
+  .apqa-field select,.apqa-field input,.apqa-field textarea{
+    width:100%;font-size:12.5px;padding:7px 9px;border:1.5px solid #c5d0dd;border-radius:7px;background:#fff;color:#1a2332;font-family:inherit;
+  }
+  .apqa-field select:focus,.apqa-field input:focus,.apqa-field textarea:focus{outline:none;border-color:#1F4E79}
+  .apqa-field textarea{resize:vertical;min-height:48px}
+  .apqa-next{font-size:11.5px;background:#fff;border:1px dashed #c5d0dd;border-radius:8px;padding:8px 10px;margin-bottom:10px;color:#445566}
+  .apqa-next b{font-family:monospace}
+  .apqa-linkrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .apqa-registrylink{font-size:11.5px;color:#1F4E79;text-decoration:none;font-weight:600}
+  .apqa-registrylink:hover{text-decoration:underline}
+  .apqa-save{font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:none;background:#1F4E79;color:#fff;cursor:pointer}
+  .apqa-save:hover{background:#163d62}
+  .apqa-savedmsg{font-size:11px;color:#1A6B3A;margin-left:8px;opacity:0;transition:opacity .2s;font-weight:600}
+  .apqa-savedmsg.show{opacity:1}
+
+  .apqa-toast{
+    position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-12px);
+    background:#1A6B3A;color:#fff;font-size:13px;font-weight:600;
+    padding:10px 18px;border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.18);
+    display:flex;align-items:center;gap:8px;z-index:9999;
+    opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;
+  }
+  .apqa-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .apqa-context{font-size:11px;color:#8A5500;background:#FFF8D0;border-radius:7px;padding:7px 9px;margin-bottom:10px}
+
+  .apqa-mismatch{font-size:11.5px;color:#8A5500;background:#FFF3D6;border:1px solid #F5D998;border-radius:7px;padding:8px 10px;margin-bottom:10px;font-weight:600}
+  .apqa-mismatch-tag{font-size:9.5px;font-weight:700;color:#8A5500;background:#FFECB0;padding:1px 6px;border-radius:20px;white-space:nowrap}
+
+  .apqa-deadline{font-size:12px;font-weight:600;border-radius:8px;padding:9px 11px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .dl-ok{background:#D1F0DC;color:#1A6B3A}
+  .dl-warn{background:#FFECB0;color:#8A5500}
+  .dl-over{background:#FFD7D7;color:#9C1515}
+
+  .apqa-plazo{display:flex;align-items:center;gap:6px;font-size:11px;color:#fff;opacity:.85}
+  .apqa-plazo input{width:44px;padding:3px 5px;border-radius:5px;border:none;font-size:11px;text-align:center;font-family:monospace}
+  .apqa-refresh{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer}
+  .apqa-refresh:hover{background:rgba(255,255,255,.12)}
+  .apqa-syncbar{font-size:11.5px;padding:8px 20px;text-align:center;font-weight:600}
+  .apqa-syncbar.warn{background:#FFECB0;color:#8A5500}
+  .apqa-syncbar.err{background:#FFD7D7;color:#9C1515}
+
+  .apqa-rovalue{padding:7px 9px;font-size:12.5px;color:#1a2332;background:#eef1f5;border-radius:7px;border:1px solid #e3e7ec;min-height:16px}
+  .apqa-rocheck{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .apqa-foot{font-size:10.5px;color:#8a9bb0;text-align:center;padding:9px 12px;background:#fff}
+</style>
+
+<div class="apqa-scope" id="apqaRoot">
+  <div class="apqa-topbar">
+    <div>
+      <h1>🏭 Panel de Auditorías a Proveedores — 2026</h1>
+      <div class="sub">👁️ Vista de equipo (solo lectura) — Complemento de Registro de Proveedores Calificados · PL-QA-019 / PGR-QA-009.04</div>
+    </div>
+    <div class="apqa-stats" id="apqaStats"></div>
+  </div>
+  <div style="background:#163d62;padding:6px 20px;display:flex;justify-content:space-between;align-items:center;">
+    <button class="apqa-refresh" id="apqaRefreshBtn" type="button">🔄 Actualizar datos</button>
+    <div class="apqa-plazo">📅 Plazo reporte F-QA-009.03:
+      <input type="number" id="apqaPlazoInput" value="45" min="1" max="90"> días hábiles
+    </div>
+  </div>
+  <div id="apqaSyncBar"></div>
+
+  <div class="apqa-progress-wrap">
+    <div class="apqa-progress-title">Avance del Programa Anual de Auditorías 2026</div>
+    <div class="apqa-progress-bar"><div class="apqa-progress-fill" id="apqaProgFill"></div></div>
+    <div class="apqa-progress-meta"><span>0%</span><span id="apqaProgMeta" style="font-weight:600"></span><span>100%</span></div>
+  </div>
+
+  <div class="apqa-toolbar" id="apqaToolbar"></div>
+  <div class="apqa-list" id="apqaList"></div>
+  <div class="apqa-toast" id="apqaToast">✅ Información guardada correctamente</div>
+  <p class="apqa-foot">👁️ Vista de solo lectura. Los datos se actualizan en la fuente oficial y aparecerán aquí al abrir o presionar "Actualizar datos".</p>
+</div>
+
+<script>
+(function(){
+  // Mismos proveedores y códigos (n_prov) que en el Registro de Proveedores Calificados / PGR-QA-009.04
+  var PROGRAMA = [
+    {nprov:'P98', nombre:'METROCAL SPA',                mes:5,  dia:20, tipo:'SERV.', estadoBase:'Realizada'},
+    {nprov:'P96', nombre:'Lyon Servicios Ltda.',         mes:6,  dia:1,  tipo:'SERV.', estadoBase:'Realizada'},
+    {nprov:'P45', nombre:'Constantia Flexibles',         mes:6,  dia:0,  tipo:'MEE',   estadoBase:'Programada'},
+    {nprov:'P29', nombre:'Maprin Representaciones',      mes:6,  dia:0,  tipo:'MP',    estadoBase:'Programada'},
+    {nprov:'P09', nombre:'CEB Importaciones Ltda.',      mes:6,  dia:0,  tipo:'MEE',   estadoBase:'Programada'},
+    {nprov:'P23', nombre:'IADET',                        mes:6,  dia:0,  tipo:'SERV.', estadoBase:'Programada'},
+    {nprov:'P30', nombre:'Mathiesen S.A.C',              mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P42', nombre:'Vitafarma (Reutter)',          mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P38', nombre:'Proquimsa Ltda.',              mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P19', nombre:'Industrias Floramatic SpA',    mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P39', nombre:'Quimatic SpA',                 mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P24', nombre:'Impresos Autoadhesivos Ltda.', mes:7,  dia:0,  tipo:'MEE',   estadoBase:'Pendiente'},
+    {nprov:'P31', nombre:'Merck S.A',                    mes:7,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P06', nombre:'Brenntag Chile',               mes:8,  dia:0,  tipo:'MP',    estadoBase:'Pendiente'},
+    {nprov:'P52', nombre:'Servicio de Metrología Integral (SMI)', mes:8, dia:0, tipo:'SERV.', estadoBase:'Pendiente'},
+    {nprov:'P27', nombre:'Laboratorio de Metrología Covery (LMC)', mes:8, dia:0, tipo:'SERV.', estadoBase:'Pendiente'},
+    {nprov:'P03', nombre:'Asetem',                       mes:9,  dia:0,  tipo:'SERV.', estadoBase:'Pendiente'},
+    {nprov:'P14', nombre:'DTS',                          mes:10, dia:0,  tipo:'SERV.', estadoBase:'Pendiente'},
+    {nprov:'P62', nombre:'CS LAB (Centro de Servicios de Análisis de Laboratorio)', mes:11, dia:0, tipo:'SERV.', estadoBase:'Pendiente'},
+    {nprov:'P54', nombre:'Truly Nolen Chile S.A.',       mes:11, dia:0,  tipo:'SERV.', estadoBase:'Pendiente'}
+  ];
+
+  var MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var REGISTRY_URL='https://juanasanhueza-glitch.github.io/calidad-ibbeta/';
+
+  var QUALIF={
+    'pendiente':{label:'Pendiente de calificar', pill:'p-pendiente', color:'#556677'},
+    'bueno':    {label:'Bueno',                  pill:'p-realizada', color:'#1A6B3A'},
+    'aceptable':{label:'Aceptable',               pill:'p-programada', color:'#1557A0'},
+    'reparo':   {label:'Aceptable con Reparo',    pill:'',            color:'#8A5500'},
+    'rechazado':{label:'Rechazado',               pill:'',            color:'#9C1515'}
+  };
+
+  // Contexto real conocido del Registro (para trazabilidad al ejecutar la auditoría)
+  var CONTEXTO = {
+    P23: 'En el Registro de Proveedores, IADET figura "Vencido" desde el 21/03/2026 (última cert. AUD-P23.22) — esta es la recalificación que corresponde.'
+  };
+
+  var state={};
+  var filter='todos';
+  var openId=null;
+  var plazoDias=45; // días hábiles para enviar F-QA-009.03 (edición 09: se modificó de 20 a 45 días hábiles)
+
+  function addBusinessDays(date, days){
+    var d=new Date(date);
+    var added=0, guard=0;
+    while(added<days && guard<3650){ // guard: nunca más de ~10 años de iteraciones, por seguridad
+      d.setDate(d.getDate()+1);
+      var day=d.getDay();
+      if(day!==0&&day!==6) added++;
+      guard++;
+    }
+    return d;
+  }
+  function businessDaysBetween(from, to){
+    var count=0;
+    var cur=new Date(from);
+    var end=new Date(to);
+    var sign = end.getTime()>=cur.getTime() ? 1 : -1;
+    var guard=0;
+    while(cur.toDateString()!==end.toDateString() && guard<3650){
+      cur.setDate(cur.getDate()+sign);
+      var day=cur.getDay();
+      if(day!==0&&day!==6) count+=sign;
+      guard++;
+    }
+    return count;
+  }
+  function parseFechaSafe(str){
+    // Acepta "2026-07-13" o "2026-07-13T04:00:00.000Z" (u otro texto con ese prefijo).
+    // Si no calza con el formato esperado, devuelve null en vez de una fecha inválida
+    // que podría colgar los cálculos de días hábiles.
+    if(!str) return null;
+    var m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(!m) return null;
+    var d = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function mismatchInfo(item, rec){
+    var d=parseFechaSafe(rec.fecha);
+    if(!d) return null;
+    var mesReal=d.getMonth()+1;
+    if(mesReal===item.mes) return null;
+    return {mesProgramado:MESES[item.mes], mesReal:MESES[mesReal]};
+  }
+  function deadlineHTML(rec){
+    var ejec=parseFechaSafe(rec.fecha);
+    if(!ejec) return '';
+    var deadline=addBusinessDays(ejec, plazoDias);
+    var today=new Date(); today.setHours(0,0,0,0);
+    var remaining=businessDaysBetween(today, deadline);
+    var cls = remaining<0 ? 'dl-over' : remaining<=5 ? 'dl-warn' : 'dl-ok';
+    var txt;
+    if(remaining<0){
+      txt='📅 Plazo para enviar el reporte de auditoría (F-QA-009.03): '+fmtISO(deadline)+' ('+plazoDias+' días hábiles desde la ejecución) — <u>vencido hace '+Math.abs(remaining)+' día(s) hábil(es)</u>.';
+    } else {
+      txt='📅 Plazo para enviar el reporte de auditoría (F-QA-009.03): '+fmtISO(deadline)+' ('+plazoDias+' días hábiles desde la ejecución) — quedan '+remaining+' día(s) hábil(es).';
+    }
+    return '<div class="apqa-deadline '+cls+'">'+txt+'</div>';
+  }
+
+  function defaultRecord(item){
+    return {estado:item.estadoBase, fecha:'', calificacion:'pendiente', idaud:'', auditor:'', notas:''};
+  }
+
+  var SEED_OVERRIDES = {
+    P23:{estado:'Realizada', fecha:'2026-07-30', calificacion:'pendiente', idaud:'AUD-P23.26', notas:'Auditoría ejecutada el 30-07-2026. Checklist / lista de verificación completado y guardado.'}
+  };
+
+  // Pega aquí la URL de tu Web App de Google Apps Script (termina en /exec).
+  // Mientras diga "PEGA_AQUI_TU_URL_WEBAPP", el panel funciona solo con datos por defecto (no se guarda nada).
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJJeJf4zXtrqoZhN3oA2qcEe7xg7z3Bs4cTcJDab4xJDUdJSfcI-V_Chpn1BoMLyjh/exec';
+  var BACKEND_CONFIGURED = /^https?:\/\//.test(APPS_SCRIPT_URL);
+  // true = esta es la versión de solo lectura para el equipo (sin edición, sin guardado)
+  // false = esta es tu versión privada de edición
+  var READONLY = true;
+
+  function showSyncBar(msg, cls){
+    var bar=document.getElementById('apqaSyncBar');
+    bar.className = cls ? 'apqa-syncbar '+cls : '';
+    bar.textContent = msg || '';
+  }
+
+  async function loadState(){
+    var remoteData = {};
+    if(BACKEND_CONFIGURED){
+      try{
+        var res = await fetch(APPS_SCRIPT_URL + '?action=getAll');
+        remoteData = await res.json();
+        if(remoteData && remoteData.error) throw new Error(remoteData.error);
+        showSyncBar('','');
+      }catch(e){
+        console.error(e);
+        showSyncBar('⚠️ No se pudo conectar con la hoja compartida. Mostrando datos por defecto (sin guardar).','err');
+      }
+    } else {
+      showSyncBar('⚠️ Falta configurar APPS_SCRIPT_URL en el código para compartir datos con tu equipo. Por ahora funciona solo localmente.','warn');
+    }
+    for(var i=0;i<PROGRAMA.length;i++){
+      var item=PROGRAMA[i];
+      var rec=remoteData[item.nprov];
+      if(!rec) rec = SEED_OVERRIDES[item.nprov] ? Object.assign(defaultRecord(item), SEED_OVERRIDES[item.nprov]) : defaultRecord(item);
+      state[item.nprov]=rec;
+    }
+  }
+
+  async function saveRecord(nprov){
+    if(!BACKEND_CONFIGURED) return false;
+    try{
+      var record = Object.assign({nprov:nprov}, state[nprov]);
+      var res = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'}, // evita preflight CORS
+        body: JSON.stringify({action:'save', record:record})
+      });
+      var out = await res.json();
+      return !!(out && out.ok);
+    }catch(e){ console.error(e); return false; }
+  }
+
+  function nextAuditText(rec){
+    var d=parseFechaSafe(rec.fecha);
+    if(!d||rec.calificacion==='pendiente') return 'Se calcula al registrar fecha de ejecución y calificación.';
+    if(rec.calificacion==='bueno'){d.setFullYear(d.getFullYear()+4);return 'Próxima auditoría: <b>'+fmt(d)+'</b> (4 años · Bueno)';}
+    if(rec.calificacion==='aceptable'){d.setFullYear(d.getFullYear()+2);return 'Próxima auditoría: <b>'+fmt(d)+'</b> (2 años · Aceptable)';}
+    if(rec.calificacion==='reparo') return 'Corto plazo a definir (Aceptable con Reparo).';
+    if(rec.calificacion==='rechazado') return 'Sin frecuencia programada (Rechazado).';
+    return '';
+  }
+  function fmt(d){return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});}
+  function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function initials(n){return n.split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();}
+  function esc(s){return (s||'').toString();}
+
+  function render(){renderStats();renderProgress();renderToolbar();renderList();}
+
+  function renderStats(){
+    var total=PROGRAMA.length;
+    var realizadas=PROGRAMA.filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
+    var pendientes=total-realizadas;
+    document.getElementById('apqaStats').innerHTML=
+      '<div class="apqa-st"><div class="apqa-stv">'+total+'</div><div class="apqa-stl">Programa 2026</div></div>'+
+      '<div class="apqa-st"><div class="apqa-stv" style="color:#8fd9ac">'+realizadas+'</div><div class="apqa-stl">Realizadas</div></div>'+
+      '<div class="apqa-st"><div class="apqa-stv" style="color:#ffd9a0">'+pendientes+'</div><div class="apqa-stl">Pendientes</div></div>';
+  }
+
+  function renderProgress(){
+    var total=PROGRAMA.length;
+    var realizadas=PROGRAMA.filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
+    var pct=total>0?Math.round(realizadas/total*100):0;
+    var color=pct>=80?'#1A9A50':pct>=50?'#F5A623':'#E24B4A';
+    document.getElementById('apqaProgFill').style.width=pct+'%';
+    document.getElementById('apqaProgFill').style.background=color;
+    document.getElementById('apqaProgMeta').textContent=pct+'% completado ('+realizadas+' de '+total+')';
+    document.getElementById('apqaProgMeta').style.color=color;
+  }
+
+  function renderToolbar(){
+    var chips=[['todos','Todos'],['sem1','1er Semestre'],['sem2','2do Semestre'],['Realizada','Realizadas'],['Programada','Programadas'],['Pendiente','Pendientes'],['porcalificar','Por calificar']];
+    document.getElementById('apqaToolbar').innerHTML=chips.map(function(c){
+      return '<button class="apqa-chip '+(filter===c[0]?'active':'')+'" data-f="'+c[0]+'">'+c[1]+'</button>';
+    }).join('');
+    document.getElementById('apqaToolbar').querySelectorAll('.apqa-chip').forEach(function(el){
+      el.addEventListener('click',function(){filter=el.dataset.f;render();});
+    });
+  }
+
+  function passesFilter(item){
+    var rec=state[item.nprov];
+    if(filter==='todos')return true;
+    if(filter==='sem1')return item.mes<=7;
+    if(filter==='sem2')return item.mes>=8;
+    if(filter==='porcalificar')return rec.estado==='Realizada'&&rec.calificacion==='pendiente';
+    return rec.estado===filter;
+  }
+
+  function renderList(){
+    var list=document.getElementById('apqaList');
+    var rows=PROGRAMA.filter(passesFilter);
+    if(!rows.length){
+      list.innerHTML='<div style="padding:26px;text-align:center;color:#8a9bb0;font-size:12.5px;">Sin proveedores en este filtro.</div>';
+      return;
+    }
+    list.innerHTML=rows.map(function(item){
+      var rec=state[item.nprov];
+      var q=QUALIF[rec.calificacion];
+      var isOpen=openId===item.nprov;
+      var badgeColor = rec.estado==='Realizada' ? '#1A6B3A' : rec.estado==='Programada' ? '#1557A0' : '#8a9bb0';
+      var pillClass = rec.estado==='Realizada' ? (rec.calificacion!=='pendiente' ? (q.pill||'') : 'p-realizada') : rec.estado==='Programada' ? 'p-programada' : 'p-pendiente';
+      var pillLabel = rec.estado==='Realizada' && rec.calificacion!=='pendiente' ? q.label : rec.estado;
+      var pillStyle = q.pill ? '' : (rec.calificacion==='reparo'?'background:#FFECB0;color:#8A5500':rec.calificacion==='rechazado'?'background:#FFD7D7;color:#9C1515':'');
+      var dia=item.dia>0?'Día '+item.dia:'Fecha por definir';
+      var checkboxHTML = READONLY
+        ? '<span class="apqa-rocheck">'+(rec.estado==='Realizada'?'✅':'⬜')+'</span>'
+        : '<input type="checkbox" class="apqa-check" data-chk="'+item.nprov+'" '+(rec.estado==='Realizada'?'checked':'')+'>';
+      var estadoField = READONLY
+        ? '<div class="apqa-rovalue">'+esc(rec.estado)+'</div>'
+        : '<select data-k="estado" data-id="'+item.nprov+'">'+['Programada','Realizada','Pendiente','Reprogramada'].map(function(e){return '<option value="'+e+'" '+(rec.estado===e?'selected':'')+'>'+e+'</option>';}).join('')+'</select>';
+      var fechaNorm = (function(){ var d=parseFechaSafe(rec.fecha); return d?fmtISO(d):''; })();
+      var fechaField = READONLY
+        ? '<div class="apqa-rovalue">'+(fechaNorm||'—')+'</div>'
+        : '<input type="date" data-k="fecha" data-id="'+item.nprov+'" value="'+fechaNorm+'">';
+      var califField = READONLY
+        ? '<div class="apqa-rovalue">'+esc(q.label)+'</div>'
+        : '<select data-k="calificacion" data-id="'+item.nprov+'">'+Object.keys(QUALIF).map(function(k){return '<option value="'+k+'" '+(rec.calificacion===k?'selected':'')+'>'+QUALIF[k].label+'</option>';}).join('')+'</select>';
+      var auditorField = READONLY
+        ? '<div class="apqa-rovalue">'+(esc(rec.auditor)||'—')+'</div>'
+        : '<input type="text" data-k="auditor" data-id="'+item.nprov+'" placeholder="Nombre del auditor" value="'+esc(rec.auditor)+'">';
+      var idaudField = READONLY
+        ? '<div class="apqa-rovalue">'+(esc(rec.idaud)||'—')+'</div>'
+        : '<input type="text" data-k="idaud" data-id="'+item.nprov+'" placeholder="AUD-'+item.nprov+'.26" value="'+esc(rec.idaud)+'">';
+      var notasField = READONLY
+        ? '<div class="apqa-rovalue" style="white-space:pre-wrap;min-height:40px;">'+(esc(rec.notas)||'—')+'</div>'
+        : '<textarea data-k="notas" data-id="'+item.nprov+'" placeholder="Ej: checklist guardado, hallazgos preliminares...">'+esc(rec.notas)+'</textarea>';
+      var saveRowHTML = READONLY ? '' :
+        '<button class="apqa-save" data-id="'+item.nprov+'">Guardar</button>'
+        +'<span class="apqa-savedmsg" data-savedmsg="'+item.nprov+'">Guardado ✓</span>';
+      return '<div>'
+        +'<div class="apqa-row '+(isOpen?'open':'')+'" data-id="'+item.nprov+'">'
+          +checkboxHTML
+          +'<div class="apqa-badge" style="background:'+badgeColor+'">'+initials(item.nombre)+'</div>'
+          +'<div class="apqa-row-main">'
+            +'<div class="apqa-row-name">'+esc(item.nombre)+'</div>'
+            +'<div class="apqa-row-meta"><span class="apqa-nprov">'+item.nprov+'</span>'+MESES[item.mes]+' 2026 · '+dia+' · '+item.tipo
+              +(mismatchInfo(item,rec) ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mismatchInfo(item,rec).mesReal+'</span>' : '')
+            +'</div>'
+          +'</div>'
+          +'<span class="apqa-pill '+pillClass+'" style="'+pillStyle+'">'+esc(pillLabel)+'</span>'
+          +'<span class="apqa-chevron">&#9656;</span>'
+        +'</div>'
+        +'<div class="apqa-panel '+(isOpen?'open':'')+'" data-panel="'+item.nprov+'">'
+          +(CONTEXTO[item.nprov] ? '<div class="apqa-context">'+CONTEXTO[item.nprov]+'</div>' : '')
+          +(function(){var mi=mismatchInfo(item,rec); return mi ? '<div class="apqa-mismatch" data-mismatch="'+item.nprov+'">📌 Nota: esta auditoría estaba programada para <b>'+mi.mesProgramado+' 2026</b>, pero se realizó en <b>'+mi.mesReal+' 2026</b>.</div>' : '<div data-mismatch="'+item.nprov+'"></div>'; })()
+          +'<div class="apqa-linkrow"><span class="apqa-nprov apqa-mono">'+item.nprov+'</span>'
+            +'<a class="apqa-registrylink" href="'+REGISTRY_URL+'" target="_blank">Abrir Registro de Proveedores ↗</a></div>'
+          +'<div class="apqa-grid">'
+            +'<div class="apqa-field"><label>Estado</label>'+estadoField+'</div>'
+            +'<div class="apqa-field"><label>Fecha de auditoría realizada</label>'+fechaField+'</div>'
+            +'<div class="apqa-field"><label>Calificación (SOP QA-019)</label>'+califField+'</div>'
+            +'<div class="apqa-field"><label>Auditor</label>'+auditorField+'</div>'
+            +'<div class="apqa-field"><label>N° Reporte (AUD-'+item.nprov+'.26)</label>'+idaudField+'</div>'
+          +'</div>'
+          +deadlineHTML(rec)
+          +'<div class="apqa-field" style="margin-bottom:10px;"><label>Notas / referencia de checklist</label>'+notasField+'</div>'
+          +'<div class="apqa-next">'+nextAuditText(rec)+'</div>'
+          +saveRowHTML
+        +'</div>'
+      +'</div>';
+    }).join('');
+
+    list.querySelectorAll('.apqa-row').forEach(function(row){
+      row.addEventListener('click',function(e){
+        if(e.target.classList.contains('apqa-check'))return;
+        var id=row.dataset.id;
+        openId=openId===id?null:id;
+        render();
+      });
+    });
+    list.querySelectorAll('.apqa-check').forEach(function(chk){
+      chk.addEventListener('click',function(e){e.stopPropagation();});
+      chk.addEventListener('change',async function(){
+        var id=chk.dataset.chk;
+        state[id].estado = chk.checked ? 'Realizada' : 'Programada';
+        if(chk.checked && !state[id].fecha){
+          state[id].fecha = new Date().toISOString().slice(0,10);
+        }
+        await saveRecord(id);
+        openId=id;
+        render();
+      });
+    });
+    list.querySelectorAll('[data-k]').forEach(function(el){
+      el.addEventListener('click',function(e){e.stopPropagation();});
+      el.addEventListener('change',function(){
+        var id=el.dataset.id,k=el.dataset.k;
+        state[id][k]=el.value;
+        if(k==='estado'||k==='calificacion'||k==='fecha'){
+          var nxt=document.querySelector('[data-panel="'+id+'"] .apqa-next');
+          if(nxt)nxt.innerHTML=nextAuditText(state[id]);
+          if(k==='fecha'){
+            var panelEl=document.querySelector('[data-panel="'+id+'"]');
+            var oldDl=panelEl.querySelector('.apqa-deadline');
+            var newDlHTML=deadlineHTML(state[id]);
+            if(oldDl){ oldDl.outerHTML = newDlHTML; }
+            else if(newDlHTML){ nxt.insertAdjacentHTML('afterend', newDlHTML); }
+            var item=PROGRAMA.find(function(p){return p.nprov===id;});
+            var mi=item?mismatchInfo(item,state[id]):null;
+            var mismatchDiv=panelEl.querySelector('[data-mismatch="'+id+'"]');
+            if(mismatchDiv){
+              mismatchDiv.outerHTML = mi
+                ? '<div class="apqa-mismatch" data-mismatch="'+id+'">📌 Nota: esta auditoría estaba programada para <b>'+mi.mesProgramado+' 2026</b>, pero se realizó en <b>'+mi.mesReal+' 2026</b>.</div>'
+                : '<div data-mismatch="'+id+'"></div>';
+            }
+            var rowMeta=document.querySelector('.apqa-row[data-id="'+id+'"] .apqa-row-meta');
+            if(rowMeta && item){
+              var diaTxt=item.dia>0?'Día '+item.dia:'Fecha por definir';
+              rowMeta.innerHTML='<span class="apqa-nprov">'+id+'</span>'+MESES[item.mes]+' 2026 · '+diaTxt+' · '+item.tipo
+                +(mi ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mi.mesReal+'</span>' : '');
+            }
+          } else {
+            renderList();
+          }
+        }
+      });
+    });
+    list.querySelectorAll('.apqa-save').forEach(function(btn){
+      btn.addEventListener('click',async function(e){
+        e.stopPropagation();
+        var id=btn.dataset.id;
+        var originalText=btn.textContent;
+        btn.disabled=true;
+        btn.textContent='Guardando…';
+        var ok=await saveRecord(id);
+        renderStats();renderProgress();
+        if(ok){
+          btn.textContent='Guardado ✓';
+          var msg=document.querySelector('[data-savedmsg="'+id+'"]');
+          if(msg){msg.classList.add('show');setTimeout(function(){msg.classList.remove('show');},1800);}
+          var toast=document.getElementById('apqaToast');
+          if(toast){
+            toast.classList.add('show');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer=setTimeout(function(){toast.classList.remove('show');},2200);
+          }
+        } else {
+          btn.textContent='Error al guardar';
+        }
+        setTimeout(function(){btn.disabled=false;btn.textContent=originalText;},1500);
+      });
+    });
+  }
+
+  async function loadPlazo(){
+    if(BACKEND_CONFIGURED){
+      try{
+        var res = await fetch(APPS_SCRIPT_URL + '?action=getConfig');
+        var cfg = await res.json();
+        if(cfg && cfg.plazoDias) plazoDias = parseInt(cfg.plazoDias,10)||45;
+      }catch(e){ console.error(e); }
+    }
+    document.getElementById('apqaPlazoInput').value=plazoDias;
+  }
+  async function savePlazo(v){
+    plazoDias=parseInt(v,10)||45;
+    if(BACKEND_CONFIGURED){
+      try{
+        await fetch(APPS_SCRIPT_URL, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({action:'saveConfig', config:{plazoDias:String(plazoDias)}})
+        });
+      }catch(e){ console.error(e); }
+    }
+    render();
+  }
+
+  async function refreshAll(){
+    document.getElementById('apqaList').innerHTML='<div style="padding:26px;text-align:center;color:#8a9bb0;font-size:12.5px;">Sincronizando con la hoja compartida…</div>';
+    await loadPlazo();
+    await loadState();
+    render();
+  }
+
+  (async function init(){
+    document.getElementById('apqaList').innerHTML='<div style="padding:26px;text-align:center;color:#8a9bb0;font-size:12.5px;">Cargando panel…</div>';
+    if(READONLY){
+      var pi=document.getElementById('apqaPlazoInput');
+      pi.disabled=true;
+      pi.style.background='rgba(255,255,255,.15)';
+      pi.style.color='#fff';
+      pi.style.cursor='default';
+    }
+    await loadPlazo();
+    await loadState();
+    render();
+    if(!READONLY){
+      document.getElementById('apqaPlazoInput').addEventListener('change', function(){ savePlazo(this.value); });
+    }
+    document.getElementById('apqaRefreshBtn').addEventListener('click', refreshAll);
+  })();
+})();
+</script>
+
+</body>
+</html>
