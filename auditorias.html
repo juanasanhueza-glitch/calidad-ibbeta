@@ -88,6 +88,7 @@
 
   .apqa-mismatch{font-size:11.5px;color:#8A5500;background:#FFF3D6;border:1px solid #F5D998;border-radius:7px;padding:8px 10px;margin-bottom:10px;font-weight:600}
   .apqa-mismatch-tag{font-size:9.5px;font-weight:700;color:#8A5500;background:#FFECB0;padding:1px 6px;border-radius:20px;white-space:nowrap}
+  .apqa-obs-tag{font-size:9.5px;font-weight:600;color:#8A5500;background:#FFF3D6;border:1px solid #F0DBA0;padding:1px 6px;border-radius:20px;white-space:nowrap}
 
   .apqa-deadline{font-size:12px;font-weight:600;border-radius:8px;padding:9px 11px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
   .dl-ok{background:#D1F0DC;color:#1A6B3A}
@@ -137,8 +138,10 @@
 
 <script>
 (function(){
+  // Programa de respaldo (se usa solo si falla la sincronización en vivo con
+  // la hoja Seguimiento_AUD-PROV, para que el panel nunca quede en blanco).
   // Mismos proveedores y códigos (n_prov) que en el Registro de Proveedores Calificados / PGR-QA-009.04
-  var PROGRAMA = [
+  var FALLBACK_PROGRAMA = [
     {nprov:'P98', nombre:'METROCAL SPA',                mes:5,  dia:20, tipo:'SERV.', estadoBase:'Realizada'},
     {nprov:'P96', nombre:'Lyon Servicios Ltda.',         mes:6,  dia:1,  tipo:'SERV.', estadoBase:'Realizada'},
     {nprov:'P45', nombre:'Constantia Flexibles',         mes:6,  dia:0,  tipo:'MEE',   estadoBase:'Programada'},
@@ -160,6 +163,85 @@
     {nprov:'P62', nombre:'CS LAB (Centro de Servicios de Análisis de Laboratorio)', mes:11, dia:0, tipo:'SERV.', estadoBase:'Pendiente'},
     {nprov:'P54', nombre:'Truly Nolen Chile S.A.',       mes:11, dia:0,  tipo:'SERV.', estadoBase:'Pendiente'}
   ];
+  var PROGRAMA = FALLBACK_PROGRAMA;
+
+  // ---- Sincronización en vivo del programa desde la hoja Seguimiento_AUD-PROV ----
+  // Misma fuente que usa el Registro de Proveedores (index.html) para su
+  // Vista Calendario, así ambos paneles siempre muestran el mismo programa.
+  var PROGRAMA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQIwFzIaRXa6TqDfPR1d3rq8FMBNviu3bvmd4r-UHgu1rjACh_Fx70OQFUkp5OlsYfYExiac9F2hpNw/pub?gid=0&single=true&output=csv';
+
+  function parseCSV(text){
+    text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    var rows=[],row=[],field='',inQuotes=false,i=0,n=text.length;
+    while(i<n){
+      var c=text[i];
+      if(inQuotes){
+        if(c==='"'){ if(text[i+1]==='"'){field+='"';i+=2;continue;} else {inQuotes=false;i++;continue;} }
+        else { field+=c;i++;continue; }
+      } else {
+        if(c==='"'){inQuotes=true;i++;continue;}
+        if(c===','){row.push(field);field='';i++;continue;}
+        if(c==='\n'){row.push(field);rows.push(row);row=[];field='';i++;continue;}
+        field+=c;i++;continue;
+      }
+    }
+    if(field.length>0||row.length>0){row.push(field);rows.push(row);}
+    var cleanRows=rows.filter(function(r){return !(r.length===1&&r[0].trim()==='');});
+    if(cleanRows.length===0)return [];
+    var headers=cleanRows[0].map(function(h){return h.trim();});
+    var out=[];
+    for(var r=1;r<cleanRows.length;r++){
+      var rawRow=cleanRows[r];
+      if(rawRow.every(function(v){return v.trim()==='';}))continue;
+      var obj={};
+      for(var c=0;c<headers.length;c++){ obj[headers[c]]=(rawRow[c]!==undefined?rawRow[c]:'').trim(); }
+      out.push(obj);
+    }
+    return out;
+  }
+
+  function pickCol(r, names){
+    for(var i=0;i<names.length;i++){
+      var n=names[i];
+      if(r[n]!==undefined && r[n]!==null && String(r[n]).trim()!=='') return r[n];
+    }
+    return '';
+  }
+
+  // Mismo mapeo que map_calendario.js en index.html, con "tipo" agregado
+  // (necesario acá para mostrar TIPO SUMINISTRO en cada fila) y "estado"
+  // renombrado a "estadoBase" (nombre que usa este panel).
+  function buildProgramaFromRows(rows){
+    return rows.map(function(r){
+      var nprov = pickCol(r, ['N° PROVEEDOR','Nº PROVEEDOR','° PROVEEDOR','N PROVEEDOR','PROVEEDOR N°']).toString().trim();
+      var nombre = (r['PROVEEDOR']||'').trim();
+      var tipo = (r['TIPO SUMINISTRO']||'').trim();
+      var mes = parseInt(r['MES PROGRAMADO'],10);
+      var diaRaw = (r['DÍA PROGRAMADO']!==undefined && r['DÍA PROGRAMADO']!==null) ? String(r['DÍA PROGRAMADO']).trim() : '';
+      var dia = /^\d+$/.test(diaRaw) ? parseInt(diaRaw,10) : 0;
+      var estadoBase = (r['Estado hoy']||'').trim() || 'Pendiente';
+      var observacion = (r['Observación']||r['Observaciones']||'').trim();
+      if(!nprov || !nombre || isNaN(mes)) return null;
+      return {nprov:nprov, nombre:nombre, mes:mes, dia:dia, tipo:tipo, estadoBase:estadoBase, observacion:observacion};
+    }).filter(Boolean);
+  }
+
+  async function loadPrograma(){
+    try{
+      var res = await fetch(PROGRAMA_CSV_URL);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var text = await res.text();
+      var rows = parseCSV(text);
+      var prog = buildProgramaFromRows(rows);
+      if(prog.length===0) throw new Error('0 filas parseadas');
+      PROGRAMA = prog;
+      return true;
+    }catch(e){
+      console.error('No se pudo sincronizar el programa desde Sheets, usando datos de respaldo:', e);
+      PROGRAMA = FALLBACK_PROGRAMA;
+      return false;
+    }
+  }
 
   var MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var REGISTRY_URL='https://juanasanhueza-glitch.github.io/calidad-ibbeta/';
@@ -275,24 +357,42 @@
 
   async function loadState(){
     var remoteData = {};
+    var backendStatus = {ok:true, msg:'', cls:''};
     if(BACKEND_CONFIGURED){
       try{
         var res = await fetch(APPS_SCRIPT_URL + '?action=getAll');
         remoteData = await res.json();
         if(remoteData && remoteData.error) throw new Error(remoteData.error);
-        showSyncBar('','');
       }catch(e){
         console.error(e);
-        showSyncBar('⚠️ No se pudo conectar con la hoja compartida. Mostrando datos por defecto (sin guardar).','err');
+        backendStatus = {ok:false, msg:'⚠️ No se pudo conectar con la hoja compartida. Mostrando datos por defecto (sin guardar).', cls:'err'};
       }
     } else {
-      showSyncBar('⚠️ Falta configurar APPS_SCRIPT_URL en el código para compartir datos con tu equipo. Por ahora funciona solo localmente.','warn');
+      backendStatus = {ok:false, msg:'⚠️ Falta configurar APPS_SCRIPT_URL en el código para compartir datos con tu equipo. Por ahora funciona solo localmente.', cls:'warn'};
     }
     for(var i=0;i<PROGRAMA.length;i++){
       var item=PROGRAMA[i];
       var rec=remoteData[item.nprov];
       if(!rec) rec = SEED_OVERRIDES[item.nprov] ? Object.assign(defaultRecord(item), SEED_OVERRIDES[item.nprov]) : defaultRecord(item);
       state[item.nprov]=rec;
+    }
+    return backendStatus;
+  }
+
+  // Sincroniza el programa (hoja Seguimiento_AUD-PROV) y el estado guardado
+  // (Apps Script) y combina ambos resultados en una sola barra de aviso,
+  // para no pisar un mensaje con el otro.
+  async function syncAll(){
+    var programaOk = await loadPrograma();
+    var backendStatus = await loadState();
+    if(!programaOk && !backendStatus.ok){
+      showSyncBar('⚠️ No se pudo sincronizar el programa desde Sheets ni conectar con la hoja compartida. Mostrando datos de respaldo (sin guardar).','err');
+    } else if(!programaOk){
+      showSyncBar('⚠️ No se pudo sincronizar el programa desde Sheets. Mostrando el último programa conocido.','warn');
+    } else if(!backendStatus.ok){
+      showSyncBar(backendStatus.msg, backendStatus.cls);
+    } else {
+      showSyncBar('','');
     }
   }
 
@@ -419,6 +519,7 @@
             +'<div class="apqa-row-name">'+esc(item.nombre)+'</div>'
             +'<div class="apqa-row-meta"><span class="apqa-nprov">'+item.nprov+'</span>'+MESES[item.mes]+' 2026 · '+dia+' · '+item.tipo
               +(mismatchInfo(item,rec) ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mismatchInfo(item,rec).mesReal+'</span>' : '')
+              +(item.observacion ? ' · <span class="apqa-obs-tag">'+esc(item.observacion)+'</span>' : '')
             +'</div>'
           +'</div>'
           +'<span class="apqa-pill '+pillClass+'" style="'+pillStyle+'">'+esc(pillLabel)+'</span>'
@@ -492,7 +593,8 @@
             if(rowMeta && item){
               var diaTxt=item.dia>0?'Día '+item.dia:'Fecha por definir';
               rowMeta.innerHTML='<span class="apqa-nprov">'+id+'</span>'+MESES[item.mes]+' 2026 · '+diaTxt+' · '+item.tipo
-                +(mi ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mi.mesReal+'</span>' : '');
+                +(mi ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mi.mesReal+'</span>' : '')
+                +(item.observacion ? ' · <span class="apqa-obs-tag">'+esc(item.observacion)+'</span>' : '');
             }
           } else if(k==='fechaReporte'){
             var panelEl2=document.querySelector('[data-panel="'+id+'"]');
@@ -560,7 +662,7 @@
   async function refreshAll(){
     document.getElementById('apqaList').innerHTML='<div style="padding:26px;text-align:center;color:#8a9bb0;font-size:12.5px;">Sincronizando con la hoja compartida…</div>';
     await loadPlazo();
-    await loadState();
+    await syncAll();
     render();
   }
 
@@ -574,7 +676,7 @@
       pi.style.cursor='default';
     }
     await loadPlazo();
-    await loadState();
+    await syncAll();
     render();
     if(!READONLY){
       document.getElementById('apqaPlazoInput').addEventListener('change', function(){ savePlazo(this.value); });
