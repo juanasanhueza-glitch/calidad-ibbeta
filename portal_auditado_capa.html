@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBBeta · Respuesta a Hallazgos de Auditoría</title>
+<style>
+  :root {
+    --navy: #1b2a4a;
+    --navy-dark: #101c33;
+    --teal: #2f7a72;
+    --teal-light: #e6f2f0;
+    --amber: #c98a1a;
+    --amber-light: #fbf1de;
+    --red: #b3413a;
+    --red-light: #f7e8e6;
+    --green: #3f7d4c;
+    --green-light: #e9f4ea;
+    --gray-bg: #f4f5f7;
+    --border: #dfe3e8;
+    --text-soft: #5b6472;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--gray-bg); color: var(--navy-dark); line-height: 1.45;
+  }
+  header {
+    background: var(--navy); color: #fff; padding: 18px 16px;
+  }
+  header h1 { font-size: 17px; margin: 0 0 2px 0; font-weight: 700; }
+  header .sub { font-size: 12.5px; color: #c9d2e0; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  .lookup-card, .info-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .lookup-card label { display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--navy);}
+  .lookup-card input[type=text] {
+    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 12px;
+  }
+  .btn {
+    display: inline-block; background: var(--teal); color: #fff; border: none;
+    padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { opacity: 0.92; }
+  .btn.secondary { background: #fff; color: var(--teal); border: 1px solid var(--teal); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .audit-header {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 16px;
+  }
+  .audit-header .area { font-size: 18px; font-weight: 700; color: var(--navy); }
+  .audit-header .meta { font-size: 12.5px; color: var(--text-soft); margin-top: 4px; }
+  .audit-header .counts { margin-top: 10px; font-size: 12.5px; }
+  .badge-count { display:inline-block; padding: 3px 9px; border-radius: 20px; font-weight: 600; margin-right: 6px; }
+
+  .note {
+    font-size: 12.5px; color: var(--text-soft); background: var(--teal-light);
+    border: 1px solid #cfe6e2; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;
+  }
+
+  .finding-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .finding-top { display:flex; justify-content: space-between; align-items:flex-start; gap: 10px; margin-bottom: 10px; }
+  .finding-ref { font-size: 12px; color: var(--text-soft); font-weight: 600; }
+  .crit-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .crit-critico { background: var(--red-light); color: var(--red); }
+  .crit-mayor { background: var(--amber-light); color: var(--amber); }
+  .crit-menor, .crit-observacion { background: var(--teal-light); color: var(--teal); }
+
+  .finding-req { font-size: 14px; font-weight: 600; color: var(--navy-dark); margin-bottom: 6px; }
+  .finding-desc { font-size: 13.5px; color: var(--text-soft); background: var(--gray-bg); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; white-space: pre-wrap; }
+  .reincidente-flag { display:inline-block; font-size: 11.5px; font-weight: 700; color: var(--red); background: var(--red-light); padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; }
+
+  .fotos-wrap { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .foto-thumb { position: relative; }
+  .foto-thumb img { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .foto-remove { position:absolute; top:-6px; right:-6px; background:#fff; border-radius:50%; padding:1px 5px; font-size:11px; box-shadow:0 1px 3px rgba(0,0,0,0.3); cursor:pointer; }
+  .foto-add { display:flex; align-items:center; justify-content:center; width:84px; height:84px; border:1.5px dashed var(--border); border-radius:6px; cursor:pointer; font-size:11px; text-align:center; color:var(--text-soft); padding:4px; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display:block; font-size: 12.5px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .field textarea, .field input {
+    width: 100%; padding: 8px 10px; font-size: 13.5px; border: 1px solid var(--border);
+    border-radius: 6px; font-family: inherit; resize: vertical;
+  }
+  .field textarea { min-height: 60px; }
+  .row2 { display:flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+
+  .card-footer { display:flex; justify-content: space-between; align-items:center; margin-top: 12px; }
+  .save-status { font-size: 12px; color: var(--green); font-weight: 600; }
+  .save-status.pending { color: var(--text-soft); font-weight: 400; }
+
+  .empty-state, .error-state { text-align:center; padding: 40px 20px; color: var(--text-soft); font-size: 14px; }
+  .error-state { color: var(--red); }
+  .loading { text-align:center; padding: 40px; color: var(--text-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔎 IBBeta · Respuesta a Hallazgos de Auditoría Interna</h1>
+  <div class="sub">Instituto Bioquímico Beta S.A. — Complete el plan de acción para los hallazgos de su área</div>
+</header>
+
+<div class="wrap" id="app">
+  <div class="loading">Cargando…</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBsSPz1E1m-PAyO3dUmHXEVZ4cLtiMxpVI",
+  authDomain: "ibbeta-kpi.firebaseapp.com",
+  projectId: "ibbeta-kpi",
+  storageBucket: "ibbeta-kpi.firebasestorage.app",
+  messagingSenderId: "706859690232"
+});
+const db = firebase.firestore();
+
+const app = document.getElementById('app');
+const normalizarCodigo = s => (s || '').trim().toLowerCase();
+const esc = s => (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function critClass(crit){
+  const c = (crit||'').toLowerCase();
+  if(c.includes('crít') || c.includes('crit')) return 'crit-critico';
+  if(c.includes('mayor')) return 'crit-mayor';
+  if(c.includes('observ')) return 'crit-observacion';
+  return 'crit-menor';
+}
+
+async function getAuditByCodigo(codigo){
+  const snap = await db.collection('kpi_ibbeta').doc('nt127_auditorias').collection('items').get();
+  const audits = snap.docs.map(d => d.data());
+  return audits.find(a => normalizarCodigo(a.codigoReporte) === normalizarCodigo(codigo)) || null;
+}
+
+async function getFindingsForAudit(audit){
+  const snap = await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').get();
+  const all = snap.docs.map(d => d.data());
+  return all.filter(f => f.auditId === audit.id ||
+    (audit.codigoReporte && normalizarCodigo(f.codigoReporte || '') === normalizarCodigo(audit.codigoReporte)))
+    .filter(f => f.estado !== 'Cerrada');
+}
+
+function renderLookup(prefill, errorMsg){
+  app.innerHTML = `
+    <div class="lookup-card">
+      <label for="codigo-input">Código de la auditoría</label>
+      <input type="text" id="codigo-input" placeholder="Ej: AUD-BB 01-26" value="${esc(prefill||'')}">
+      ${errorMsg ? `<div class="error-state" style="padding:0 0 12px 0;">${esc(errorMsg)}</div>` : ''}
+      <button class="btn" id="buscar-btn">Buscar hallazgos</button>
+      <div class="note" style="margin-top:16px;">Ingrese el código de auditoría que le entregó Calidad (por ejemplo, en el correo o el enlace recibido). Ahí encontrará solo los hallazgos correspondientes a su área.</div>
+    </div>`;
+  document.getElementById('buscar-btn').onclick = () => {
+    const val = document.getElementById('codigo-input').value.trim();
+    if(!val) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('codigo', val);
+    window.history.replaceState({}, '', url);
+    loadPortal(val);
+  };
+  document.getElementById('codigo-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('buscar-btn').click();
+  });
+}
+
+async function loadPortal(codigo){
+  app.innerHTML = '<div class="loading">Buscando auditoría…</div>';
+  let audit;
+  try{
+    audit = await getAuditByCodigo(codigo);
+  }catch(e){
+    renderLookup(codigo, 'No fue posible conectar. Verifique su conexión a internet e intente nuevamente.');
+    return;
+  }
+  if(!audit){
+    renderLookup(codigo, `No se encontró ninguna auditoría con el código "${codigo}". Verifique el código con su auditor de Calidad.`);
+    return;
+  }
+  const findings = await getFindingsForAudit(audit);
+  renderFindings(audit, findings);
+}
+
+function renderFindings(audit, findings){
+  const area = audit.areaManual || audit.subarea || 'Área auditada';
+  const fecha = audit.fecha || '';
+  const codigo = audit.codigoReporte || audit.id;
+
+  const critCount = findings.filter(f => critClass(f.criticidad) === 'crit-critico').length;
+  const mayCount = findings.filter(f => critClass(f.criticidad) === 'crit-mayor').length;
+  const menCount = findings.length - critCount - mayCount;
+
+  let html = `
+    <div class="audit-header">
+      <div class="area">📍 ${esc(area)}</div>
+      <div class="meta">Código: <b>${esc(codigo)}</b> ${fecha ? ' · Fecha auditoría: ' + esc(fecha) : ''}</div>
+      <div class="counts">
+        ${critCount ? `<span class="badge-count crit-critico">${critCount} crítico(s)</span>` : ''}
+        ${mayCount ? `<span class="badge-count crit-mayor">${mayCount} mayor(es)</span>` : ''}
+        ${menCount ? `<span class="badge-count crit-menor">${menCount} menor(es)/observación</span>` : ''}
+        ${!findings.length ? '<span class="badge-count crit-observacion">Sin hallazgos abiertos 🎉</span>' : ''}
+      </div>
+    </div>
+    <div class="note">
+      Para cada hallazgo, complete <b>causa raíz</b>, <b>plan de acción</b>, <b>responsable</b> y <b>fecha compromiso</b>.
+      Guarde cada hallazgo por separado — la información queda disponible de inmediato para el equipo de Calidad, quien la revisará antes de incorporarla al informe formal.
+    </div>`;
+
+  if(!findings.length){
+    html += `<div class="empty-state">No hay hallazgos pendientes de respuesta para esta auditoría. 🎉</div>`;
+    app.innerHTML = html;
+    return;
+  }
+
+  findings.sort((a,b) => {
+    const order = {'crit-critico':0,'crit-mayor':1,'crit-menor':2,'crit-observacion':3};
+    return (order[critClass(a.criticidad)]??9) - (order[critClass(b.criticidad)]??9);
+  });
+
+  html += findings.map(f => `
+    <div class="finding-card" data-id="${esc(f.id)}">
+      <div class="finding-top">
+        <div class="finding-ref">Ref. normativa: ${esc(f.ref || '-')}</div>
+        <div class="crit-badge ${critClass(f.criticidad)}">${esc(f.criticidad || 'Sin clasificar')}</div>
+      </div>
+      <div class="finding-req">${esc(f.requerimiento || '(sin requerimiento asociado)')}</div>
+      ${f.esReincidente ? '<div class="reincidente-flag">🔁 Reincidente — ya se había detectado antes</div>' : ''}
+      <div class="finding-desc">${esc(f.descripcionHallazgo || '(sin descripción registrada)')}</div>
+
+      <div class="field">
+        <label>Evidencia objetiva (documento, registro, código que respalda el hallazgo)</label>
+        <textarea class="f-evidenciaObjetiva" placeholder="Ej: F-SI-001.01, Logbook N°..., Batch record N°...">${esc(f.evidenciaObjetiva)}</textarea>
+      </div>
+      <div class="field">
+        <label>Causa raíz</label>
+        <textarea class="f-causaRaiz" placeholder="¿Cuál fue la causa que originó este hallazgo?">${esc(f.causaRaiz)}</textarea>
+      </div>
+      <div class="field">
+        <label>Acción correctiva / preventiva</label>
+        <textarea class="f-accion" placeholder="Describa las acciones concretas a implementar">${esc(f.accion)}</textarea>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Responsable</label>
+          <input type="text" class="f-responsable" value="${esc(f.responsable)}" placeholder="Nombre y cargo">
+        </div>
+        <div class="field">
+          <label>Fecha compromiso</label>
+          <input type="date" class="f-fechaCompromiso" value="${esc(f.fechaCompromiso)}">
+        </div>
+      </div>
+      <div class="field">
+        <label>Evidencia fotográfica (<span class="foto-count">${(f.fotos||[]).length}</span>/2)</label>
+        <div class="fotos-wrap" data-fotos>
+          ${(f.fotos||[]).map((foto,i) => `
+            <div class="foto-thumb" data-idx="${i}">
+              <img src="${foto}">
+              <span class="foto-remove" data-remove-idx="${i}">✕</span>
+            </div>`).join('')}
+          ${(f.fotos||[]).length < 2 ? `
+            <label class="foto-add">
+              📷 Agregar foto
+              <input type="file" accept="image/*" capture="environment" class="foto-input" style="display:none;">
+            </label>` : ''}
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="save-status pending" data-status>${f.causaRaiz || f.accion ? 'Guardado previamente' : 'Sin completar aún'}</span>
+        <button class="btn guardar-btn">Guardar respuesta</button>
+      </div>
+    </div>
+  `).join('');
+
+  html += `<div style="text-align:center; margin: 20px 0;"><button class="btn secondary" id="cambiar-codigo">Buscar otra auditoría</button></div>`;
+
+  app.innerHTML = html;
+
+  document.getElementById('cambiar-codigo').onclick = () => renderLookup(codigo);
+
+  app.querySelectorAll('.finding-card').forEach(card => {
+    const id = card.dataset.id;
+    const finding = findings.find(f => f.id === id);
+    let fotosState = (finding.fotos || []).slice();
+
+    function renderFotos(){
+      const wrap = card.querySelector('[data-fotos]');
+      wrap.innerHTML = fotosState.map((foto,i) => `
+        <div class="foto-thumb" data-idx="${i}">
+          <img src="${foto}">
+          <span class="foto-remove" data-remove-idx="${i}">✕</span>
+        </div>`).join('') + (fotosState.length < 2 ? `
+        <label class="foto-add">
+          📷 Agregar foto
+          <input type="file" accept="image/*" capture="environment" class="foto-input" style="display:none;">
+        </label>` : '');
+      card.querySelector('.foto-count').textContent = fotosState.length;
+      bindFotoEvents();
+    }
+
+    function bindFotoEvents(){
+      const input = card.querySelector('.foto-input');
+      if(input){
+        input.onchange = () => {
+          const file = input.files[0];
+          if(!file) return;
+          if(fotosState.length >= 2){ alert('Máximo 2 fotos por hallazgo.'); return; }
+          const reader = new FileReader();
+          reader.onload = () => { fotosState.push(reader.result); renderFotos(); };
+          reader.readAsDataURL(file);
+        };
+      }
+      card.querySelectorAll('[data-remove-idx]').forEach(btn => {
+        btn.onclick = () => {
+          fotosState.splice(parseInt(btn.dataset.removeIdx, 10), 1);
+          renderFotos();
+        };
+      });
+    }
+    bindFotoEvents();
+
+    card.querySelector('.guardar-btn').onclick = async () => {
+      const btn = card.querySelector('.guardar-btn');
+      const status = card.querySelector('[data-status]');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      const payload = {
+        evidenciaObjetiva: card.querySelector('.f-evidenciaObjetiva').value,
+        causaRaiz: card.querySelector('.f-causaRaiz').value,
+        accion: card.querySelector('.f-accion').value,
+        responsable: card.querySelector('.f-responsable').value,
+        fechaCompromiso: card.querySelector('.f-fechaCompromiso').value,
+        fotos: fotosState
+      };
+      try{
+        await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').doc(id).set(payload, {merge:true});
+        status.textContent = '✓ Guardado ' + new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+        status.classList.remove('pending');
+      }catch(e){
+        status.textContent = 'Error al guardar (la foto puede ser muy pesada). Intente con una imagen más liviana.';
+        status.classList.add('pending');
+      }
+      btn.disabled = false; btn.textContent = 'Guardar respuesta';
+    };
+  });
+}
+
+// Init
+(function init(){
+  const params = new URLSearchParams(window.location.search);
+  const codigo = params.get('codigo');
+  if(codigo){
+    loadPortal(codigo);
+  } else {
+    renderLookup();
+  }
+})();
+</script>
+</body>
+</html>
