@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pendientes por Emitir — IBBeta</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a1a}
+.wrapper{max-width:1000px;margin:0 auto;padding:24px 16px}
+.doc-header{background:#1F4E79;color:white;border-radius:10px 10px 0 0;padding:26px 30px 18px}
+.doc-header h1{font-size:18px;font-weight:700}
+.doc-header .sub{font-size:12px;color:#A9C9D1;margin-top:5px}
+.doc-meta{background:#164066;border-radius:0 0 10px 10px;padding:10px 30px;display:flex;gap:30px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.doc-meta span{font-size:11.5px;color:#A9C9D1}.doc-meta strong{color:#fff}
+.sync-badge{margin-left:auto;font-size:10.5px;padding:3px 10px;border-radius:20px;background:#2E7D46;color:#fff !important;font-weight:600;display:none}
+.sync-badge.show{display:inline-block}
+.sync-badge.offline{display:inline-block;background:#8A8A8A}
+.intro{background:#fff;border-left:4px solid #1F4E79;border-radius:6px;padding:14px 18px;margin-bottom:20px;font-size:12.5px;line-height:1.6;color:#333}
+
+/* Indicador */
+.kpi-card{background:#fff;border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:18px 22px;margin-bottom:20px;display:grid;grid-template-columns:200px 1fr;gap:22px;align-items:center}
+.kpi-main{text-align:center;border-right:1px dashed #E3EAF2;padding-right:18px}
+.kpi-main .k-lbl{font-size:10.5px;font-weight:700;color:#1F4E79;text-transform:uppercase;letter-spacing:.05em}
+.kpi-main .k-num{font-size:38px;font-weight:800;color:#C0392B;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi-main .k-frac{font-size:11.5px;color:#666;margin-top:2px}
+.kpi-main .k-dir{font-size:10px;color:#888;margin-top:6px}
+.kpi-detail h3{font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:4px}
+.kpi-detail .formula{font-size:11.5px;color:#555;margin-bottom:12px}
+.kpi-detail .formula code{background:#F5F9FF;border:1px solid #C8DFF3;border-radius:4px;padding:1px 6px;font-family:inherit;color:#1F4E79;font-weight:600}
+.kbar{display:grid;grid-template-columns:120px 1fr 92px;gap:10px;align-items:center;margin-bottom:8px;font-size:11.5px}
+.kbar .lbl{color:#333;font-weight:600}
+.kbar .track{height:10px;background:#EEF2F7;border-radius:5px;overflow:hidden}
+.kbar .fill{height:100%;background:#C0392B;border-radius:5px}
+.kbar .val{text-align:right;color:#333;font-variant-numeric:tabular-nums}
+.kbar .val b{color:#1a1a1a}
+@media(max-width:640px){.kpi-card{grid-template-columns:1fr}.kpi-main{border-right:none;border-bottom:1px dashed #E3EAF2;padding:0 0 14px}}
+
+.summary-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.stat{background:#fff;border-radius:8px;padding:12px 16px;flex:1;min-width:120px;box-shadow:0 1px 4px rgba(0,0,0,.06);text-align:center}
+.stat .num{font-size:22px;font-weight:800;color:#1F4E79;font-variant-numeric:tabular-nums}
+.stat .lbl{font-size:10px;color:#777;margin-top:2px}
+.stat.red .num{color:#C0392B}
+.stat.orange .num{color:#B7570A}
+.stat.green .num{color:#1B7A34}
+.stats-scope{font-size:10.5px;color:#777;margin:-12px 0 18px;display:none}
+.stats-scope.show{display:block}
+
+.filter-bar{background:#fff;border-radius:8px;padding:14px 18px;margin-bottom:22px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filter-bar h3{font-size:12px;font-weight:700;color:#1F4E79;margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
+.search-bar{display:flex;gap:8px;margin-bottom:12px}
+.search-bar input{flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid #C8DFF3;font-size:12.5px;font-family:inherit}
+.search-bar input:focus{outline:none;border-color:#1F4E79}
+.search-bar button{padding:8px 14px;border-radius:8px;border:1.5px solid #94A3B8;background:#fff;color:#555;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.search-bar button:hover{background:#F1F5F9}
+.tipo-filter,.area-filter{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed #E3EAF2}
+.area-filter{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.chip{padding:6px 12px;border-radius:20px;border:1.5px solid #D5DCE4;background:#fff;color:#444;font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit}
+.chip .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip .cnt{background:#EEF2F7;border-radius:10px;padding:0 6px;font-size:10px}
+.chip:hover{border-color:#1F4E79}
+.chip.active{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.chip.active .cnt{background:rgba(255,255,255,.25);color:#fff}
+
+.resp-filter{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed #E3EAF2}
+.resp-btn{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:20px;border:1.5px solid #C8DFF3;background:#F5F9FF;color:#1F4E79;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.resp-btn:hover{border-color:#1F4E79;background:#EAF3FC}
+.resp-btn.active{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.resp-btn .caret{font-size:10px;opacity:.8}
+.resp-btn .ico{width:20px;height:20px;border-radius:50%;background:#1F4E79;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.resp-btn.active .ico{background:#fff;color:#1F4E79}
+.resp-clear{padding:6px 12px;border-radius:20px;border:1.5px solid #E7B4AE;background:#FDF3F2;color:#A93226;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.resp-clear:hover{background:#FBE3E0}
+.resp-clear[hidden]{display:none}
+.resp-pop{position:absolute;top:44px;left:0;z-index:50;width:min(420px,calc(100vw - 48px));background:#fff;border:1px solid #D5DCE4;border-radius:10px;box-shadow:0 10px 30px rgba(15,40,70,.18);padding:10px}
+.resp-pop[hidden]{display:none}
+.resp-pop input{width:100%;padding:8px 11px;border-radius:7px;border:1.5px solid #C8DFF3;font-size:12.5px;font-family:inherit;margin-bottom:8px}
+.resp-pop input:focus{outline:none;border-color:#1F4E79}
+.resp-list{max-height:340px;overflow-y:auto}
+.resp-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 9px;border:none;background:none;border-radius:7px;cursor:pointer;font-family:inherit}
+.resp-item:hover,.resp-item:focus{background:#F0F6FC;outline:none}
+.resp-item.sel{background:#E3EEF9}
+.resp-item .av{flex:0 0 28px;height:28px;border-radius:50%;background:#E3EEF9;color:#1F4E79;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.resp-item.sel .av{background:#1F4E79;color:#fff}
+.resp-item .nm{flex:1;min-width:0}
+.resp-item .nm b{display:block;font-size:12.5px;color:#1a1a1a;font-weight:600}
+.resp-item .nm small{display:block;font-size:10.5px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resp-item .n{background:#EEF2F7;color:#1F4E79;border-radius:10px;padding:1px 8px;font-size:10.5px;font-weight:700}
+.resp-empty{padding:10px;color:#888;font-size:12px;font-style:italic}
+.resp-mail{padding:6px 13px;border-radius:20px;border:1.5px solid #9FD0AE;background:#EEF8F1;color:#1B7A34;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.resp-mail:hover{background:#DDF1E3}
+.mail-wrap{position:relative;display:inline-block}
+.mail-pop{position:absolute;top:38px;left:0;z-index:55;width:280px;background:#fff;border:1px solid #D5DCE4;border-radius:10px;box-shadow:0 10px 30px rgba(15,40,70,.18);padding:6px}
+.mail-pop[hidden]{display:none}
+.mail-opt{display:block;width:100%;text-align:left;padding:9px 11px;border:none;background:none;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12.5px;color:#1a1a1a}
+.mail-opt:hover{background:#F0F6FC}
+.mail-opt small{display:block;font-size:10.5px;color:#888;margin-top:1px}
+.mail-ok{font-size:10.5px;color:#1B7A34;background:#E8F5E9;border-radius:6px;padding:4px 9px}
+.mail-note{font-size:10.5px;color:#9A4A08;background:#FEF3E2;border-radius:6px;padding:4px 9px}
+.mail-ok[hidden],.mail-note[hidden]{display:none}
+
+.resp-section{margin-bottom:24px}
+.resp-section[hidden]{display:none}
+.resp-header{background:#1F4E79;color:white;border-radius:8px 8px 0 0;padding:11px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.resp-header h2{font-size:13.5px;font-weight:700}
+.resp-header .cargo{font-size:11px;color:#A9C9D1;font-weight:400;margin-top:1px}
+.resp-count{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;white-space:nowrap}
+.resp-body{background:#fff;border-radius:0 0 8px 8px;box-shadow:0 1px 5px rgba(0,0,0,.07)}
+.ev-row{border-bottom:1px solid #EEF2F7;padding:13px 18px;display:grid;grid-template-columns:150px 1fr;gap:14px}
+.ev-row:last-child{border-bottom:none}
+.ev-row[hidden]{display:none}
+.ev-row[data-tipo="desvio"]{box-shadow:inset 4px 0 0 #1F4E79}
+.ev-row[data-tipo="nc"]{box-shadow:inset 4px 0 0 #7E57C2}
+.ev-id{font-size:12.5px;font-weight:800;color:#1F4E79}
+.ev-regid{font-size:9.5px;color:#9AA5B1;font-weight:600;margin-top:1px;letter-spacing:.02em}
+.ev-area{font-size:11px;color:#555;margin-top:5px}
+.ev-fecha{margin-top:7px;font-size:11px}
+.ev-fecha .flbl{color:#888;font-size:10px;display:block;margin-bottom:1px}
+.ev-fecha .fval{font-weight:600;color:#333}
+.ev-desc{font-size:12px;color:#444;line-height:1.5;margin-bottom:8px}
+.ev-accion-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#B7570A;margin-bottom:3px}
+.ev-accion{font-size:12px;color:#1a1a1a;line-height:1.5}
+.tipo-tag{display:inline-block;border-radius:4px;padding:2px 7px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;line-height:1.3}
+.tipo-desvio{background:#E3EEF9;color:#1F4E79;border:1px solid #A9C9EA}
+.tipo-nc{background:#F1EAFB;color:#5B3496;border:1px solid #CDB7EE}
+.badge{border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;display:inline-block;margin-top:4px;margin-right:4px}
+.b-red{background:#FDECEA;color:#C0392B}
+.b-orange{background:#FEF3E2;color:#B7570A}
+.b-green{background:#E8F5E9;color:#1B7A34}
+.b-gray{background:#F0F0F0;color:#666}
+.b-crit{background:#C0392B;color:#fff}
+#empty-filtros{background:#fff;border-radius:8px;padding:22px;text-align:center;color:#777;font-size:12.5px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:22px}
+#empty-filtros[hidden]{display:none}
+.footer{text-align:center;padding:16px;font-size:11px;color:#999;margin-top:6px}
+@media(max-width:600px){.ev-row{grid-template-columns:1fr}.doc-header,.doc-meta{padding-left:18px;padding-right:18px}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="doc-header">
+    <h1>Pendientes por Emitir — Desvíos y No Conformidades</h1>
+    <div class="sub">Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; <span id="doc-fecha">—</span></div>
+  </div>
+  <div class="doc-meta">
+    <span><strong>Pendientes por emitir:</strong> <span id="meta-total">—</span></span>
+    <span><strong>Responsables:</strong> <span id="meta-resp">—</span></span>
+    <span><strong>Fuente:</strong> BASE_DATOS (CONSOLIDADO_CALIDAD) — Estado Abierto / En Seguimiento · Acción a Implementar = "Emitir Desvío" o "Por Emitir NC"</span>
+    <span class="sync-badge" id="sync-badge">🔄 Sincronizando con Google Sheets…</span>
+  </div>
+
+  <div class="intro">
+    Este informe ha sido generado por <strong>Aseguramiento de Calidad</strong> para dar seguimiento a los
+    <strong>Desvíos y No Conformidades que aún no han sido emitidos</strong>. En estos eventos la investigación
+    no está bloqueada: lo único pendiente es redactar y emitir el documento formal.<br><br>
+    Revisar los eventos asignados y emitir el informe correspondiente a la brevedad, comenzando por los de mayor antigüedad.
+    Ante consultas o dificultades, contactar directamente a Aseguramiento de Calidad.
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-main">
+      <div class="k-lbl">Indicador Cierre Desviaciones</div>
+      <div class="k-num" id="kpi-pct">—</div>
+      <div class="k-frac" id="kpi-frac">—</div>
+      <div class="k-dir">Menor es mejor · meta: 0%</div>
+    </div>
+    <div class="kpi-detail">
+      <h3>Desviaciones abiertas "Por Emitir" / Total desviaciones abiertas</h3>
+      <div class="formula">Numerador: <code>Por emitir</code> · Denominador: Desvíos + No Conformidades en estado <code>Abierto</code> o <code>En Seguimiento</code></div>
+      <div id="kpi-bars"></div>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="stat red"><div class="num" id="stat-90">—</div><div class="lbl">Más de 90 días</div></div>
+    <div class="stat orange"><div class="num" id="stat-30">—</div><div class="lbl">31 a 90 días</div></div>
+    <div class="stat green"><div class="num" id="stat-0">—</div><div class="lbl">Hasta 30 días</div></div>
+    <div class="stat red"><div class="num" id="stat-crit">—</div><div class="lbl">Criticidad Crítico</div></div>
+    <div class="stat"><div class="num" id="stat-total">—</div><div class="lbl">Total por emitir</div></div>
+  </div>
+  <div class="stats-scope" id="stats-scope"></div>
+
+  <div class="filter-bar">
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Buscar por código (ej. D132-25 o NC05-24) o palabra de la descripción">
+      <button id="search-clear" type="button">Limpiar</button>
+    </div>
+    <h3>Filtrar por tipo de evento</h3>
+    <div class="tipo-filter" id="tipo-filter"></div>
+    <h3>Filtrar por responsable</h3>
+    <div class="resp-filter" id="resp-filter">
+      <button class="resp-btn" id="resp-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <span class="ico">👤</span><span id="resp-btn-lbl">Todos los responsables</span><span class="caret">▼</span>
+      </button>
+      <span class="mail-wrap"><button class="resp-mail" id="resp-mail" type="button" title="Preparar correo con el detalle ya escrito">✉ <span id="resp-mail-lbl">Correo resumen general</span> ▾</button>
+        <div class="mail-pop" id="mail-pop" hidden>
+          <button type="button" class="mail-opt" data-via="gmail">📧 Abrir en Gmail<small>Abre un correo nuevo en Gmail, en otra pestaña</small></button>
+          <button type="button" class="mail-opt" data-via="copiar">📋 Copiar mensaje<small>Para pegarlo en cualquier correo o en Teams</small></button>
+          <button type="button" class="mail-opt" data-via="outlook">🖥 Abrir en Outlook<small>Usa el programa de correo del computador</small></button>
+        </div></span>
+      <button class="resp-clear" id="resp-clear" type="button" hidden>✕ Quitar filtro</button>
+      <span class="mail-ok" id="mail-ok" hidden></span>
+      <span class="mail-note" id="mail-note" hidden>Este archivo está abierto desde su computador: el enlace del correo solo funcionará cuando el informe esté publicado en la web.</span>
+      <div class="resp-pop" id="resp-pop" hidden>
+        <input type="text" id="resp-search" placeholder="Escriba un nombre o cargo…" autocomplete="off">
+        <div class="resp-list" id="resp-list" role="listbox"></div>
+      </div>
+    </div>
+    <h3>Filtrar por área</h3>
+    <div class="area-filter" id="area-filter"></div>
+  </div>
+
+  <div id="empty-filtros" hidden>No hay eventos pendientes por emitir que coincidan con los filtros seleccionados.</div>
+  <div id="sections"></div>
+
+  <div class="footer">
+    Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; Derivado del Panel de Avance de Eventos — uso interno
+  </div>
+</div>
+
+<script id="static-data" type="application/json">{"generado": "2026-08-13 16:06", "pendientes": [{"id": "NC05-24", "id_registro": "NC05-24", "tipo": "No Conformidad", "estado": "Abierto", "area": "PI", "responsable": "Oswaldo Tamayo/Jefe de Turno PI", "fecha_apertura": "2024-03-26", "dias": 870, "criticidad": "Crítico", "descripcion": "Producto Esamisol jarabe, Error de fabricación ocurrido en el proceso del Adición de Sorbitol 70%, en vez de Propilenglicol.", "accion": "Por Emitir NC"}, {"id": "NC14-25", "id_registro": "NC14-25", "tipo": "No Conformidad", "estado": "Abierto", "area": "PI", "responsable": "Oswaldo Tamayo/Jefe de Turno PI", "fecha_apertura": "2025-10-16", "dias": 301, "criticidad": "Mayor", "descripcion": "Producto Magnatil C comp. efer. se detectó que el aluminio correspondiente a la versión para Chile, el cual tiene distintas condiciones de almacenamiento. Además, la orden de fabricación indica​ ​​vence 10-2028,​ la planilla de fabricación​ presenta correcciones ​manuales en el periodo de eficacia  y​ en la condición de almacenamiento.", "accion": "Por Emitir NC"}, {"id": "NC15-25", "id_registro": "NC15-25", "tipo": "No Conformidad", "estado": "Abierto", "area": "PII", "responsable": "Juana Sanhueza/Analista de Calidad - DOC", "fecha_apertura": "2025-10-20", "dias": 297, "criticidad": "Mayor", "descripcion": "Producto Alopek solución 5%, se detectó la presencia de un líquido de color rosado en el piso.", "accion": "Por Emitir NC"}, {"id": "NC16-25", "id_registro": "NC16-25", "tipo": "No Conformidad", "estado": "Abierto", "area": "PI", "responsable": "Oswaldo Tamayo/Jefe de Turno PI", "fecha_apertura": "2025-10-22", "dias": 295, "criticidad": "Menor", "descripcion": "Durante el recorrido en planta, área de Producción I, se constató in situ que una esclusa de mezclas no se está utilizando de acuerdo a su función", "accion": "Por Emitir NC"}, {"id": "NC07-26", "id_registro": "NC07-26", "tipo": "No Conformidad", "estado": "Abierto", "area": "QA", "responsable": "Rodrigo Sambuceti/Gerente de Producción", "fecha_apertura": "2026-08-11", "dias": 2, "criticidad": "Mayor", "descripcion": "Deficiencia de las instalaciones", "accion": "Por Emitir NC"}, {"id": "D89-25", "id_registro": "D89-25", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/jefe de Producción II", "fecha_apertura": "2025-08-04", "dias": 374, "criticidad": "Mayor", "descripcion": "Prod. Alopek presenta un frasco de color opaco.", "accion": "Emitir Desvío"}, {"id": "D94-25", "id_registro": "D94-25", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/jefe de Producción II", "fecha_apertura": "2025-08-20", "dias": 358, "criticidad": "Mayor", "descripcion": "Serie ilegible en estuche (estampado en seco) Producto Disilden.", "accion": "Emitir Desvío"}, {"id": "D149-25", "id_registro": "D149-25", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Camila Espinosa/Sup.Envase-empaque", "fecha_apertura": "2025-12-11", "dias": 245, "criticidad": "Crítico", "descripcion": "Especificación de arte estuche no cumple", "accion": "Emitir Desvío"}, {"id": "D02-26", "id_registro": "D02-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - I", "responsable": "Oswaldo Tamayo/Jefe de Turno PI", "fecha_apertura": "2026-01-08", "dias": 217, "criticidad": "Mayor", "descripcion": "Detención de proceso de efervescentes, debido a falla de equipo", "accion": "Emitir Desvío"}, {"id": "D03-26", "id_registro": "D03-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/jefe de Producción II", "fecha_apertura": "2026-01-13", "dias": 212, "criticidad": "Crítico", "descripcion": "Impresión erronea de fecha de fabricación en estuche.", "accion": "Emitir Desvío"}, {"id": "D05-26", "id_registro": "D05-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - I", "responsable": "Oswaldo Tamayo/Jefe de Turno PI", "fecha_apertura": "2026-01-21", "dias": 204, "criticidad": "Mayor", "descripcion": "Reproceso de producto Citoneuron cap.", "accion": "Emitir Desvío"}, {"id": "D06-26", "id_registro": "D06-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/jefe de Producción II", "fecha_apertura": "2026-01-23", "dias": 202, "criticidad": "Mayor", "descripcion": "No cumple párametros críticos de blisteado", "accion": "Emitir Desvío"}, {"id": "D08-26", "id_registro": "D08-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/jefe de Producción II", "fecha_apertura": "2026-01-26", "dias": 199, "criticidad": "Mayor", "descripcion": "Material de envase primario sin el aprobado de primera unidad", "accion": "Emitir Desvío"}, {"id": "D32-26", "id_registro": "D32-26", "tipo": "Desvío", "estado": "Abierto", "area": "Mantenimiento", "responsable": "Rubén Montenegro/Jefe de Mantenimiento", "fecha_apertura": "2026-04-22", "dias": 113, "criticidad": "Mayor", "descripcion": "Ingreso y uso de balanza en PII, no oficializada con registros de procedimiento.", "accion": "Emitir Desvío"}, {"id": "D36-26", "id_registro": "D36-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Camila Espinosa/Sup.Envase-empaque", "fecha_apertura": "2026-04-29", "dias": 106, "criticidad": "Mayor", "descripcion": "Estuche de Noctidem 7,5 mg x 30 comprimidos (Código: 550666, Versión: 25/V01), tanto en el arte como en el estuche físico no se menciona la especie vegetal (Maíz)", "accion": "Emitir Desvío"}, {"id": "D45-26", "id_registro": "D45-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Evelyn Caldera/Encargada de Equipo", "fecha_apertura": "2026-05-20", "dias": 85, "criticidad": "Mayor", "descripcion": "Temperatura fuera de rango en Refrigerador N°1097", "accion": "Emitir Desvío"}, {"id": "D47-26", "id_registro": "D47-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Cristian Moreno/Jefe Producción", "fecha_apertura": "2026-05-26", "dias": 79, "criticidad": "Mayor", "descripcion": "Error en el material de empaque secundario utilizado durante el proceso de encajado final Prod. Diamicron", "accion": "Emitir Desvío"}, {"id": "D60-26", "id_registro": "D60-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "J. Carlos Fuentes/Analista Microbiología", "fecha_apertura": "2026-07-22", "dias": 22, "criticidad": "Mayor", "descripcion": "Análisis microbiológico de \nsuperficie,  sin análisis de CBC.", "accion": "Emitir Desvío"}, {"id": "D63-26", "id_registro": "D63-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Jessica Martel/Sup.Estabilidad", "fecha_apertura": "2026-07-28", "dias": 16, "criticidad": "Mayor", "descripcion": "Error en la ejecución del método analítico, en la valoración de Etofenamato", "accion": "Emitir Desvío"}, {"id": "D64-26", "id_registro": "D64-26", "tipo": "Desvío", "estado": "Abierto", "area": "Validaciones", "responsable": "Bastían Torres/Asist. Validación y calificación", "fecha_apertura": "2026-07-31", "dias": 13, "criticidad": "Mayor", "descripcion": "Durante la ejecución del mapeo térmico de Invierno 2026 (Periodo de prueba del 22/07/2026 al 30/07/2026) se registraron valores fuera de la especificación", "accion": "Emitir Desvío"}, {"id": "D65-26", "id_registro": "D65-26", "tipo": "Desvío", "estado": "Abierto", "area": "Validaciones", "responsable": "Bastían Torres/Asist. Validación y calificación", "fecha_apertura": "2026-07-31", "dias": 13, "criticidad": "Mayor", "descripcion": "Durante el mapeo térmico e higrométrico de invierno 2026 de la Bodega de Materias Primas (periodo del 21/07/2026 al 29/07/2026), se registraron excursiones fuera de la especificación general", "accion": "Emitir Desvío"}, {"id": "D66-26", "id_registro": "D66-26", "tipo": "Desvío", "estado": "Abierto", "area": "Validaciones", "responsable": "Bastían Torres/Asist. Validación y calificación", "fecha_apertura": "2026-07-31", "dias": 13, "criticidad": "Mayor", "descripcion": "Durante la ejecución del mapeo térmico e higrométrico de invierno 2026 en la Bodega de Reactivos y Líquidos (periodo del 22/07/2026 al 30/07/2026), se registraron excursiones continuas fuera de la especificación general de almacenamiento", "accion": "Emitir Desvío"}, {"id": "D72-26", "id_registro": "D72-26", "tipo": "Desvío", "estado": "Abierto", "area": "Mantenimiento", "responsable": "Rubén Montenegro/Jefe de Mantención", "fecha_apertura": "2026-08-04", "dias": 9, "criticidad": "Mayor", "descripcion": "Sin registros de cambio de filtros de venteo", "accion": "Emitir Desvío"}, {"id": "D75-26", "id_registro": "D75-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Evelyn Caldera/Encargada de Equipos Analiticos", "fecha_apertura": "2026-08-07", "dias": 6, "criticidad": "Mayor", "descripcion": "Monitoreo general de áreas", "accion": "Emitir Desvío"}, {"id": "D77-26", "id_registro": "D77-26", "tipo": "Desvío", "estado": "Abierto", "area": "Control de Calidad", "responsable": "Irma Albornoz/Supervisora de Microbiología", "fecha_apertura": "2026-08-11", "dias": 2, "criticidad": "Mayor", "descripcion": "Desfase en los registros de análisis microbiológicos", "accion": "Emitir Desvío"}, {"id": "D78-26", "id_registro": "D78-26", "tipo": "Desvío", "estado": "Abierto", "area": "Producción - II", "responsable": "Ingrid Castro/Jefe de Producción II", "fecha_apertura": "2026-08-13", "dias": 0, "criticidad": "Mayor", "descripcion": "Durante la revisión de la orden de envase y empaque, se detectó que la prueba de torque fue ejecutada de forma manual, incumpliendo la especificación establecida en la planilla correspondiente.", "accion": "Emitir Desvío"}], "totales_abiertos": {"Desvío": 90, "No Conformidad": 19}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+(function(){
+  // ---------- Fuente en vivo: misma hoja BASE_DATOS que usa el Panel de Avance de Eventos ----------
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdFwEow7VoIRWcT5CCjegV0JUsDUH9XkInl02tPWrpU8sLCZtqoGnJvHxNguexHleba3ngy0knVQAJ/pub?gid=409272799&single=true&output=csv";
+  const ESTADOS_VIVOS = new Set(['Abierto', 'En Seguimiento']);
+  const TIPOS_DESV = {'Desvío':'desvio', 'Desvio':'desvio', 'No Conformidad':'nc'};
+  const TIPO_INFO = {
+    desvio: {label:'Desvío',         plural:'Desvíos',            dot:'#1F4E79', accion:'Emitir informe de Desvío'},
+    nc:     {label:'No Conformidad', plural:'No Conformidades',   dot:'#7E57C2', accion:'Emitir informe de No Conformidad'}
+  };
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const params = new URLSearchParams(window.location.search);
+
+  let DATA = null;          // {generado, vivo, pendientes:[], totales:{desvio,nc}, pendTipo:{desvio,nc}}
+  let respInfo = {};        // clave -> {nombre, cargo}
+  let tipoActivo = params.get('tipo') || '';
+  let respActivo = params.get('resp') || '';
+  let areaActiva = params.get('area') || '';
+
+  // ---------- utilidades ----------
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function normKey(s){
+    return (s||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  }
+  function slugify(s){ return normKey(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+  function iniciales(n){ return n.split(/\s+/).filter(Boolean).slice(0,2).map(s => s[0]).join('').toUpperCase(); }
+  function esEmisionPendiente(accion){
+    const a = normKey(accion);
+    return a === 'por emitir nc' || a === 'emitir desvio';
+  }
+  function parseDMY(s){
+    s = (s||'').trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+  }
+  function fmtDMY(iso){ if(!iso) return '—'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+  function diasDesde(iso){
+    if(!iso) return null;
+    const d = new Date(iso + 'T00:00:00'); if(isNaN(d)) return null;
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    return Math.max(0, Math.round((hoy - d) / 86400000));
+  }
+  function bucket(dias){ return dias == null ? 'sd' : dias > 90 ? 'b90' : dias > 30 ? 'b30' : 'b0'; }
+  function diasBadge(dias){
+    if(dias == null) return '<span class="badge b-gray">Sin fecha</span>';
+    const cls = dias > 90 ? 'b-red' : dias > 30 ? 'b-orange' : 'b-green';
+    return `<span class="badge ${cls}">${dias} días desde apertura</span>`;
+  }
+  function critBadge(c){
+    if(!c) return '';
+    const n = normKey(c);
+    const cls = n.startsWith('critic') ? 'b-crit' : n === 'mayor' ? 'b-orange' : 'b-gray';
+    return `<span class="badge ${cls}">${esc(c)}</span>`;
+  }
+  function respRegistrar(v){
+    const partes = (v||'').split('/');
+    const k = normKey(partes[0]);
+    if(!k) return '';
+    if(!respInfo[k]) respInfo[k] = {nombre: partes[0].trim(), cargo: partes.slice(1).join('/').trim()};
+    return k;
+  }
+
+  // ---------- construcción de datos ----------
+  function normalizar(e, vivo){
+    const tk = TIPOS_DESV[e.tipo];
+    const dias = (vivo && e.dias != null && !isNaN(e.dias)) ? e.dias : (diasDesde(e.fecha_apertura) ?? e.dias);
+    return Object.assign({}, e, {tk, dias, rk: respRegistrar(e.responsable || '(Sin responsable)')});
+  }
+  function fromSheet(rows){
+    const vivos = rows.filter(r => ESTADOS_VIVOS.has((r['Estado']||'').trim()) && TIPOS_DESV[(r['Tipo_Evento']||'').trim()] && (r['ID_Registro']||'').trim());
+    if(!vivos.length) return null;
+    const totales = {desvio:0, nc:0}, pendTipo = {desvio:0, nc:0};
+    const pendientes = [];
+    vivos.forEach(r => {
+      const tk = TIPOS_DESV[(r['Tipo_Evento']||'').trim()];
+      totales[tk]++;
+      if(!esEmisionPendiente(r['Acción a Implementar'])) return;
+      pendTipo[tk]++;
+      const diasRaw = (r['Dias Transcurridos']||'').trim();
+      pendientes.push({
+        id: (r['ID_Origen']||'').trim() || (r['ID_Registro']||'').trim(),
+        id_registro: (r['ID_Registro']||'').trim(),
+        tipo: (r['Tipo_Evento']||'').trim(),
+        estado: (r['Estado']||'').trim(),
+        area: (r['Área Responsable por Resolver'] || r['Área'] || '').trim(),
+        responsable: (r['Nombre y Cargo Responsable']||'').trim(),
+        fecha_apertura: parseDMY(r['Fecha_Apertura']),
+        dias: diasRaw ? parseInt(diasRaw, 10) : null,
+        criticidad: (r['Criticidad']||'').trim() || null,
+        descripcion: (r['Descripción']||'').trim(),
+        accion: (r['Acción a Implementar']||'').trim()
+      });
+    });
+    const hoy = new Date();
+    return {
+      generado: hoy.toLocaleString('es-CL',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+      vivo: true, pendientes, totales, pendTipo
+    };
+  }
+  function fromStatic(){
+    const s = JSON.parse(document.getElementById('static-data').textContent);
+    const pendTipo = {desvio:0, nc:0};
+    s.pendientes.forEach(e => { const tk = TIPOS_DESV[e.tipo]; if(tk) pendTipo[tk]++; });
+    return {
+      generado: s.generado, vivo: false, pendientes: s.pendientes, pendTipo,
+      totales: {desvio: s.totales_abiertos['Desvío'] || 0, nc: s.totales_abiertos['No Conformidad'] || 0}
+    };
+  }
+
+  // ---------- render ----------
+  function filtrar(lista, opts){
+    opts = opts || {};
+    const q = normKey(document.getElementById('search').value);
+    return lista.filter(e =>
+      (!tipoActivo || e.tk === tipoActivo) &&
+      (opts.ignorarResp || !respActivo || e.rk === respActivo) &&
+      (opts.ignorarArea || !areaActiva || slugify(e.area) === areaActiva) &&
+      (!q || normKey(e.id + ' ' + e.id_registro + ' ' + e.descripcion).indexOf(q) >= 0)
+    );
+  }
+
+  function renderKPI(){
+    const t = DATA.totales, p = DATA.pendTipo;
+    const num = p.desvio + p.nc, den = t.desvio + t.nc;
+    const pct = den ? (num / den * 100) : 0;
+    document.getElementById('kpi-pct').textContent = pct.toFixed(1).replace('.', ',') + '%';
+    document.getElementById('kpi-frac').textContent = `${num} por emitir de ${den} abiertas`;
+    const bar = (lbl, n, d) => {
+      const pc = d ? n / d * 100 : 0;
+      return `<div class="kbar"><span class="lbl">${lbl}</span><div class="track"><div class="fill" style="width:${pc.toFixed(1)}%"></div></div><span class="val"><b>${n}</b> / ${d} · ${pc.toFixed(1).replace('.', ',')}%</span></div>`;
+    };
+    document.getElementById('kpi-bars').innerHTML =
+      bar('Desvíos', p.desvio, t.desvio) + bar('No Conformidades', p.nc, t.nc);
+  }
+
+  function renderStats(lista){
+    const c = {b90:0, b30:0, b0:0, sd:0, crit:0};
+    lista.forEach(e => { c[bucket(e.dias)]++; if(normKey(e.criticidad).startsWith('critic')) c.crit++; });
+    document.getElementById('stat-90').textContent = c.b90;
+    document.getElementById('stat-30').textContent = c.b30;
+    document.getElementById('stat-0').textContent = c.b0;
+    document.getElementById('stat-crit').textContent = c.crit;
+    document.getElementById('stat-total').textContent = lista.length;
+    const partes = [];
+    if(tipoActivo) partes.push('tipo: ' + TIPO_INFO[tipoActivo].label);
+    if(respActivo && respInfo[respActivo]) partes.push('responsable: ' + respInfo[respActivo].nombre);
+    if(areaActiva){ const a = DATA.pendientes.find(e => slugify(e.area) === areaActiva); if(a) partes.push('área: ' + a.area); }
+    if(document.getElementById('search').value.trim()) partes.push('búsqueda');
+    const sc = document.getElementById('stats-scope');
+    sc.textContent = partes.length ? 'Contadores filtrados por ' + partes.join(' · ') + ' (el indicador superior siempre considera el total)' : '';
+    sc.classList.toggle('show', partes.length > 0);
+  }
+
+  function renderChips(){
+    // tipo
+    const baseT = filtrar(DATA.pendientes).length;
+    const cntT = k => DATA.pendientes.filter(e => e.tk === k).length;
+    let h = `<button class="chip${!tipoActivo ? ' active' : ''}" data-tipo="" type="button">Todos <span class="cnt">${DATA.pendientes.length}</span></button>`;
+    Object.keys(TIPO_INFO).forEach(k => {
+      h += `<button class="chip${tipoActivo === k ? ' active' : ''}" data-tipo="${k}" type="button"><span class="dot" style="background:${TIPO_INFO[k].dot}"></span>${TIPO_INFO[k].plural} <span class="cnt">${cntT(k)}</span></button>`;
+    });
+    document.getElementById('tipo-filter').innerHTML = h;
+    // área (conteo según tipo y responsable activos)
+    const porArea = {};
+    filtrar(DATA.pendientes, {ignorarArea:true}).forEach(e => {
+      const a = e.area || 'Sin área'; porArea[a] = (porArea[a]||0) + 1;
+    });
+    const todasAreas = [...new Set(DATA.pendientes.map(e => e.area || 'Sin área'))].sort((a,b) => a.localeCompare(b,'es'));
+    let ha = `<button class="chip${!areaActiva ? ' active' : ''}" data-area="" type="button">Todas las áreas</button>`;
+    todasAreas.forEach(a => {
+      const s = slugify(a);
+      if(!porArea[a] && areaActiva !== s) return;
+      ha += `<button class="chip${areaActiva === s ? ' active' : ''}" data-area="${esc(s)}" type="button">${esc(a)} <span class="cnt">${porArea[a]||0}</span></button>`;
+    });
+    document.getElementById('area-filter').innerHTML = ha;
+  }
+
+  function renderSections(){
+    const lista = filtrar(DATA.pendientes);
+    const grupos = {};
+    lista.forEach(e => { (grupos[e.rk] = grupos[e.rk] || []).push(e); });
+    const claves = Object.keys(grupos).sort((a,b) => (grupos[b].length - grupos[a].length) || respInfo[a].nombre.localeCompare(respInfo[b].nombre,'es'));
+    const html = claves.map(k => {
+      const evs = grupos[k].sort((a,b) => (b.dias ?? -1) - (a.dias ?? -1));
+      const info = respInfo[k];
+      const rows = evs.map(e => `
+        <div class="ev-row" data-tipo="${e.tk}">
+          <div>
+            <span class="tipo-tag tipo-${e.tk}">${TIPO_INFO[e.tk].label}</span>
+            <div class="ev-id">${esc(e.id) || '—'}</div>
+            ${e.id_registro && e.id_registro !== e.id ? `<div class="ev-regid">Registro: ${esc(e.id_registro)}</div>` : ''}
+            <div class="ev-area">${esc(e.area) || '—'}</div>
+            <div class="ev-fecha"><span class="flbl">Fecha apertura</span><span class="fval">${fmtDMY(e.fecha_apertura)}</span></div>
+            <div>${diasBadge(e.dias)}${critBadge(e.criticidad)}</div>
+          </div>
+          <div>
+            <div class="ev-desc">${esc(e.descripcion) || '—'}</div>
+            <div class="ev-accion-lbl">▶ Pendiente</div>
+            <div class="ev-accion">${TIPO_INFO[e.tk].accion} y entregarlo a Aseguramiento de Calidad.</div>
+          </div>
+        </div>`).join('');
+      return `
+        <div class="resp-section" id="resp-${esc(slugify(k))}">
+          <div class="resp-header">
+            <div><h2>${esc(info.nombre)}</h2><div class="cargo">${esc(info.cargo) || '—'}</div></div>
+            <span class="resp-count">${evs.length} por emitir</span>
+          </div>
+          <div class="resp-body">${rows}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('sections').innerHTML = html;
+    document.getElementById('empty-filtros').hidden = lista.length > 0;
+    renderStats(lista);
+  }
+
+  function renderRespList(){
+    const sel = respActivo && respInfo[respActivo];
+    document.getElementById('resp-btn-lbl').textContent = sel ? respInfo[respActivo].nombre : 'Todos los responsables';
+    document.getElementById('resp-btn').classList.toggle('active', !!sel);
+    document.getElementById('resp-btn').querySelector('.ico').textContent = sel ? iniciales(respInfo[respActivo].nombre) : '👤';
+    document.getElementById('resp-clear').hidden = !sel;
+    document.getElementById('resp-mail-lbl').textContent = sel ? 'Enviar por correo a ' + respInfo[respActivo].nombre.split(/\s+/)[0] : 'Correo resumen general';
+    const pop = document.getElementById('resp-pop');
+    if(pop.hidden) return;
+    const n = {};
+    filtrar(DATA.pendientes, {ignorarResp:true}).forEach(e => { n[e.rk] = (n[e.rk]||0) + 1; });
+    const q = normKey(document.getElementById('resp-search').value);
+    const claves = Object.keys(respInfo)
+      .filter(k => (n[k]||0) > 0 || k === respActivo)
+      .filter(k => !q || normKey(respInfo[k].nombre + ' ' + respInfo[k].cargo).indexOf(q) >= 0)
+      .sort((a,b) => ((n[b]||0) - (n[a]||0)) || respInfo[a].nombre.localeCompare(respInfo[b].nombre,'es'));
+    let total = 0; Object.values(n).forEach(v => total += v);
+    let html = q ? '' : `<button type="button" class="resp-item${!respActivo ? ' sel' : ''}" data-k=""><span class="av">★</span><span class="nm"><b>Todos los responsables</b><small>Quitar filtro</small></span><span class="n">${total}</span></button>`;
+    claves.forEach(k => {
+      html += `<button type="button" class="resp-item${k === respActivo ? ' sel' : ''}" data-k="${esc(k)}"><span class="av">${esc(iniciales(respInfo[k].nombre))}</span><span class="nm"><b>${esc(respInfo[k].nombre)}</b><small>${esc(respInfo[k].cargo || '—')}</small></span><span class="n">${n[k]||0}</span></button>`;
+    });
+    if(!claves.length) html += '<div class="resp-empty">No hay responsables que coincidan.</div>';
+    document.getElementById('resp-list').innerHTML = html;
+  }
+
+  function renderAll(){
+    document.getElementById('meta-total').textContent = DATA.pendientes.length;
+    document.getElementById('meta-resp').textContent = new Set(DATA.pendientes.map(e => e.rk)).size;
+    const hoy = new Date();
+    document.getElementById('doc-fecha').textContent = hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+    renderKPI(); renderChips(); renderSections(); renderRespList();
+  }
+
+  function setURL(){
+    const url = new URL(window.location);
+    [['tipo',tipoActivo],['resp',respActivo],['area',areaActiva]].forEach(([k,v]) => v ? url.searchParams.set(k,v) : url.searchParams.delete(k));
+    history.replaceState(null,'',url);
+  }
+
+  // ---------- correo ----------
+  function recortar(s, n){ s = (s||'').replace(/\s+/g,' ').trim(); return s.length > n ? s.slice(0, n-1).trim() + '…' : s; }
+  function armarCorreo(){
+    const url = new URL(window.location.href);
+    url.searchParams.delete('area');
+    const L = [];
+    if(respActivo && respInfo[respActivo]){
+      const info = respInfo[respActivo];
+      const nombre = info.nombre.split(/\s+/)[0] || info.nombre;
+      const evs = filtrar(DATA.pendientes, {ignorarArea:true}).filter(e => e.rk === respActivo).sort((a,b) => (b.dias ?? -1) - (a.dias ?? -1));
+      url.searchParams.set('resp', respActivo);
+      const nD = evs.filter(e => e.tk === 'desvio').length, nN = evs.filter(e => e.tk === 'nc').length;
+      L.push('Estimado(a) ' + nombre + ':');
+      L.push('');
+      L.push('Junto con saludar, te comparto el detalle de los eventos que tienes pendientes por emitir. En ellos lo único que falta es redactar y emitir el documento formal, para que Aseguramiento de Calidad pueda continuar con su gestión y cierre.');
+      L.push('');
+      L.push('Resumen a la fecha:');
+      L.push('• Total pendientes por emitir: ' + evs.length);
+      if(nD) L.push('• Desvíos: ' + nD);
+      if(nN) L.push('• No Conformidades: ' + nN);
+      const v90 = evs.filter(e => e.dias != null && e.dias > 90).length;
+      if(v90) L.push('• Con más de 90 días desde su apertura: ' + v90);
+      L.push('');
+      L.push('Detalle (ordenado por antigüedad):');
+      evs.forEach((e, i) => {
+        L.push('');
+        L.push((i+1) + '. ' + e.id + ' — ' + TIPO_INFO[e.tk].label + (e.criticidad ? ' (' + e.criticidad + ')' : ''));
+        L.push('   Apertura: ' + fmtDMY(e.fecha_apertura) + (e.dias != null ? ' · ' + e.dias + ' días' : '') + (e.area ? ' · Área: ' + e.area : ''));
+        L.push('   ' + recortar(e.descripcion, 160));
+      });
+      L.push('');
+      L.push('Puedes revisar este detalle actualizado en el siguiente enlace:');
+      L.push(url.toString());
+      L.push('');
+      L.push('Te agradeceré emitir los documentos pendientes y enviarlos a Aseguramiento de Calidad a la brevedad, priorizando los de mayor antigüedad y criticidad.');
+      L.push('');
+      L.push('Ante cualquier duda o dificultad, quedo atenta.');
+      L.push('');
+      L.push('Saludos cordiales,');
+      L.push('Aseguramiento de Calidad');
+      L.push('Instituto Bioquímico Beta S.A.');
+      return {asunto: 'Desvíos / No Conformidades pendientes por emitir — ' + info.nombre, cuerpo: L.join('\r\n')};
+    }
+    // resumen general
+    url.searchParams.delete('resp');
+    const evs = filtrar(DATA.pendientes, {ignorarArea:true, ignorarResp:true});
+    const t = DATA.totales, p = DATA.pendTipo;
+    const den = t.desvio + t.nc, num = p.desvio + p.nc;
+    const porResp = {};
+    evs.forEach(e => { (porResp[e.rk] = porResp[e.rk] || []).push(e); });
+    L.push('Estimados(as):');
+    L.push('');
+    L.push('Junto con saludar, comparto el estado de los Desvíos y No Conformidades pendientes por emitir, asociado al indicador de Cierre de Desviaciones.');
+    L.push('');
+    L.push('Indicador a la fecha: ' + num + ' por emitir de ' + den + ' desviaciones abiertas (' + (den ? (num/den*100).toFixed(1).replace('.', ',') : '0') + '%).');
+    L.push('• Desvíos: ' + p.desvio + ' de ' + t.desvio);
+    L.push('• No Conformidades: ' + p.nc + ' de ' + t.nc);
+    L.push('');
+    L.push('Pendientes por responsable:');
+    Object.keys(porResp).sort((a,b) => porResp[b].length - porResp[a].length || respInfo[a].nombre.localeCompare(respInfo[b].nombre,'es')).forEach(k => {
+      const ids = porResp[k].sort((a,b) => (b.dias ?? -1) - (a.dias ?? -1)).map(e => e.id).join(', ');
+      L.push('• ' + respInfo[k].nombre + ' (' + porResp[k].length + '): ' + ids);
+    });
+    L.push('');
+    L.push('El detalle completo, actualizado automáticamente, está disponible en:');
+    L.push(url.toString());
+    L.push('');
+    L.push('Les agradeceré emitir los documentos pendientes a la brevedad, priorizando los de mayor antigüedad y criticidad.');
+    L.push('');
+    L.push('Saludos cordiales,');
+    L.push('Aseguramiento de Calidad');
+    L.push('Instituto Bioquímico Beta S.A.');
+    return {asunto: 'Desvíos / No Conformidades pendientes por emitir — Resumen general', cuerpo: L.join('\r\n')};
+  }
+  function copiarTexto(t){
+    if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise((res, rej) => {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy') ? res() : rej(); } catch(e){ rej(e); }
+      ta.remove();
+    });
+  }
+  function enviarCorreo(via){
+    const m = armarCorreo();
+    document.getElementById('mail-pop').hidden = true;
+    if(location.protocol === 'file:') document.getElementById('mail-note').hidden = false;
+    if(via === 'gmail'){
+      window.open('https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent(m.asunto) + '&body=' + encodeURIComponent(m.cuerpo), '_blank', 'noopener');
+    } else if(via === 'copiar'){
+      const ok = document.getElementById('mail-ok');
+      copiarTexto('Asunto: ' + m.asunto + '\r\n\r\n' + m.cuerpo).then(() => {
+        ok.textContent = '✔ Mensaje copiado: péguelo en su correo (Ctrl+V)'; ok.hidden = false;
+        setTimeout(() => { ok.hidden = true; }, 6000);
+      }, () => { ok.textContent = 'No se pudo copiar automáticamente; use "Abrir en Gmail".'; ok.hidden = false; });
+    } else {
+      window.location.href = 'mailto:?subject=' + encodeURIComponent(m.asunto) + '&body=' + encodeURIComponent(m.cuerpo);
+    }
+  }
+
+  // ---------- eventos ----------
+  function setResp(k){
+    respActivo = k || '';
+    document.getElementById('resp-pop').hidden = true;
+    document.getElementById('resp-btn').setAttribute('aria-expanded','false');
+    setURL(); renderChips(); renderSections(); renderRespList();
+  }
+  function bind(){
+    document.getElementById('tipo-filter').addEventListener('click', e => {
+      const b = e.target.closest('.chip'); if(!b) return;
+      tipoActivo = (b.dataset.tipo === tipoActivo) ? '' : b.dataset.tipo;
+      setURL(); renderChips(); renderSections(); renderRespList();
+    });
+    document.getElementById('area-filter').addEventListener('click', e => {
+      const b = e.target.closest('.chip'); if(!b) return;
+      areaActiva = (b.dataset.area === areaActiva) ? '' : b.dataset.area;
+      setURL(); renderChips(); renderSections(); renderRespList();
+    });
+    document.getElementById('search').addEventListener('input', () => { renderSections(); });
+    document.getElementById('search-clear').addEventListener('click', () => { document.getElementById('search').value = ''; renderSections(); });
+    document.getElementById('resp-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      const pop = document.getElementById('resp-pop');
+      if(pop.hidden){
+        pop.hidden = false;
+        document.getElementById('resp-btn').setAttribute('aria-expanded','true');
+        document.getElementById('resp-search').value = '';
+        renderRespList();
+        document.getElementById('resp-search').focus();
+      } else { pop.hidden = true; document.getElementById('resp-btn').setAttribute('aria-expanded','false'); }
+    });
+    document.getElementById('resp-clear').addEventListener('click', () => setResp(''));
+    document.getElementById('resp-search').addEventListener('input', renderRespList);
+    document.getElementById('resp-search').addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ const f = document.querySelector('#resp-list .resp-item:not([data-k=""])'); if(f) setResp(f.dataset.k); }
+    });
+    document.getElementById('resp-list').addEventListener('click', e => {
+      const it = e.target.closest('.resp-item'); if(it) setResp(it.dataset.k);
+    });
+    document.getElementById('resp-mail').addEventListener('click', e => {
+      e.stopPropagation();
+      const pop = document.getElementById('mail-pop'); pop.hidden = !pop.hidden;
+    });
+    document.getElementById('mail-pop').addEventListener('click', e => {
+      e.stopPropagation();
+      const o = e.target.closest('.mail-opt'); if(o) enviarCorreo(o.dataset.via);
+    });
+    document.addEventListener('click', e => {
+      document.getElementById('mail-pop').hidden = true;
+      if(!e.target.closest('#resp-filter')){ document.getElementById('resp-pop').hidden = true; document.getElementById('resp-btn').setAttribute('aria-expanded','false'); }
+    });
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){ document.getElementById('resp-pop').hidden = true; document.getElementById('mail-pop').hidden = true; }
+    });
+  }
+
+  function cargar(d){
+    respInfo = {};
+    d.pendientes = d.pendientes.map(e => normalizar(e, d.vivo)).filter(e => e.tk);
+    DATA = d;
+    if(respActivo && !respInfo[respActivo]) respActivo = '';
+    if(tipoActivo && !TIPO_INFO[tipoActivo]) tipoActivo = '';
+    renderAll();
+  }
+  function badge(state, text){
+    const b = document.getElementById('sync-badge');
+    b.classList.remove('show','offline'); b.classList.add(state); b.textContent = text;
+  }
+  function sync(){
+    if(typeof Papa === 'undefined'){ badge('offline','⚠ Sin sincronizador — última versión guardada (' + DATA.generado + ')'); return; }
+    fetch(CSV_URL, {cache:'no-store'}).then(r => r.text()).then(txt => {
+      const d = fromSheet(Papa.parse(txt, {header:true, skipEmptyLines:true}).data);
+      if(!d) throw new Error('CSV sin filas válidas');
+      cargar(d);
+      badge('show', '🔄 Sincronizado con Google Sheets · ' + d.generado);
+    }).catch(err => {
+      console.warn('No se pudo sincronizar con Google Sheets:', err);
+      badge('offline', '⚠ Sin conexión a Google Sheets — versión guardada del ' + DATA.generado);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    bind();
+    cargar(fromStatic());
+    sync();
+    setInterval(sync, 5*60*1000);
+  });
+})();
+</script>
+</body>
+</html>
