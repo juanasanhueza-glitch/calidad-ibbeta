@@ -181,6 +181,13 @@ a.dv:hover{color:var(--blue);border-bottom-color:var(--blue)}
 .dv-sum b{display:block;font-size:22px;font-weight:300;color:var(--navy)} .dv-sum span{font-size:11.5px;color:var(--slate)}
 .dv-t tr.con-d td{background:var(--bad-bg)}
 .kpi-more{margin-top:8px;font-size:12.5px}
+.rft-chart{position:relative;display:flex;align-items:flex-end;gap:8px;margin:6px 0 16px;padding:0 4px 0 0;border-bottom:1px solid var(--line)}
+.rft-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.rft-bar{width:70%;max-width:34px;border-radius:4px 4px 0 0;background:var(--slate-lt)}
+.rft-bar.ok{background:var(--ok)} .rft-bar.warn{background:var(--warn)} .rft-bar.bad{background:var(--bad)}
+.rft-val{font-size:11px;color:var(--text);margin-bottom:3px} .rft-lbl{font-size:11px;color:var(--slate);height:22px;line-height:22px} .rft-lbl.on{color:var(--navy);font-weight:700}
+.rft-meta{position:absolute;left:0;right:0;border-top:1.5px dashed var(--navy);opacity:.55}
+.rft-meta span{position:absolute;left:-2px;top:-15px;background:#fff;padding:0 4px;font-size:10.5px;color:var(--navy)}
 .dv-t{width:100%;font-size:12.5px} .dv-t th{background:var(--panel)} .dv-t td{padding:6px 10px}
 
 @media (max-width:1100px){ .cv-tiles{grid-template-columns:repeat(3,1fr)} }
@@ -379,10 +386,11 @@ const tagFor = p => { const s=status(p); return s==="warn" ? '<span class="tag w
 const plural = (n,a,b) => `${n} ${n===1?a:b}`;
 
 /* ---------------- carga de datos ---------------- */
+const normH = c => norm(c).replace(/\s+/g," ");   // encabezados con saltos de línea o dobles espacios
 function toTable(rows, key){
-  const idx = rows.findIndex(r => r.some(c => norm(c)===key));
+  const idx = rows.findIndex(r => r.some(c => normH(c)===key));
   if(idx<0) throw new Error("no se encontró la fila de encabezados");
-  const heads = rows[idx].map(norm);
+  const heads = rows[idx].map(normH);
   return rows.slice(idx+1).map(r => { const o={}; heads.forEach((h,i)=>{ if(h) o[h]=(r[i]??"").trim(); }); return o; })
              .filter(o => (o[key]??"")!=="");
 }
@@ -695,6 +703,13 @@ function compute(){
     out.kpi={desv:{v:I.desv??null,n:dm?29:null,d:dm?117:null,exact:true},capa:{v:I.capa??null,n:dm?215:null,d:dm?271:null,exact:true},oos:{v:I.oos??null,n:dm?6:null,d:dm?13:null,exact:true}};
   }
   const rftMes=T.RFT.filter(r=>r._mes===STATE.mes);
+  { const yr=STATE.mes.slice(0,4), meses=[];
+    for(let m=1;m<=+STATE.mes.slice(5,7);m++){ const k=`${yr}-${String(m).padStart(2,"0")}`; const L=T.RFT.filter(r=>r._mes===k);
+      if(!L.length){ meses.push({k,tot:0}); continue; }
+      if("cantidad liberaciones por mes" in L[0]){ const last=L[L.length-1], lib=parseNum(last["cantidad liberaciones por mes"])||L.length, des=parseNum(last["cantidad desvios por mes"])||0;
+        meses.push({k,tot:lib,des,lotesD:L.filter(r=>parseNum(r["tiene desvio?"])>0||(r["desvio/nc/fde"]||"").trim()).length,v:lib>0?1-des/lib:null}); }
+      else { const ok=L.filter(r=>norm(r["correcto a la primera"]).startsWith("s")).length; meses.push({k,tot:L.length,des:L.length-ok,lotesD:L.length-ok,v:ratio(ok,L.length)}); } }
+    out.rftAnual=meses; }
   if(rftMes.length && ("cantidad liberaciones por mes" in rftMes[0])){
     // Planilla de liberación: el indicador oficial es 1 − K/J de la última fila del mes (igual que la columna L)
     const last=rftMes[rftMes.length-1];
@@ -781,7 +796,31 @@ function compute(){
 }
 
 /* ---------------- ficha de desvío ---------------- */
-let LOTES_MES=[], LOTES_TODOS=[], DESDE_LOTES=false;
+let LOTES_MES=[], LOTES_TODOS=[], DESDE_LOTES=false, RFT_ANUAL=[];
+function verRFTAnual(){
+  DESDE_LOTES=false;
+  const A=RFT_ANUAL, con=A.filter(x=>x.tot);
+  const totL=con.reduce((a,x)=>a+x.tot,0), totD=con.reduce((a,x)=>a+(x.des||0),0);
+  const prom=totL?1-totD/totL:null, meta=CONFIG.ind.rft.verde/100;
+  const H=180;
+  document.getElementById("dvBody").innerHTML=`
+    <div class="dv-head"><div><div class="dv-k">RFT · ${STATE.mes.slice(0,4)}</div><div class="dv-code">Comportamiento anual</div></div><button class="dv-x" onclick="cerrarDesvio()" aria-label="Cerrar">×</button></div>
+    <div class="dv-sum" style="grid-template-columns:repeat(3,1fr)">
+      <div><b style="color:var(--${statusI("rft",prom)==="ok"?"ok":statusI("rft",prom)==="warn"?"warn":"bad"})">${pct(prom)}</b><span>RFT acumulado del año</span></div>
+      <div><b>${totL.toLocaleString("es-CL")}</b><span>lotes liberados</span></div>
+      <div><b>${con.filter(x=>statusI("rft",x.v)!=="ok").length} de ${con.length}</b><span>meses bajo la meta</span></div></div>
+    <div class="rft-chart" style="height:${H+40}px">
+      <div class="rft-meta" style="bottom:${28+meta*H}px"><span>Meta ${CONFIG.ind.rft.verde}%</span></div>
+      ${A.map(x=>{ const s=statusI("rft",x.v); return `<div class="rft-col"><div class="rft-val">${x.tot?pct(x.v):""}</div>
+        <div class="rft-bar ${s}" style="height:${x.tot?Math.max(2,(x.v||0)*H):0}px"></div><div class="rft-lbl${x.k===STATE.mes?" on":""}">${MESES[+x.k.slice(5,7)-1].slice(0,3)}</div></div>`; }).join("")}
+    </div>
+    <table class="dv-t"><thead><tr><th>Mes</th><th style="text-align:right">Lotes liberados</th><th style="text-align:right">Desvíos</th><th style="text-align:right">RFT</th></tr></thead><tbody>
+      ${A.map(x=>`<tr${x.k===STATE.mes?' style="font-weight:700"':''}><td>${mlabel(x.k)}</td><td style="text-align:right">${x.tot||"—"}</td><td style="text-align:right">${x.tot?(x.des||0):"—"}</td>
+        <td style="text-align:right"><span class="cnt" style="justify-content:flex-end">${x.tot?dot(statusI("rft",x.v))+pct(x.v):"—"}</span></td></tr>`).join("")}
+    </tbody></table>
+    <p class="muted" style="font-size:12px;margin-top:8px">RFT mensual = 1 − Cantidad Desvíos Por Mes / Cantidad Liberaciones Por Mes (planilla de liberación). Acumulado = total del año con el mismo criterio.</p>`;
+  const ov=document.getElementById("dv"); ov.classList.add("on","wide"); ov.querySelector(".dv-panel").scrollTop=0;
+}
 function verLotes(){
   DESDE_LOTES=true;
   const tieneD=r=>((r["desvio/nc/fde"]||"").trim()||parseNum(r["tiene desvio?"])>0)?1:0;
@@ -971,7 +1010,9 @@ function render(){
   const rftExtra = !o.rft.tot ? "" : rftCodes.length
     ? `<div class="kpi-codes"><span>${plural(LOTES_MES.length,"lote con","lotes con")} desvío/NC:</span>${rftCodes.map(c=>`<a class="dv" onclick="DESDE_LOTES=false;verDesvio('${esc(c)}')">${esc(c)}</a>`).join("")}</div>`
     : `<div class="kpi-codes ok">${dot("ok")}Sin desvíos ni NC asociados en el mes</div>`;
-  const rftVer = o.rft.tot ? `<div class="kpi-more"><a class="dv" onclick="verLotes()">Ver ${plural(LOTES_TODOS.length,"lote liberado","lotes liberados")} →</a></div>` : "";
+  RFT_ANUAL=o.rftAnual||[];
+  const rftVer = (o.rft.tot ? `<div class="kpi-more"><a class="dv" onclick="verLotes()">Ver ${plural(LOTES_TODOS.length,"lote liberado","lotes liberados")} →</a></div>` : "")
+    + (RFT_ANUAL.some(x=>x.tot) ? `<div class="kpi-more" style="margin-top:4px"><a class="dv" onclick="verRFTAnual()">Ver comportamiento anual →</a></div>` : "");
   h+=view("eventos",`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">
       ${kpiCard("RFT · Lotes liberados sin desviación",o.rft.v,o.rft.tot?`${o.rft.ok} de ${o.rft.tot} lotes sin desviación${o.rft.general&&STATE.area?" · total planta":""}`:"Sin datos","rft",rftExtra+rftVer)}
       ${kpiCard("Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"desv")}
