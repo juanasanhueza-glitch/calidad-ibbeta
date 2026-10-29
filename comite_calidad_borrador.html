@@ -311,8 +311,9 @@ const CONFIG = {
     ["Control de Calidad — Laboratorio Fco-Qco.",8,"25 agosto"],["Control de Calidad — Material envase empaque",9,"9 septiembre"],
     ["Aseguramiento de Calidad",9,"24 septiembre"],["Auditorías de seguimiento 2026",11,"22 noviembre"],["Cierre del Programa Anual 2026",12,"diciembre"]
   ],
-  /* Documentación: procesos de la Base datos que cuentan como SOP (texto que contiene) y días para "próximo a vencer" */
-  docProcesos: ["sop"],
+  /* Documentación (criterio Cecilia 29-10): SOP, instructivos y todo lo documental que NO se mide en otro indicador.
+     Se excluyen los procesos de la Base datos cuyo nombre contiene alguno de estos textos (ya están en Programas). */
+  docExcluir: ["calibr","manten","valid","calific","hvac","sc-","sistemas de apoyo","mapeo"],
   /* Programas que se miden por vigencia desde la Base datos de Elementos Regulatorios (texto que contiene el Proceso) */
   progVigencia: {},   // Calibración y mantención se conectarán al Sistema de Gestión de Equipos e Instrumentos
   docDiasAviso: 60,
@@ -749,7 +750,7 @@ function compute(){
   if(T.DocBase){
     const hoy=new Date(); hoy.setHours(0,0,0,0);
     const actual = STATE.mes===mkey(hoy), ref = actual ? hoy : cut;
-    const esSOP=r=>{ const pr=norm(r["proceso"]); return CONFIG.docProcesos.some(k=>pr.includes(norm(k))); };
+    const esSOP=r=>{ const pr=norm(r["proceso"]); return !!pr && !CONFIG.docExcluir.some(k=>pr.includes(norm(k))); };
     const areaDe=r=>(r["area responsable por resolver"]||r["area de impacto"]||"Sin área").trim();
     const L=T.DocBase.filter(esSOP).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area).map(r=>{
       const ven=parseDate(r["fecha vence"]); const est=norm(r["estado"]);
@@ -769,9 +770,11 @@ function compute(){
     const venc=L.filter(x=>x.e==="venc"), prox=L.filter(x=>x.e==="prox");
     const porArea={}; venc.forEach(x=>{ porArea[x.area]=(porArea[x.area]||0)+1; });
     const porAreaP={}; prox.forEach(x=>{ porAreaP[x.area]=(porAreaP[x.area]||0)+1; });
+    const porTipo={}; L.forEach(x=>{ const t=(x.r["proceso"]||"").trim(); const o=(porTipo[t]=porTipo[t]||{vig:0,prox:0,venc:0,tot:0}); o[x.e]++; o.tot++; });
+    const excl=[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(p=>p&&!esSOP({"proceso":p})))];
     out.doc={tot:L.length,vig:L.length-venc.length,venc:venc.length,prox:prox.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),
       procesos:[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(Boolean))],
-      reg:regTot, porAreaP, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
+      reg:regTot, porAreaP, tipos:Object.entries(porTipo).sort((a,b)=>b[1].tot-a[1].tot), excl, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
     out.doc.v=ratio(out.doc.vig,out.doc.tot);
   } else {
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
@@ -891,7 +894,7 @@ const VIEWS=[
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
-  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de los SOP según el Panel de Control de Elementos Regulatorios (misma fuente que el portal)."},
+  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas."},
   {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
 const dot = s => (!s||s==="neutral") ? "" : `<i class="dot ${s}"></i>`;
@@ -929,7 +932,7 @@ function render(){
     ["Eventos","Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs atrasadas"),"eventos","capa"],
     ["Eventos","Cierre OOS",o.kpi.oos.v,kSub(o.kpi.oos,"OOS atrasados"),"eventos","oos"],
     ["Capacitación","Cumplimiento",o.cap.v,`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`,"capacitacion"],
-    ["Documentación","SOP vigentes",o.doc.v,plural(o.doc.venc,"SOP vencido","SOP vencidos"),"documentacion"],
+    ["Documentación","Documentos vigentes",o.doc.v,plural(o.doc.venc,"documento vencido","documentos vencidos"),"documentacion"],
     ["Autoinspecciones","Cumplimiento del programa",o.aiProg.v,`${o.aiProg.ok} de ${o.aiProg.tot} áreas`,"autoinspecciones"],
     ["Autoinspecciones","Resultado general",o.aiGen,o.aiLow?`Más baja: ${esc(o.aiLow.a)} ${pct(o.aiLow.v)}`:"","autoinspecciones"]
   ];
@@ -948,7 +951,7 @@ function render(){
       return ss.every(x=>x==="nodata")?["","Sin datos"]: nb?["bad",plural(nb,"indicador no cumple","indicadores no cumplen")]: nw?["warn",plural(nw,"indicador en alerta","indicadores en alerta")]:["ok","Cumplen"]; })(),
     bodega:o.bodega.n?(o.bodega.venc?["bad",plural(o.bodega.venc,"posición vencida","posiciones vencidas")]:["ok",`${pct(o.bodega.v)} ocupación`]):["","Sin datos"],
     capacitacion:o.cap.tot?[status(o.cap.v),`${pct(o.cap.v)} · ${plural(o.cap.late.length,"atrasada","atrasadas")}`]:["","Sin datos"],
-    documentacion:o.doc.tot?[o.doc.venc?status(o.doc.v)==="ok"?"warn":status(o.doc.v):"ok",plural(o.doc.venc,"SOP vencido","SOP vencidos")]:["","Sin datos"],
+    documentacion:o.doc.tot?[o.doc.venc?status(o.doc.v)==="ok"?"warn":status(o.doc.v):"ok",plural(o.doc.venc,"documento vencido","documentos vencidos")]:["","Sin datos"],
     autoinspecciones:o.aiGen!=null||o.aiProg.tot?(()=>{ const sg=status(o.aiGen), sp=status(o.aiProg.v), w=worst([sg,sp]);
       return [w, (w===sp&&w!==sg)?`Programa ${pct(o.aiProg.v)}`:`Resultado ${pct(o.aiGen)}`]; })():["","Sin datos"]
   };
@@ -974,7 +977,7 @@ function render(){
        return ["eventos","Indicadores de eventos",ks.length?`${okc} de ${ks.length}`:"—",st.eventos[0],ks.length?(nc.length?`No cumple: ${nc.join(", ")}`:"cumplen su meta"):"Sin datos"]; })(),
     ["bodega","Ocupación bodega",pct(o.bodega.v),st.bodega[0],o.bodega.n?plural(o.bodega.venc,"pos. vencida","pos. vencidas"):"Sin datos"],
     ["capacitacion","Capacitación",pct(o.cap.v),st.capacitacion[0],o.cap.tot?`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`:"Sin datos"],
-    ["documentacion","SOP vigentes",pct(o.doc.v),status(o.doc.v),o.doc.tot?plural(o.doc.venc,"vencido","vencidos"):"Sin datos"],
+    ["documentacion","Documentos vigentes",pct(o.doc.v),status(o.doc.v),o.doc.tot?plural(o.doc.venc,"vencido","vencidos"):"Sin datos"],
     ["autoinspecciones","Autoinspecciones",pct(o.aiGen),st.autoinspecciones[0],o.aiLow?`Más baja: ${esc(o.aiLow.a)}`:"Sin datos"]
   ];
   h+=view("resumen",`<div class="cover" style="background-image:url(${IMG_COVER})">
@@ -1060,26 +1063,22 @@ function render(){
   const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td>${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
   const docHead=t=>`<thead><tr><th>Código</th><th>Título</th><th>Área responsable</th><th>${t}</th><th class="n">Días</th><th>Responsable</th></tr></thead>`;
   const areasT=[...new Set([...d.porArea.map(x=>x[0]),...Object.keys(d.porAreaP||{})])].map(a=>[a,(d.porArea.find(x=>x[0]===a)||[0,0])[1],(d.porAreaP||{})[a]||0]).sort((a,b)=>b[1]-a[1]||b[2]-a[2]);
-  h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron registros de SOP en la Base datos (se buscan procesos que contengan: ${CONFIG.docProcesos.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
+  h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-      ${kpiCard("SOP vigentes",d.v,d.tot?`${d.vig} de ${d.tot} SOP`:"Sin datos")}
+      ${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}
       <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.actual?"Al día de hoy":"Al cierre de "+M.toLowerCase()}</div></div>
-      <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">Desglose por área abajo</div></div>
+      <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div>
       ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
     </div>
-    <div class="sub-title">Por área responsable</div>
+    ${d.tipos&&d.tipos.length?`<div class="sub-title">Por tipo de documento</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Tipo (proceso)</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">Por vencer</th><th class="n">Vencidos</th><th class="n">% vigente</th></tr></thead><tbody>
+      ${d.tipos.map(([p,x])=>`<tr><td class="strong">${esc(p)}</td><td class="n">${x.tot}</td><td class="n">${x.vig}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td><td class="n">${pct(ratio(x.vig+x.prox,x.tot))}</td></tr>`).join("")}</tbody></table></div>`:""}
+    <div class="sub-title">Vencidos por área</div>
     <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Vencidos</th>${d.base?'<th class="n">Próximos a vencer</th>':""}</tr></thead><tbody>
-      ${areasT.length?areasT.map(([a,v,p])=>`<tr><td class="strong">${esc(a)}</td><td class="n">${cnt(v,"bad")}</td>${d.base?`<td class="n">${cnt(p,"warn")}</td>`:""}</tr>`).join(""):`<tr><td colspan="3" class="empty">Sin SOP vencidos ni próximos a vencer</td></tr>`}</tbody></table></div>
-    ${d.venc?`<details><summary>Ver SOP vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
-    ${d.prox?`<details><summary>Ver SOP próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
-    ${d.reg&&d.reg.tot?`<div class="box" style="margin-top:18px"><div class="box-h"><h3>Todos los elementos regulatorios</h3><span>${d.reg.tot.toLocaleString("es-CL")} registros · mismo criterio que el Panel de Control de Elementos Regulatorios</span></div>
-      <div class="dv-sum" style="grid-template-columns:repeat(3,1fr)">
-        <div><b style="color:var(--ok)">${pct(ratio(d.reg.vig,d.reg.tot))}</b><span>Vigentes · ${d.reg.vig.toLocaleString("es-CL")}</span></div>
-        <div><b style="color:var(--warn)">${pct(ratio(d.reg.prox,d.reg.tot))}</b><span>Por vencer · ${d.reg.prox.toLocaleString("es-CL")}</span></div>
-        <div><b style="color:var(--bad)">${pct(ratio(d.reg.venc,d.reg.tot))}</b><span>Vencidos · ${d.reg.venc.toLocaleString("es-CL")}</span></div></div>
-      <details><summary>Ver por proceso (${d.reg.procesos.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Proceso</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">Por vencer</th><th class="n">Vencidos</th><th class="n">% vigente</th></tr></thead><tbody>
-        ${d.reg.procesos.map(([p,x])=>`<tr><td class="strong">${esc(p)}</td><td class="n">${x.tot}</td><td class="n">${x.vig}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td><td class="n">${pct(ratio(x.vig+x.prox,x.tot))}</td></tr>`).join("")}
-      </tbody></table></div></details></div>`:""}`);
+      ${areasT.length?areasT.map(([a,v,p])=>`<tr><td class="strong">${esc(a)}</td><td class="n">${cnt(v,"bad")}</td>${d.base?`<td class="n">${cnt(p,"warn")}</td>`:""}</tr>`).join(""):`<tr><td colspan="3" class="empty">Sin documentos vencidos ni próximos a vencer</td></tr>`}</tbody></table></div>
+    ${d.venc?`<details><summary>Ver documentos vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.prox?`<details><summary>Ver documentos próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.excl&&d.excl.length?`<div class="note" style="margin-top:14px">No se incluyen aquí (se miden en otros indicadores): ${d.excl.map(esc).join(" · ")}</div>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
   h+=view("autoinspecciones",`<div class="ai-grid"><div class="ai-left">
