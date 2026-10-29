@@ -292,6 +292,8 @@ const CONFIG = {
   ],
   /* Documentación: procesos de la Base datos que cuentan como SOP (texto que contiene) y días para "próximo a vencer" */
   docProcesos: ["sop"],
+  /* Programas que se miden por vigencia desde la Base datos de Elementos Regulatorios (texto que contiene el Proceso) */
+  progVigencia: {"Calibración":["calibraci"], "Mantención":["mantenci","mantenimiento preventivo"]},
   docDiasAviso: 60,
   anioProgramas: 2026,   // año de los programas cuando el "Mes programado" no indica año
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
@@ -421,7 +423,7 @@ async function loadSheets(){
   const du=(CONFIG.fuentes||{}).Detalle;
   if(du){ try{ const r=await fetch(du,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.Detalle=toTable(parseCSV(await r.text()),"tipo_evento"); }catch(e){ errors.push(`Detalle de eventos (CONSOLIDADO_CALIDAD): ${e.message}`); } }
-  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?"Programas (calibración y mantención)":"Programas (calibración, mantención y auditorías)"):n);
+  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?(tables.DocBase?"Programas (mantención, si no figura en Elementos Regulatorios)":"Programas (calibración y mantención)"):"Programas (calibración, mantención y auditorías)"):n);
   return {tables, errors, pendientes:pend};
 }
 
@@ -534,7 +536,24 @@ function compute(){
   // 1. Programas
   const pr=byScope(T.Programas).map(r=>Object.assign({r},activity(r,cut,"fecha planificada","fecha de cierre")));
   const atrVal=[];
+  const hoyD=new Date(); hoyD.setHours(0,0,0,0);
+  const refD = STATE.mes===mkey(hoyD) ? hoyD : cut;
   out.programas=CONFIG.programas.map(p=>{
+    const claves=(CONFIG.progVigencia||{})[p];
+    if(claves && T.DocBase){
+      const actual=STATE.mes===mkey(hoyD);
+      const L=T.DocBase.filter(r=>{ const pr=norm(r["proceso"]); return claves.some(k=>pr.includes(norm(k))); })
+        .filter(r=>!STATE.area||(r["area responsable por resolver"]||"").trim()===STATE.area||(r["area de impacto"]||"").trim()===STATE.area);
+      if(L.length){
+        const its=L.map(r=>{ const ven=parseDate(r["fecha vence"]), fir=parseDate(r["fecha firma"]), est=norm(r["estado"]);
+          const venc = actual&&est ? est.startsWith("venc") : (ven ? ven<refD : false);
+          return {r,ven,fir,venc}; });
+        const ok=its.filter(x=>!x.venc).length, delMes=its.filter(x=>x.fir&&mkey(x.fir)===STATE.mes).length;
+        its.filter(x=>x.venc).forEach(x=>atrVal.push({r:{"programa":p,"actividad / equipo":((x.r["equipo/instrumento/producto"]||x.r["descripcion detallada"]||"").trim()+(x.r["codigo/n°"]?` (N° ${x.r["codigo/n°"].trim()})`:"")),
+          "responsable":(x.r["nombre y cargo responsable"]||"").split("/")[0].trim()}, plan:x.ven, atraso:x.ven?Math.max(0,Math.round((refD-x.ven)/DAY)):0}));
+        return {p,tot:its.length,ok,v:ratio(ok,its.length),vigencia:true,delMes};
+      }
+    }
     const VD=T.ValDet&&T.ValDet[p];
     if(VD&&VD.length){
       const its=VD.map(r=>{ const venc=parseDate(r["fecha vencimiento"]); const fin=finMesProgramado(r["mes programado"],venc);
@@ -766,7 +785,7 @@ const ICONS={
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const VIEWS=[
   {id:"resumen",grp:"Inicio",t:"Resumen",title:"Resumen del mes"},
-  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Actividades realizadas / programadas hasta el mes. Validaciones y calificación según su Mes programado; auditorías según el Programa Anual 2026."},
+  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Validaciones, calificación y auditorías: realizadas / programadas hasta el mes. Calibración: instrumentos con calibración vigente (Elementos Regulatorios)."},
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
@@ -802,7 +821,7 @@ function render(){
   const pTot=o.programas.reduce((a,p)=>a+p.tot,0), pOk=o.programas.reduce((a,p)=>a+p.ok,0), pV=ratio(pOk,pTot);
 
   const pctItems=[
-    ...o.programas.map(p=>["Programas",p.p,p.v,p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
+    ...o.programas.map(p=>["Programas",p.p,p.v,p.vigencia?`${p.ok} de ${p.tot} vigentes`:p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
     ["Eventos","RFT · Lotes liberados sin desviación",o.rft.v,`${o.rft.ok} de ${o.rft.tot} lotes`,"eventos","rft"],
     ["Eventos","Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"eventos","desv"],
     ["Eventos","Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs atrasadas"),"eventos","capa"],
@@ -875,7 +894,7 @@ function render(){
   const TOP=5;
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
+  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
     ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="5" class="empty">Sin atrasos en el período</td></tr>`}
