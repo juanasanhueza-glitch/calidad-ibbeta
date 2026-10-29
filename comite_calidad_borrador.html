@@ -293,7 +293,7 @@ const CONFIG = {
   /* Documentación: procesos de la Base datos que cuentan como SOP (texto que contiene) y días para "próximo a vencer" */
   docProcesos: ["sop"],
   /* Programas que se miden por vigencia desde la Base datos de Elementos Regulatorios (texto que contiene el Proceso) */
-  progVigencia: {"Calibración":["calibraci"], "Mantención":["mantenci","mantenimiento preventivo"]},
+  progVigencia: {},   // Calibración y mantención se conectarán al Sistema de Gestión de Equipos e Instrumentos
   docDiasAviso: 60,
   anioProgramas: 2026,   // año de los programas cuando el "Mes programado" no indica año
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
@@ -423,7 +423,7 @@ async function loadSheets(){
   const du=(CONFIG.fuentes||{}).Detalle;
   if(du){ try{ const r=await fetch(du,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.Detalle=toTable(parseCSV(await r.text()),"tipo_evento"); }catch(e){ errors.push(`Detalle de eventos (CONSOLIDADO_CALIDAD): ${e.message}`); } }
-  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?(tables.DocBase?"Programas (mantención, si no figura en Elementos Regulatorios)":"Programas (calibración y mantención)"):"Programas (calibración, mantención y auditorías)"):n);
+  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?(tables.DocBase?"Programas (calibración y mantención)":"Programas (calibración y mantención)"):"Programas (calibración, mantención y auditorías)"):n);
   return {tables, errors, pendientes:pend};
 }
 
@@ -785,7 +785,7 @@ const ICONS={
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const VIEWS=[
   {id:"resumen",grp:"Inicio",t:"Resumen",title:"Resumen del mes"},
-  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Validaciones, calificación y auditorías: realizadas / programadas hasta el mes. Calibración: instrumentos con calibración vigente (Elementos Regulatorios)."},
+  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Validaciones, calificación y auditorías: realizadas / programadas hasta el mes."},
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
