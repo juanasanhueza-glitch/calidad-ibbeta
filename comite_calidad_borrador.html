@@ -657,17 +657,24 @@ function compute(){
     const L=T.DocBase.filter(esSOP).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area).map(r=>{
       const ven=parseDate(r["fecha vence"]); const est=norm(r["estado"]);
       let e;
-      if(actual && est) e = est.startsWith("venc") ? "venc" : est.startsWith("prox") ? "prox" : "vig";
+      if(actual && est) e = est.startsWith("venc") ? "venc" : (est.startsWith("prox")||est.startsWith("por venc")) ? "prox" : "vig";
       else e = !ven ? "vig" : ven<ref ? "venc" : (ven-ref)/DAY<=CONFIG.docDiasAviso ? "prox" : "vig";
       return {r,e,ven,area:areaDe(r),code:(r["codigo/n°"]||"").trim(),ed:(r["edicion"]||"").trim(),
         title:(r["descripcion detallada"]||r["equipo/instrumento/producto"]||r["requerimiento"]||"").trim(),
         dias:ven?Math.round((ven-ref)/DAY):null,resp:(r["nombre y cargo responsable"]||"").split("/")[0].trim()}; });
+    const estDe=r=>{ const ven=parseDate(r["fecha vence"]), est=norm(r["estado"]);
+      if(actual && est) return est.startsWith("venc")?"venc":(est.startsWith("prox")||est.startsWith("por venc"))?"prox":"vig";
+      return !ven?"vig":ven<ref?"venc":(ven-ref)/DAY<=CONFIG.docDiasAviso?"prox":"vig"; };
+    const todos=T.DocBase.filter(r=>(r["proceso"]||"").trim()).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area);
+    const porProc={}; todos.forEach(r=>{ const p=(r["proceso"]||"").trim(); const e=estDe(r); (porProc[p]=porProc[p]||{vig:0,prox:0,venc:0,tot:0}); porProc[p][e]++; porProc[p].tot++; });
+    const tg={vig:0,prox:0,venc:0}; Object.values(porProc).forEach(x=>{ tg.vig+=x.vig; tg.prox+=x.prox; tg.venc+=x.venc; });
+    const regTot={tot:todos.length,...tg,procesos:Object.entries(porProc).sort((a,b)=>b[1].tot-a[1].tot)};
     const venc=L.filter(x=>x.e==="venc"), prox=L.filter(x=>x.e==="prox");
     const porArea={}; venc.forEach(x=>{ porArea[x.area]=(porArea[x.area]||0)+1; });
     const porAreaP={}; prox.forEach(x=>{ porAreaP[x.area]=(porAreaP[x.area]||0)+1; });
     out.doc={tot:L.length,vig:L.length-venc.length,venc:venc.length,prox:prox.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),
       procesos:[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(Boolean))],
-      porAreaP, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
+      reg:regTot, porAreaP, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
     out.doc.v=ratio(out.doc.vig,out.doc.tot);
   } else {
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
@@ -941,7 +948,15 @@ function render(){
     <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Vencidos</th>${d.base?'<th class="n">Próximos a vencer</th>':""}</tr></thead><tbody>
       ${areasT.length?areasT.map(([a,v,p])=>`<tr><td class="strong">${esc(a)}</td><td class="n">${cnt(v,"bad")}</td>${d.base?`<td class="n">${cnt(p,"warn")}</td>`:""}</tr>`).join(""):`<tr><td colspan="3" class="empty">Sin SOP vencidos ni próximos a vencer</td></tr>`}</tbody></table></div>
     ${d.venc?`<details><summary>Ver SOP vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
-    ${d.prox?`<details><summary>Ver SOP próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}`);
+    ${d.prox?`<details><summary>Ver SOP próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.reg&&d.reg.tot?`<div class="box" style="margin-top:18px"><div class="box-h"><h3>Todos los elementos regulatorios</h3><span>${d.reg.tot.toLocaleString("es-CL")} registros · mismo criterio que el Panel de Control de Elementos Regulatorios</span></div>
+      <div class="dv-sum" style="grid-template-columns:repeat(3,1fr)">
+        <div><b style="color:var(--ok)">${pct(ratio(d.reg.vig,d.reg.tot))}</b><span>Vigentes · ${d.reg.vig.toLocaleString("es-CL")}</span></div>
+        <div><b style="color:var(--warn)">${pct(ratio(d.reg.prox,d.reg.tot))}</b><span>Por vencer · ${d.reg.prox.toLocaleString("es-CL")}</span></div>
+        <div><b style="color:var(--bad)">${pct(ratio(d.reg.venc,d.reg.tot))}</b><span>Vencidos · ${d.reg.venc.toLocaleString("es-CL")}</span></div></div>
+      <details><summary>Ver por proceso (${d.reg.procesos.length})</summary><div class="tbl-wrap"><table><thead><tr><th>Proceso</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">Por vencer</th><th class="n">Vencidos</th><th class="n">% vigente</th></tr></thead><tbody>
+        ${d.reg.procesos.map(([p,x])=>`<tr><td class="strong">${esc(p)}</td><td class="n">${x.tot}</td><td class="n">${x.vig}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td><td class="n">${pct(ratio(x.vig+x.prox,x.tot))}</td></tr>`).join("")}
+      </tbody></table></div></details></div>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
   h+=view("autoinspecciones",`<div class="ai-grid"><div class="ai-left">
