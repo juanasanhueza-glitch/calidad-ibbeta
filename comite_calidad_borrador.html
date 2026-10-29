@@ -672,7 +672,7 @@ function compute(){
     const tipoOf=r=>{ const t=norm(col(r,"Tipo_Evento")); return t.startsWith("desv")?"Desvío":t.startsWith("no conf")?"No conformidad":t.includes("reclam")?"Reclamo":t==="oos"?"OOS":t.startsWith("capa")?"CAPA":""; };
     const rows=BD.filter(r=>!STATE.area||areaOf(r)===STATE.area).map(r=>{ const est=col(r,"Estado"), comp=col(r,"Estado Compromiso de Fecha (Alerta)","Estado Compromiso de Fecha");
       return {r,tipo:tipoOf(r),est,vivo:est==="Abierto"||est==="En Seguimiento",cerrado:/cerrad/i.test(est),fuera:/^fuera de plazo/i.test(comp),
-        code:col(r,"Código/N°","Codigo/N°","ID_Registro"),area:areaOf(r),ap:parseDate(col(r,"Fecha_Apertura")),dias:parseNum(col(r,"Dias Transcurridos"))}; });
+        code:col(r,"Código/N°","Codigo/N°","ID_Registro"),ido:col(r,"ID_Origen","ID Origen"),area:areaOf(r),ap:parseDate(col(r,"Fecha_Apertura")),dias:parseNum(col(r,"Dias Transcurridos"))}; });
     out.eventos=CONFIG.eventos.map(t=>{ const rs=rows.filter(x=>x.tipo===t&&x.vivo), ve=rs.filter(x=>x.fuera);
       const cnt={}; ve.forEach(x=>{ const a=x.area||"Sin área"; cnt[a]=(cnt[a]||0)+1; }); const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
       return {t,ab:rs.length,ve:ve.length,area: top.length ? top.filter(x=>x[1]===top[0][1]).slice(0,2).map(x=>x[0]).join(" / ")+(top.filter(x=>x[1]===top[0][1]).length>2?" y otras":"") : "—", list:ve}; });
@@ -1030,7 +1030,7 @@ function render(){
       :`<tr><td colspan="4" class="empty">Sin eventos cargados</td></tr>`}
     </tbody></table></div>
     ${totVenc?`<details><summary>Ver eventos vencidos (${totVenc})</summary><div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Tipo</th><th>Área</th><th>Apertura</th><th class="n">Días</th></tr></thead><tbody>
-      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td class="fecha">${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
+      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.ido||x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td class="fecha">${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
       </tbody></table></div></details>`:""}`);
 
   // ---------- 3 Bodega ----------
