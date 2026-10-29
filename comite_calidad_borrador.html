@@ -247,6 +247,20 @@ const CONFIG = {
   fuentes: {
     Capacitacion: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmr3HrrAMQ5co9ueB5P7KRPrzaT69whq-p2GOKyrItMgWv1TE8gSGWloTEb9EXMewVyZaBq6bmseLR/pub?gid=53843363&single=true&output=csv",   // Capacitaciones_2026_Ejecucion (PRG-GP-003.01)
     DocBase: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmkghsO9Jm3d17VSsnPsM8fDX7GnRAldQjNmbCOMhO_FrMXCspulXJQfLLQcwwld2tqJyBhGa7LDe0/pub?gid=878784138&single=true&output=csv",   // Panel de Control_Elementos Regulatorios 2026 · hoja "Base datos" (enlace CSV publicado)
+    /* BASE_CONSOLIDADA_Equipos_Instrumentos_IBBeta: las 10 hojas publicadas (mismos enlaces que la página de Equipos).
+       Cada hoja se reconoce por sus encabezados; se usan Listado maestro, Calibraciones, Programa de mantenimiento y Mantenimientos. */
+    Equipos: [
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1651720808",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=326939236",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=853708659",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1570180092",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=862205337",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=30396813",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1366279225",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1142251509",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1734110398",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1953016827"
+    ],
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -392,6 +406,25 @@ async function loadSheets(){
   }));
   res.forEach((r,i)=>{ if(r.status==="fulfilled") raw[names[i]]=r.value; else { raw[names[i]]=[]; errors.push(`${names[i]}: ${r.reason.message}`); } });
   const tables=prepare(raw); tables.Detalle=[];
+  tables.Eq={};
+  const eqU=(CONFIG.fuentes||{}).Equipos||[];
+  if(eqU.length){
+    const res=await Promise.allSettled(eqU.map(async u=>{ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`); return parseCSV(await r.text()); }));
+    let fallas=0;
+    res.forEach(x=>{ if(x.status!=="fulfilled"){ fallas++; return; }
+      const rows=x.value; if(!rows.length) return;
+      const H=rows[0].map(norm); const has=c=>H.includes(c);
+      const objs=rows.slice(1).map(r=>{ const o={}; H.forEach((h,i)=>{ if(h) o[h]=(r[i]??"").trim(); }); return o; }).filter(o=>Object.values(o).some(v=>v));
+      let hoja=null;
+      if(has("situacion") && has("tipo de equipo / instrumento")) hoja="LISTADO";
+      else if(H.some(h=>/^ene-\d{2}$/.test(h)) && has("id")) hoja="PROG_MANT";
+      else if(has("regla de vigencia")){ const reg=objs.map(o=>norm(o["regla de vigencia"]));
+        if(reg.some(v=>v.startsWith("segun certificado"))) hoja="MANT";
+        else if(reg.some(v=>v.startsWith("planta")||v.startsWith("por confirmar"))) hoja="CALIF";
+        else if(reg.some(v=>v.startsWith("frecuencia del registro")||v.startsWith("n/a"))) hoja="CALIB"; }
+      if(hoja) tables.Eq[hoja]=objs; });
+    if(fallas===eqU.length) errors.push("Equipos e Instrumentos (BASE_CONSOLIDADA): no se pudo leer ninguna hoja publicada");
+  }
   tables.DocBase=null;
   const dbu=(CONFIG.fuentes||{}).DocBase;
   if(dbu){ try{ const r=await fetch(dbu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
@@ -423,7 +456,11 @@ async function loadSheets(){
   const du=(CONFIG.fuentes||{}).Detalle;
   if(du){ try{ const r=await fetch(du,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.Detalle=toTable(parseCSV(await r.text()),"tipo_evento"); }catch(e){ errors.push(`Detalle de eventos (CONSOLIDADO_CALIDAD): ${e.message}`); } }
-  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?(tables.DocBase?"Programas (calibración y mantención)":"Programas (calibración y mantención)"):"Programas (calibración, mantención y auditorías)"):n);
+  const faltaProg=[]; if(!Object.keys(tables.Eq||{}).length) faltaProg.push("calibración","mantención");
+  if(!(tables.Val||Object.keys(tables.ValDet).length)) faltaProg.push("validaciones");
+  if(!(tables.AudEst||tables.Aud)) faltaProg.push("auditorías");
+  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase) && !(n==="Programas" && !faltaProg.length))
+    .map(n=>n==="Programas"?`Programas (${faltaProg.join(", ")})`:n);
   return {tables, errors, pendientes:pend};
 }
 
@@ -536,9 +573,35 @@ function compute(){
   // 1. Programas
   const pr=byScope(T.Programas).map(r=>Object.assign({r},activity(r,cut,"fecha planificada","fecha de cierre")));
   const atrVal=[];
+  const EQ=T.Eq||{}, opIDs=new Set(), nomEq={}, respEq={};
+  (EQ.LISTADO||[]).forEach(r=>{ nomEq[r["id"]]=[r["tipo de equipo / instrumento"],r["area"]].filter(Boolean).join(" · "); respEq[r["id"]]=(r["responsable (portal)"]||"").split("/")[0].trim(); if(norm(r["situacion"]).startsWith("operativ")) opIDs.add(r["id"]); });
+  const eqOp=id=>!EQ.LISTADO||opIDs.has(id);
+  const eqNombre=id=>(nomEq[id]?nomEq[id]+" ":"")+"(N° "+id+")";
   const hoyD=new Date(); hoyD.setHours(0,0,0,0);
+  const refD0 = STATE.mes===mkey(hoyD) ? hoyD : cut, mIni=som(STATE.mes);
   const refD = STATE.mes===mkey(hoyD) ? hoyD : cut;
   out.programas=CONFIG.programas.map(p=>{
+    if(norm(p)==="calibracion" && EQ.CALIB && EQ.CALIB.length){
+      // Calibraciones que vencían en el mes: en plazo si hay una nueva calibración registrada a más tardar al cierre del mes
+      const porID={}; EQ.CALIB.forEach(r=>{ const id=r["id"]; if(!id||!eqOp(id)) return; const fe=parseDate(r["fecha de ejecucion"]), ve=parseDate(r["vence"]); if(!fe) return; (porID[id]=porID[id]||[]).push({fe,ve}); });
+      let tot=0, ok=0, ej=0;
+      Object.entries(porID).forEach(([id,L])=>{ L.sort((a,b)=>a.fe-b.fe);
+        L.forEach((x,k)=>{ if(!x.ve || mkey(x.ve)!==STATE.mes) return; const sig=L.slice(k+1).find(y=>y.fe>x.fe && y.fe<=refD0);
+          tot++; if(sig){ ej++; if(sig.fe<=eom(STATE.mes)) ok++; } });
+        const vig=L.filter(y=>y.fe<=refD0); const ult=vig[vig.length-1];
+        if(ult && ult.ve && ult.ve<refD0) atrVal.push({r:{"programa":"Calibración","actividad / equipo":eqNombre(id),"responsable":respEq[id]||""},plan:ult.ve,atraso:Math.round((refD0-ult.ve)/DAY)}); });
+      const delMes=EQ.CALIB.filter(r=>{ const fe=parseDate(r["fecha de ejecucion"]); return fe&&mkey(fe)===STATE.mes&&eqOp(r["id"]); }).length;
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej,delMes,txt:"calibraciones que vencían en el mes"};
+    }
+    if(norm(p)==="mantencion" && EQ.PROG_MANT && EQ.PROG_MANT.length){
+      const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      const colM=MM[+STATE.mes.slice(5,7)-1]+"-"+STATE.mes.slice(2,4);
+      const plan=EQ.PROG_MANT.filter(r=>parseNum(r[colM])>=1 && !norm(r["situacion"]).includes("baja"));
+      const ejec=new Set((EQ.MANT||[]).filter(r=>{ const fe=parseDate(r["fecha de ejecucion"]); return fe&&fe>=mIni&&fe<=eom(STATE.mes)&&fe<=refD0; }).map(r=>r["id"]));
+      const ok=plan.filter(r=>ejec.has(r["id"])).length;
+      plan.filter(r=>!ejec.has(r["id"])).forEach(r=>atrVal.push({r:{"programa":"Mantención","actividad / equipo":(r["tipo"]?r["tipo"]+" · ":"")+(r["area"]||"")+" (N° "+r["id"]+")"+(r["ente"]?" · "+r["ente"]:""),"responsable":respEq[r["id"]]||""},plan:eom(STATE.mes),atraso:Math.max(0,Math.round((refD0-eom(STATE.mes))/DAY))}));
+      return {p,tot:plan.length,ok,v:ratio(ok,plan.length),mensual:true,ej:ok,txt:"mantenciones programadas en el mes"};
+    }
     const claves=(CONFIG.progVigencia||{})[p];
     if(claves && T.DocBase){
       const actual=STATE.mes===mkey(hoyD);
@@ -785,7 +848,7 @@ const ICONS={
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const VIEWS=[
   {id:"resumen",grp:"Inicio",t:"Resumen",title:"Resumen del mes"},
-  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Validaciones, calificación y auditorías: realizadas / programadas hasta el mes."},
+  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Calibración y mantención: ejecutadas en plazo / programadas del mes (Sistema de Equipos e Instrumentos). Validaciones, calificación y auditorías: realizadas / programadas hasta el mes."},
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
@@ -821,7 +884,7 @@ function render(){
   const pTot=o.programas.reduce((a,p)=>a+p.tot,0), pOk=o.programas.reduce((a,p)=>a+p.ok,0), pV=ratio(pOk,pTot);
 
   const pctItems=[
-    ...o.programas.map(p=>["Programas",p.p,p.v,p.vigencia?`${p.ok} de ${p.tot} vigentes`:p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
+    ...o.programas.map(p=>["Programas",p.p,p.v,p.mensual?`${p.ok} de ${p.tot} en plazo (mes)`:p.vigencia?`${p.ok} de ${p.tot} vigentes`:p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
     ["Eventos","RFT · Lotes liberados sin desviación",o.rft.v,`${o.rft.ok} de ${o.rft.tot} lotes`,"eventos","rft"],
     ["Eventos","Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"eventos","desv"],
     ["Eventos","Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs atrasadas"),"eventos","capa"],
@@ -894,7 +957,7 @@ function render(){
   const TOP=5;
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
+  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
     ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="5" class="empty">Sin atrasos en el período</td></tr>`}
