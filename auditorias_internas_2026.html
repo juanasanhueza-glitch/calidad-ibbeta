@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programa Anual de Auditorías Internas 2026 – IBBeta S.A.</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:#F5F5F3;color:#1a1a18;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:1000px;margin:0 auto}
+.header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:1.5rem}
+h1{font-size:22px;font-weight:500;color:#1a1a18}
+.sub{font-size:13px;color:#888780;margin-top:3px}
+.formula{font-size:12px;color:#5F5E5A;margin-top:5px;font-style:italic}
+
+/* VISTA TABS PRINCIPALES */
+.vista-tabs{display:flex;gap:0;margin-bottom:1.5rem;background:#fff;border:1px solid #E8E6DE;border-radius:10px;overflow:hidden}
+.vista-tab{flex:1;padding:10px 16px;font-size:13px;font-weight:500;text-align:center;cursor:pointer;color:#888780;border-right:1px solid #E8E6DE;transition:all .15s}
+.vista-tab:last-child{border-right:none}
+.vista-tab:hover{background:#F5F5F3}
+.vista-tab.activa{background:#1F4E79;color:#fff}
+.vista{display:none}
+.vista.activa{display:block}
+
+/* KPI BAR */
+.kpi-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1.25rem}
+.kpi-card{background:#fff;border:1px solid #E8E6DE;border-radius:12px;padding:14px 18px;flex:1;min-width:120px;text-align:center}
+.kpi-val{font-size:26px;font-weight:500;line-height:1;margin-bottom:4px}
+.kpi-lbl{font-size:11px;color:#888780;text-transform:uppercase;letter-spacing:.04em}
+
+/* PROGRESS */
+.progress-wrap{background:#fff;border:1px solid #E8E6DE;border-radius:12px;padding:16px 20px;margin-bottom:1.25rem}
+.progress-title{font-size:13px;font-weight:500;color:#1a1a18;margin-bottom:10px}
+.progress-bar{height:26px;background:#E8E6DE;border-radius:8px;overflow:hidden;position:relative;margin-bottom:5px}
+.progress-fill{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;transition:width .6s ease;background:#1F4E79}
+.progress-pct{font-size:13px;font-weight:500;color:#fff}
+.progress-meta{display:flex;justify-content:space-between;font-size:11px;color:#888780}
+
+/* LEYENDA */
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:1.25rem}
+.ley-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#556677}
+.ley-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* FILTRO */
+.filtro-bar{display:flex;gap:8px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap}
+.filtro-bar label{font-size:13px;color:#888780;font-weight:500}
+.filtro-bar select{font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid #D3D1C7;background:#fff;color:#1a1a18;font-family:'IBM Plex Sans',sans-serif;cursor:pointer}
+.filtro-bar select:focus{outline:none;border-color:#1F4E79}
+
+/* CALENDARIO */
+.semestre-title{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:#445566;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #E8E6DE}
+.semestre-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:1.5rem}
+.mes-card{background:#fff;border:1px solid #E8E6DE;border-radius:11px;overflow:hidden}
+.mes-header{background:#1F4E79;color:#fff;padding:10px 14px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:space-between}
+.mes-count{background:rgba(255,255,255,.15);border-radius:20px;padding:2px 8px;font-size:11px}
+.mes-body{padding:8px}
+.cal-item{display:flex;align-items:flex-start;gap:7px;padding:7px 9px;border-radius:7px;margin-bottom:5px;border:1px solid #eef1f5;font-size:12px}
+.cal-item:last-child{margin-bottom:0}
+.cal-item.ejecutada{border-left:3px solid #1A9A50;background:#F0FAF4}
+.cal-item.no_ejecutada{border-left:3px solid #E24B4A;background:#FEF2F2}
+.cal-item.pendiente{border-left:3px solid #F5A623;background:#FFF8EE}
+.cal-dia{font-size:11px;font-weight:500;color:#1F4E79;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.cal-info{flex:1;min-width:0}
+.cal-nombre{font-weight:500;color:#1a1a18;line-height:1.3;margin-bottom:2px}
+.cal-resp{font-size:10px;color:#888780}
+.cal-badge{font-size:10px;font-weight:500;padding:1px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.cal-badge.ejecutada{background:#D1F0DC;color:#1A6B3A}
+.cal-badge.no_ejecutada{background:#FCEBEB;color:#791F1F}
+.cal-badge.pendiente{background:#FFF0C0;color:#7D5800}
+.cal-empty{text-align:center;padding:16px;color:#aab8c5;font-size:12px}
+
+/* TABLA CONTROL */
+.section-title{font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #E8E6DE}
+.tabla-wrap{background:#fff;border:1px solid #E8E6DE;border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.tabla-header{padding:14px 18px 10px;border-bottom:1px solid #F1EFE8;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.tabla-title{font-size:14px;font-weight:500;color:#1a1a18}
+.tabla-stats{font-size:12px;color:#888780}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:.04em;background:#F5F5F3;border-bottom:1px solid #E8E6DE}
+td{padding:9px 14px;border-top:1px solid #F1EFE8;color:#1a1a18;vertical-align:middle}
+tr:hover td{background:#FAFAF8}
+select{font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #D3D1C7;background:#fff;color:#1a1a18;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+select:focus{outline:none;border-color:#1F4E79}
+.mes-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:#E6F1FB;color:#185FA5;font-weight:500;white-space:nowrap}
+.obs-input{width:100%;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #D3D1C7;font-family:'IBM Plex Sans',sans-serif;color:#1a1a18;background:#fff}
+.obs-input:focus{outline:none;border-color:#1F4E79}
+
+@media(max-width:700px){.semestre-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.semestre-grid{grid-template-columns:1fr}}
+footer{text-align:right;font-size:11px;color:#B4B2A9;margin-top:1rem}
+
+.pin-overlay{position:fixed;inset:0;background:#F5F5F3;z-index:9999;display:flex;align-items:center;justify-content:center}
+.pin-box{background:#fff;border:1px solid #E8E6DE;border-radius:16px;padding:2rem 2.5rem;text-align:center;max-width:360px;width:90%}
+.pin-logo{font-size:28px;margin-bottom:1rem}
+.pin-title{font-size:17px;font-weight:500;color:#1a1a18;margin-bottom:6px}
+.pin-sub{font-size:13px;color:#888780;margin-bottom:1.5rem;line-height:1.5}
+.pin-input{width:100%;padding:10px 14px;font-size:15px;border-radius:8px;border:1.5px solid #D3D1C7;font-family:'IBM Plex Sans',sans-serif;text-align:center;letter-spacing:2px;margin-bottom:10px}
+.pin-input:focus{outline:none;border-color:#1F4E79}
+.pin-btn{width:100%;padding:10px;background:#1F4E79;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+.pin-btn:hover{background:#163d62}
+.pin-error{font-size:12px;color:#A32D2D;margin-top:8px;display:none}
+.pin-ver{font-size:12px;color:#888780;margin-top:14px;cursor:pointer;text-decoration:underline}
+.readonly-banner{background:#E6F1FB;border:1px solid #B5D4F4;border-radius:8px;padding:8px 14px;font-size:12px;color:#185FA5;margin-bottom:1rem;display:none}
+</style>
+<style>
+.anio-sel{font:inherit;font-size:14px;font-weight:600;padding:6px 10px;border:1px solid #D1DCEA;border-radius:8px;color:#1F4E79;background:#fff}
+.fuente{font-size:12px;color:#64748B;margin-top:4px}
+.cal-badge.atrasada,.cal-item.atrasada{border-color:#E24B4A}
+.tag-plazo{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px}
+.tag-plazo.si{background:#EAF3DE;color:#27500A}.tag-plazo.no{background:#FCEBEB;color:#791F1F}
+.estado-b{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.cargando{padding:40px;text-align:center;color:#64748B}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div>
+      <h1 id="titulo">Programa Anual de Auditorías Internas</h1>
+      <p class="sub">PRG-QA-009.01 · Primera Parte – Internas · IBBeta S.A.</p>
+      <p class="formula" id="alcance">Alcance: Autoinspecciones BPM NT 127/2013</p>
+      <p class="fuente">Fuente: planilla Programa_Auditorias_Internas (Google Sheets). Para registrar una ejecución, completa la fecha en la planilla.</p>
+    </div>
+    <div><select class="anio-sel" id="anio" onchange="render()"></select></div>
+  </div>
+
+  <div class="vista-tabs">
+    <div class="vista-tab activa" onclick="setVista('calendario')">📅 Calendario de auditorías</div>
+    <div class="vista-tab" onclick="setVista('control')">📋 Control de ejecución</div>
+  </div>
+
+  <div class="kpi-bar" id="kpi-bar"><div class="cargando">Cargando programa…</div></div>
+  <div class="progress-wrap">
+    <div class="progress-title" id="progress-title">Avance del Programa Anual de Auditorías Internas</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"><span class="progress-pct" id="progress-pct">0%</span></div></div>
+    <div class="progress-meta"><span>0%</span><span id="progress-label"></span><span>100%</span></div>
+  </div>
+
+  <div class="vista activa" id="vista-calendario">
+    <div class="leyenda">
+      <div class="ley-item"><div class="ley-dot" style="background:#1A9A50"></div>Ejecutada en plazo</div>
+      <div class="ley-item"><div class="ley-dot" style="background:#D97706"></div>Ejecutada fuera de plazo</div>
+      <div class="ley-item"><div class="ley-dot" style="background:#F5A623"></div>Programada</div>
+      <div class="ley-item"><div class="ley-dot" style="background:#E24B4A"></div>Atrasada</div>
+    </div>
+    <div class="filtro-bar">
+      <label>Filtrar por semestre:</label>
+      <select id="filtro-sem" onchange="renderCalendario()">
+        <option value="todos">Todo el año</option><option value="1">1er semestre</option><option value="2">2do semestre</option>
+      </select>
+    </div>
+    <div id="cal-s1-wrap"><div class="semestre-title" id="tit-s1">1er semestre</div><div class="semestre-grid" id="cal-s1"></div></div>
+    <div id="cal-s2-wrap"><div class="semestre-title" id="tit-s2">2do semestre</div><div class="semestre-grid" id="cal-s2"></div></div>
+  </div>
+
+  <div class="vista" id="vista-control">
+    <div class="section-title">Registro de ejecución — programado versus real</div>
+    <div class="tabla-wrap">
+      <div class="tabla-header"><div class="tabla-title" id="tabla-titulo">Auditorías Internas — PRG-QA-009.01</div><div class="tabla-stats" id="tabla-stats"></div></div>
+      <table>
+        <thead><tr>
+          <th style="width:30px">#</th><th>Área / Auditoría</th><th style="width:105px">Fecha prog.</th><th style="width:105px">Fecha ejec.</th>
+          <th style="width:80px">Desfase</th><th style="width:80px">En plazo</th><th style="width:150px">Responsable auditado</th><th style="width:120px">Estado</th><th>Observación</th>
+        </tr></thead>
+        <tbody id="tbody-control"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer id="pie">Programa Anual de Auditorías Internas · PRG-QA-009.01 · Aseguramiento de Calidad · Instituto Bioquímico Beta S.A.</footer>
+</div>
+
+<script>
+/* Enlace CSV publicado de la planilla Programa_Auditorias_Internas (hoja "Programa") */
+var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv";
+
+var MESES = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+var FILAS = [], AUD = [];
+
+function norm(s){ return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function parseCSV(t){ var rows=[],row=[],cell='',q=false; for(var i=0;i<t.length;i++){ var c=t[i];
+  if(q){ if(c==='"'){ if(t[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+  else if(c==='"') q=true; else if(c===','){row.push(cell);cell='';} else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell='';} else if(c!=='\r') cell+=c; }
+  if(cell!==''||row.length){row.push(cell);rows.push(row);} return rows; }
+function pd(s){ s=String(s||'').trim(); var m;
+  if((m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/))) return new Date(+m[3],+m[2]-1,+m[1]);
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return new Date(+m[1],+m[2]-1,+m[3]); return null; }
+function fd(d){ return d? ('0'+d.getDate()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+d.getFullYear() : '—'; }
+var HOY=new Date(); HOY.setHours(0,0,0,0);
+
+function cargar(){
+  fetch(CSV_URL+'&_='+Date.now(),{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('respuesta '+r.status); return r.text(); })
+  .then(function(txt){
+    var rows=parseCSV(txt), hi=-1;
+    for(var i=0;i<rows.length;i++){ if(rows[i].some(function(c){return norm(c)==='area auditada';})){hi=i;break;} }
+    if(hi<0) throw new Error('no se encontró la fila de encabezados');
+    var H=rows[hi].map(norm);
+    FILAS=rows.slice(hi+1).map(function(r){ var o={}; H.forEach(function(h,i){ o[h]=(r[i]||'').trim(); }); return o; })
+      .filter(function(o){ return o['area auditada']; });
+    var anios={}; FILAS.forEach(function(o){ var a=+(o['ano']||o['año']); if(a) anios[a]=1; });
+    var lista=Object.keys(anios).map(Number).sort();
+    var actual=HOY.getFullYear(), def=lista.indexOf(actual)>=0?actual:lista[lista.length-1];
+    document.getElementById('anio').innerHTML=lista.map(function(a){return '<option'+(a===def?' selected':'')+'>'+a+'</option>';}).join('');
+    render();
+  }).catch(function(e){
+    document.getElementById('kpi-bar').innerHTML='<div class="cargando">No se pudo leer la planilla ('+esc(e.message)+'). Revise que esté publicada en la web.</div>';
+  });
+}
+
+function render(){
+  var anio=+document.getElementById('anio').value;
+  AUD=FILAS.filter(function(o){ return +(o['ano']||o['año'])===anio; }).map(function(o,i){
+    var fp=pd(o['fecha programada']), fe=pd(o['fecha de ejecucion']);
+    var finMes=fp?new Date(fp.getFullYear(),fp.getMonth()+1,0):null;
+    var est = fe ? (finMes&&fe>finMes?'fuera':'ejecutada') : (fp&&HOY>fp?'atrasada':'programada');
+    var sem = /^2/.test(o['semestre']||'') ? 2 : (/^1/.test(o['semestre']||'') ? 1 : (fp&&fp.getMonth()>=6?2:1));
+    return {n:o['n°']||(i+1),area:o['area auditada'],tipo:o['tipo'],resp:o['responsable auditado'],fp:fp,fe:fe,est:est,sem:sem,
+      mes:fp?fp.getMonth()+1:12,desfase:(fp&&fe)?Math.round((fe-fp)/864e5):null,obs:o['observaciones']||'',temas:o['temas a auditar']||''};
+  });
+  document.getElementById('titulo').textContent='Programa Anual de Auditorías Internas '+anio;
+  document.getElementById('progress-title').textContent='Avance del Programa Anual de Auditorías Internas '+anio;
+  document.getElementById('tabla-titulo').textContent='Auditorías Internas '+anio+' — PRG-QA-009.01';
+  document.getElementById('alcance').textContent='Alcance: Autoinspecciones BPM NT 127/2013 · '+AUD.length+' actividades programadas';
+  document.getElementById('pie').textContent='Programa Anual de Auditorías Internas '+anio+' · PRG-QA-009.01 · Aseguramiento de Calidad · Instituto Bioquímico Beta S.A.';
+  renderKPI(); renderCalendario(); renderTablaControl();
+}
+
+function conteo(){
+  var c={total:AUD.length,ejec:0,plazo:0,fuera:0,prog:0,atr:0,aLaFecha:0};
+  AUD.forEach(function(a){ if(a.est==='ejecutada'){c.ejec++;c.plazo++;} else if(a.est==='fuera'){c.ejec++;c.fuera++;} else if(a.est==='atrasada') c.atr++; else c.prog++;
+    if(a.fp&&a.fp<=HOY) c.aLaFecha++; });
+  return c;
+}
+function renderKPI(){
+  var c=conteo(), pct=c.total?Math.round(c.ejec/c.total*100):0, pPl=c.aLaFecha?Math.round(c.plazo/c.aLaFecha*100):0;
+  var col=pct>=90?'#639922':pct>=50?'#1F4E79':'#E24B4A';
+  document.getElementById('kpi-bar').innerHTML=
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+col+'">'+pct+'%</div><div class="kpi-lbl">Cumplimiento anual</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+(pPl>=90?'#3B6D11':pPl>=80?'#854F0B':'#A32D2D')+'">'+pPl+'%</div><div class="kpi-lbl">En plazo (de '+c.aLaFecha+' a la fecha)</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:#3B6D11">'+c.ejec+'</div><div class="kpi-lbl">Ejecutadas'+(c.fuera?' · '+c.fuera+' fuera de plazo':'')+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:#A32D2D">'+c.atr+'</div><div class="kpi-lbl">Atrasadas</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:#854F0B">'+c.prog+'</div><div class="kpi-lbl">Programadas</div></div>';
+  var f=document.getElementById('progress-fill'); f.style.width=Math.max(pct,1)+'%'; f.style.background=col;
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-label').textContent=pct+'% completado ('+c.ejec+' de '+c.total+')';
+}
+var CLS={ejecutada:'ejecutada',fuera:'ejecutada',programada:'pendiente',atrasada:'no_ejecutada'};
+var LBL={ejecutada:'Ejecutada',fuera:'Fuera de plazo',programada:'Programada',atrasada:'Atrasada'};
+function renderCalendario(){
+  var filtro=document.getElementById('filtro-sem').value;
+  [1,2].forEach(function(s){
+    var items=AUD.filter(function(a){return a.sem===s;});
+    var meses=[]; items.forEach(function(a){ if(meses.indexOf(a.mes)<0) meses.push(a.mes); }); meses.sort(function(a,b){return a-b;});
+    document.getElementById('cal-s'+s+'-wrap').style.display=(filtro!=='todos'&&+filtro!==s)||!items.length?'none':'block';
+    document.getElementById('tit-s'+s).textContent=(s===1?'1er':'2do')+' semestre'+(meses.length?' ('+MESES[meses[0]]+' – '+MESES[meses[meses.length-1]]+')':'');
+    document.getElementById('cal-s'+s).innerHTML=meses.map(function(m){
+      var its=items.filter(function(a){return a.mes===m;});
+      return '<div class="mes-card"><div class="mes-header">'+MESES[m]+' <span class="mes-count">'+its.length+'</span></div><div class="mes-body">'+
+        its.map(function(a){ return '<div class="cal-item '+CLS[a.est]+'"><span class="cal-dia">'+(a.fp?a.fp.getDate():'')+'</span>'+
+          '<div class="cal-info"><div class="cal-nombre">'+esc(a.area)+'</div><div class="cal-resp">'+esc(a.resp)+(a.fe?' · ejecutada '+fd(a.fe):'')+'</div></div>'+
+          '<span class="cal-badge '+CLS[a.est]+'"'+(a.est==='fuera'?' style="background:#FEF4E6;color:#92400E"':'')+'>'+LBL[a.est]+'</span></div>'; }).join('')+
+        '</div></div>'; }).join('');
+  });
+}
+function renderTablaControl(){
+  var c=conteo();
+  document.getElementById('tabla-stats').textContent=c.ejec+' ejecutadas ('+c.plazo+' en plazo) · '+c.atr+' atrasadas · '+c.prog+' programadas';
+  var ST={ejecutada:'background:#EAF3DE;color:#27500A',fuera:'background:#FEF4E6;color:#92400E',programada:'background:#F1EFE8;color:#5F5E5A',atrasada:'background:#FCEBEB;color:#791F1F'};
+  document.getElementById('tbody-control').innerHTML=AUD.map(function(a){
+    var pl=a.fe?(a.est==='ejecutada'?'<span class="tag-plazo si">Sí</span>':'<span class="tag-plazo no">No</span>'):'';
+    return '<tr><td style="color:#888780">'+esc(a.n)+'</td><td><div style="font-weight:500;font-size:13px">'+esc(a.area)+'</div></td>'+
+      '<td>'+fd(a.fp)+'</td><td>'+(a.fe?fd(a.fe):'—')+'</td><td>'+(a.desfase==null?'—':(a.desfase>0?'+':'')+a.desfase+' días')+'</td><td>'+pl+'</td>'+
+      '<td style="font-size:12px;color:#5F5E5A">'+esc(a.resp)+'</td><td><span class="estado-b" style="'+ST[a.est]+'">'+LBL[a.est]+'</span></td>'+
+      '<td style="font-size:12px">'+esc(a.obs)+'</td></tr>'; }).join('');
+}
+function setVista(v){
+  document.querySelectorAll('.vista-tab').forEach(function(t,i){ t.classList.toggle('activa',(i===0&&v==='calendario')||(i===1&&v==='control')); });
+  document.querySelectorAll('.vista').forEach(function(el){el.classList.remove('activa');});
+  document.getElementById('vista-'+v).classList.add('activa');
+}
+cargar();
+</script>
+</body>
+</html>
