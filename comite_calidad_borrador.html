@@ -209,6 +209,7 @@ a.dv:hover{color:var(--blue);border-bottom-color:var(--blue)}
   details,.dvo{display:none!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+td.fecha,th.fecha{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -837,7 +838,7 @@ function verLotes(){
     <div class="dv-sum"><div><b>${L.length}</b><span>lotes liberados</span></div><div><b>${prods}</b><span>productos</span></div>
       <div><b style="color:${conD.length?"var(--bad)":"var(--ok)"}">${conD.length}</b><span>con desvío / NC</span></div><div><b>${Math.round(cant).toLocaleString("es-CL")}</b><span>unidades liberadas</span></div></div>
     <table class="dv-t"><thead><tr><th>Liberación</th><th>Producto</th><th>Serie</th><th style="text-align:right">Cantidad</th><th>Desvío / NC</th></tr></thead><tbody>
-    ${L.map(r=>{ const cs=codigos(r["desvio/nc/fde"]); return `<tr${cs.length?' class="con-d"':''}><td>${fdate(parseDate(r["fecha liberacion"]))}</td><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td>
+    ${L.map(r=>{ const cs=codigos(r["desvio/nc/fde"]); return `<tr${cs.length?' class="con-d"':''}><td class="fecha">${fdate(parseDate(r["fecha liberacion"]))}</td><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td>
       <td style="text-align:right">${(parseNum(r["cant. liberada ingreso"])||0).toLocaleString("es-CL")}</td>
       <td>${cs.length?cs.map(c=>`<a class="dv" onclick="verDesvio('${esc(c)}')">${dot("bad")}${esc(c)}</a>`).join(""):'<span class="muted">—</span>'}</td></tr>`; }).join("")}
     </tbody></table>`;
@@ -869,7 +870,7 @@ function verDesvio(code){
       ${col(ev,"Acción a Implementar")?`<div class="dv-sec">Acción a implementar</div><p>${esc(col(ev,"Acción a Implementar"))}</p>`:""}`
     :`<div class="dv-miss">${(DATA&&DATA._demo)?"Vista de demostración: la ficha se mostrará con los datos de CONSOLIDADO_CALIDAD.":"No se encontró este código en CONSOLIDADO_CALIDAD. Revise que esté registrado con el mismo número."}</div>`}
     <div class="dv-sec">Lotes liberados asociados en ${mlabel(STATE.mes).toLowerCase()} · ${lotes.length}</div>
-    ${lotes.length?`<table class="dv-t"><thead><tr><th>Producto</th><th>Serie</th><th>Liberación</th></tr></thead><tbody>${lotes.map(r=>`<tr><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td><td>${fdate(parseDate(r["fecha liberacion"]))}</td></tr>`).join("")}</tbody></table>`:`<p class="muted">Sin lotes asociados en el período.</p>`}`;
+    ${lotes.length?`<table class="dv-t"><thead><tr><th>Producto</th><th>Serie</th><th>Liberación</th></tr></thead><tbody>${lotes.map(r=>`<tr><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td><td class="fecha">${fdate(parseDate(r["fecha liberacion"]))}</td></tr>`).join("")}</tbody></table>`:`<p class="muted">Sin lotes asociados en el período.</p>`}`;
   document.getElementById("dv").classList.add("on");
 }
 function cerrarDesvio(){ document.getElementById("dv").classList.remove("on","wide"); DESDE_LOTES=false; }
@@ -998,7 +999,7 @@ function render(){
 
   // ---------- 1 Programas ----------
   const TOP=5;
-  const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
+  const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
   h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
@@ -1029,7 +1030,7 @@ function render(){
       :`<tr><td colspan="4" class="empty">Sin eventos cargados</td></tr>`}
     </tbody></table></div>
     ${totVenc?`<details><summary>Ver eventos vencidos (${totVenc})</summary><div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Tipo</th><th>Área</th><th>Apertura</th><th class="n">Días</th></tr></thead><tbody>
-      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td>${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
+      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td class="fecha">${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
       </tbody></table></div></details>`:""}`);
 
   // ---------- 3 Bodega ----------
@@ -1054,14 +1055,14 @@ function render(){
       ${c.programa&&c.conFecha?`<div class="kpi-sub">${c.enPlazo} realizadas dentro del mes programado</div>`:""}
       <div class="line"><span class="lbl">${dot(c.late.length?"bad":c.tot?"ok":"")}Actividades atrasadas</span><span class="val">${c.tot?c.late.length:"—"}</span></div></div>
     <div class="tbl-wrap"><table><thead><tr><th>Actividad atrasada</th><th>Tipo</th><th>${c.programa?"Área":"Planificada"}</th><th>${c.programa?"Mes":""}</th><th class="n">Días</th></tr></thead><tbody>
-      ${c.late.length?c.late.slice(0,CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
+      ${c.late.length?c.late.slice(0,CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td class="${c.programa?"":"fecha"}">${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
         :`<tr><td colspan="5" class="empty">Sin actividades atrasadas</td></tr>`}</tbody></table>
-      ${c.late.length>CAPTOP?`<details style="margin:8px 12px 12px"><summary>Ver ${c.late.length-CAPTOP} más</summary><table>${c.late.slice(CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n">${x.atraso}</td></tr>`).join("")}</table></details>`:""}
+      ${c.late.length>CAPTOP?`<details style="margin:8px 12px 12px"><summary>Ver ${c.late.length-CAPTOP} más</summary><table>${c.late.slice(CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td class="${c.programa?"":"fecha"}">${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n">${x.atraso}</td></tr>`).join("")}</table></details>`:""}
     </div></div>`);
 
   // ---------- 5 Documentación ----------
   const d=o.doc;
-  const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td>${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
+  const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td class="fecha">${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
   const docHead=t=>`<thead><tr><th>Código</th><th>Título</th><th>Área responsable</th><th>${t}</th><th class="n">Días</th><th>Responsable</th></tr></thead>`;
   const areasT=[...new Set([...d.porArea.map(x=>x[0]),...Object.keys(d.porAreaP||{})])].map(a=>[a,(d.porArea.find(x=>x[0]===a)||[0,0])[1],(d.porAreaP||{})[a]||0]).sort((a,b)=>b[1]-a[1]||b[2]-a[2]);
   h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
