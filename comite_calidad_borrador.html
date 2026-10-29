@@ -942,7 +942,7 @@ function render(){
       ${kpiCard("SOP vigentes",d.v,d.tot?`${d.vig} de ${d.tot} SOP`:"Sin datos")}
       <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.actual?"Al día de hoy":"Al cierre de "+M.toLowerCase()}</div></div>
       <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">Desglose por área abajo</div></div>
-      ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">En los próximos ${CONFIG.docDiasAviso} días</div></div>`:""}
+      ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
     </div>
     <div class="sub-title">Por área responsable</div>
     <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Vencidos</th>${d.base?'<th class="n">Próximos a vencer</th>':""}</tr></thead><tbody>
