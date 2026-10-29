@@ -246,6 +246,7 @@ const CONFIG = {
      Si una pestaña tiene enlace aquí, se lee desde esa planilla y no desde CONSOLIDADO_COMITE. */
   fuentes: {
     Capacitacion: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmr3HrrAMQ5co9ueB5P7KRPrzaT69whq-p2GOKyrItMgWv1TE8gSGWloTEb9EXMewVyZaBq6bmseLR/pub?gid=53843363&single=true&output=csv",   // Capacitaciones_2026_Ejecucion (PRG-GP-003.01)
+    DocBase: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmkghsO9Jm3d17VSsnPsM8fDX7GnRAldQjNmbCOMhO_FrMXCspulXJQfLLQcwwld2tqJyBhGa7LDe0/pub?gid=878784138&single=true&output=csv",   // Panel de Control_Elementos Regulatorios 2026 · hoja "Base datos" (enlace CSV publicado)
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -289,6 +290,9 @@ const CONFIG = {
     ["Control de Calidad — Laboratorio Fco-Qco.",8,"25 agosto"],["Control de Calidad — Material envase empaque",9,"9 septiembre"],
     ["Aseguramiento de Calidad",9,"24 septiembre"],["Auditorías de seguimiento 2026",11,"22 noviembre"],["Cierre del Programa Anual 2026",12,"diciembre"]
   ],
+  /* Documentación: procesos de la Base datos que cuentan como SOP (texto que contiene) y días para "próximo a vencer" */
+  docProcesos: ["sop"],
+  docDiasAviso: 60,
   anioProgramas: 2026,   // año de los programas cuando el "Mes programado" no indica año
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
   alerta: 0.80,          // bajo este % el indicador se marca en rojo (propuesta, por confirmar)
@@ -386,6 +390,10 @@ async function loadSheets(){
   }));
   res.forEach((r,i)=>{ if(r.status==="fulfilled") raw[names[i]]=r.value; else { raw[names[i]]=[]; errors.push(`${names[i]}: ${r.reason.message}`); } });
   const tables=prepare(raw); tables.Detalle=[];
+  tables.DocBase=null;
+  const dbu=(CONFIG.fuentes||{}).DocBase;
+  if(dbu){ try{ const r=await fetch(dbu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.DocBase=toTable(parseCSV(await r.text()),"fecha vence"); }catch(e){ errors.push(`Documentación (Elementos Regulatorios · Base datos): ${e.message}`); } }
   tables.Aud=null;
   const au=(CONFIG.fuentes||{}).Auditorias;
   if(au){ try{ const r=await fetch(au,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
@@ -413,7 +421,7 @@ async function loadSheets(){
   const du=(CONFIG.fuentes||{}).Detalle;
   if(du){ try{ const r=await fetch(du,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.Detalle=toTable(parseCSV(await r.text()),"tipo_evento"); }catch(e){ errors.push(`Detalle de eventos (CONSOLIDADO_CALIDAD): ${e.message}`); } }
-  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?"Programas (calibración y mantención)":"Programas (calibración, mantención y auditorías)"):n);
+  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?"Programas (calibración y mantención)":"Programas (calibración, mantención y auditorías)"):n);
   return {tables, errors, pendientes:pend};
 }
 
@@ -641,10 +649,32 @@ function compute(){
   }
 
   // 5. Documentación
+  if(T.DocBase){
+    const hoy=new Date(); hoy.setHours(0,0,0,0);
+    const actual = STATE.mes===mkey(hoy), ref = actual ? hoy : cut;
+    const esSOP=r=>{ const pr=norm(r["proceso"]); return CONFIG.docProcesos.some(k=>pr.includes(norm(k))); };
+    const areaDe=r=>(r["area responsable por resolver"]||r["area de impacto"]||"Sin área").trim();
+    const L=T.DocBase.filter(esSOP).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area).map(r=>{
+      const ven=parseDate(r["fecha vence"]); const est=norm(r["estado"]);
+      let e;
+      if(actual && est) e = est.startsWith("venc") ? "venc" : est.startsWith("prox") ? "prox" : "vig";
+      else e = !ven ? "vig" : ven<ref ? "venc" : (ven-ref)/DAY<=CONFIG.docDiasAviso ? "prox" : "vig";
+      return {r,e,ven,area:areaDe(r),code:(r["codigo/n°"]||"").trim(),ed:(r["edicion"]||"").trim(),
+        title:(r["descripcion detallada"]||r["equipo/instrumento/producto"]||r["requerimiento"]||"").trim(),
+        dias:ven?Math.round((ven-ref)/DAY):null,resp:(r["nombre y cargo responsable"]||"").split("/")[0].trim()}; });
+    const venc=L.filter(x=>x.e==="venc"), prox=L.filter(x=>x.e==="prox");
+    const porArea={}; venc.forEach(x=>{ porArea[x.area]=(porArea[x.area]||0)+1; });
+    const porAreaP={}; prox.forEach(x=>{ porAreaP[x.area]=(porAreaP[x.area]||0)+1; });
+    out.doc={tot:L.length,vig:L.length-venc.length,venc:venc.length,prox:prox.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),
+      procesos:[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(Boolean))],
+      porAreaP, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
+    out.doc.v=ratio(out.doc.vig,out.doc.tot);
+  } else {
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
   const venc=dc.filter(x=>!x.vig); const porArea={}; venc.forEach(x=>{ const a=x.r["area"]||"Sin área"; porArea[a]=(porArea[a]||0)+1; });
   out.doc={tot:dc.length,vig:dc.length-venc.length,venc:venc.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),list:venc};
   out.doc.v=ratio(out.doc.vig,out.doc.tot);
+  }
 
   // 6. Autoinspecciones
   const progAI=pr.filter(x=>norm(x.r["programa"])==="autoinspeccion");
@@ -733,7 +763,7 @@ const VIEWS=[
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
-  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de los SOP, misma fuente que el portal regulatorio."},
+  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de los SOP según el Panel de Control de Elementos Regulatorios (misma fuente que el portal)."},
   {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
 const dot = s => (!s||s==="neutral") ? "" : `<i class="dot ${s}"></i>`;
@@ -897,17 +927,21 @@ function render(){
 
   // ---------- 5 Documentación ----------
   const d=o.doc;
-  h+=view("documentacion",`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td>${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
+  const docHead=t=>`<thead><tr><th>Código</th><th>Título</th><th>Área responsable</th><th>${t}</th><th class="n">Días</th><th>Responsable</th></tr></thead>`;
+  const areasT=[...new Set([...d.porArea.map(x=>x[0]),...Object.keys(d.porAreaP||{})])].map(a=>[a,(d.porArea.find(x=>x[0]===a)||[0,0])[1],(d.porAreaP||{})[a]||0]).sort((a,b)=>b[1]-a[1]||b[2]-a[2]);
+  h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron registros de SOP en la Base datos (se buscan procesos que contengan: ${CONFIG.docProcesos.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       ${kpiCard("SOP vigentes",d.v,d.tot?`${d.vig} de ${d.tot} SOP`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Al cierre de ${M.toLowerCase()}</div></div>
-      <div class="kpi"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">Desglose por área abajo</div></div>
+      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.actual?"Al día de hoy":"Al cierre de "+M.toLowerCase()}</div></div>
+      <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">Desglose por área abajo</div></div>
+      ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">En los próximos ${CONFIG.docDiasAviso} días</div></div>`:""}
     </div>
-    <div class="sub-title">SOP vencidos por área</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Nº vencidos</th></tr></thead><tbody>
-      ${d.porArea.length?d.porArea.map(([a,n])=>`<tr><td class="strong">${esc(a)}</td><td class="n"><span class="cnt">${dot("bad")}${n}</span></td></tr>`).join(""):`<tr><td colspan="2" class="empty">Sin SOP vencidos</td></tr>`}</tbody></table></div>
-    ${d.venc?`<details><summary>Ver listado de SOP vencidos (${d.venc})</summary><div class="tbl-wrap"><table><thead><tr><th>Área</th><th>Código</th><th>Título</th><th>Venció</th></tr></thead><tbody>
-      ${d.list.sort((a,b)=>(a.r["area"]||"").localeCompare(b.r["area"]||"")).map(x=>`<tr><td class="strong">${esc(x.r["area"])}</td><td>${esc(x.r["codigo sop"])}</td><td>${esc(x.r["titulo"])}</td><td>${fdate(parseDate(x.r["fecha de vencimiento"]))}</td></tr>`).join("")}
-      </tbody></table></div></details>`:""}`);
+    <div class="sub-title">Por área responsable</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Vencidos</th>${d.base?'<th class="n">Próximos a vencer</th>':""}</tr></thead><tbody>
+      ${areasT.length?areasT.map(([a,v,p])=>`<tr><td class="strong">${esc(a)}</td><td class="n">${cnt(v,"bad")}</td>${d.base?`<td class="n">${cnt(p,"warn")}</td>`:""}</tr>`).join(""):`<tr><td colspan="3" class="empty">Sin SOP vencidos ni próximos a vencer</td></tr>`}</tbody></table></div>
+    ${d.venc?`<details><summary>Ver SOP vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.prox?`<details><summary>Ver SOP próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
   h+=view("autoinspecciones",`<div class="ai-grid"><div class="ai-left">
