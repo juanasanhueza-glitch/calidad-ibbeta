@@ -245,6 +245,7 @@ const CONFIG = {
   /* Fuentes que ya existen en el portal: enlace CSV publicado de la hoja original.
      Si una pestaña tiene enlace aquí, se lee desde esa planilla y no desde CONSOLIDADO_COMITE. */
   fuentes: {
+    Capacitacion: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmr3HrrAMQ5co9ueB5P7KRPrzaT69whq-p2GOKyrItMgWv1TE8gSGWloTEb9EXMewVyZaBq6bmseLR/pub?gid=53843363&single=true&output=csv",   // Capacitaciones_2026_Ejecucion (PRG-GP-003.01)
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -300,7 +301,7 @@ const CONFIG = {
 /* Columna que identifica la fila de encabezados de cada pestaña */
 const KEYS = {
   Programas:"programa", Eventos:"tipo de evento", RFT:"fecha liberacion", Bodega:"posiciones totales",
-  Capacitacion:"fecha de realizacion", Documentacion:"codigo sop", Autoinspeccion:"item del checklist"
+  Capacitacion:"actividad", Documentacion:"codigo sop", Autoinspeccion:"item del checklist"
 };
 
 /* ---------------- utilidades ---------------- */
@@ -621,9 +622,23 @@ function compute(){
   out.bodega.v=ratio(out.bodega.occ,out.bodega.tot);
 
   // 4. Capacitación
+  if(T.Capacitacion.length && ("ejecutado (si/no)" in T.Capacitacion[0] || "mes" in T.Capacitacion[0] && !("fecha planificada" in T.Capacitacion[0]))){
+    // Programa Anual de Capacitación (PRG-GP-003.01): realizadas / programadas hasta el mes según "Mes"
+    const yr=+STATE.mes.slice(0,4);
+    const its=byArea(T.Capacitacion).map(r=>{ const fin=finMesProgramado(r["mes"],new Date(yr,0,1)); const fe=parseDate(r["fecha de ejecucion"]||r["fecha de realizacion"]);
+        const si=norm(r["ejecutado (si/no)"]||r["ejecutado"]||"").startsWith("s");
+        const hecha = fe ? fe<=cut : si;
+        return {r,plan:fin,fe,hecha,enPlazo: hecha&&fe&&fin&&fe<=fin, atraso: fin?Math.max(0,Math.round((cut-fin)/DAY)):0}; });
+    const prog=its.filter(x=>x.plan&&x.plan<=cut);
+    out.cap={tot:prog.length,ok:prog.filter(x=>x.hecha).length,anio:its.length,conFecha:its.some(x=>x.fe),enPlazo:prog.filter(x=>x.enPlazo).length,programa:true,
+      late:prog.filter(x=>!x.hecha).sort((a,b)=>b.atraso-a.atraso),
+      tipos:["Interno","Externo"].map(t=>{ const L=prog.filter(x=>norm(x.r["tipo"])===norm(t)); return {t,tot:L.length,ok:L.filter(x=>x.hecha).length}; })};
+    out.cap.v=ratio(out.cap.ok,out.cap.tot);
+  } else {
   const ca=byScope(T.Capacitacion).map(r=>Object.assign({r},activity(r,cut,"fecha planificada","fecha de realizacion")));
   out.cap={tot:ca.length,ok:ca.filter(x=>x.enPlazo).length,late:ca.filter(x=>!x.enPlazo && x.atraso>0).sort((a,b)=>b.atraso-a.atraso)};
   out.cap.v=ratio(out.cap.ok,out.cap.tot);
+  }
 
   // 5. Documentación
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
@@ -717,7 +732,7 @@ const VIEWS=[
   {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Actividades realizadas / programadas hasta el mes. Validaciones y calificación según su Mes programado; auditorías según el Programa Anual 2026."},
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
-  {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Capacitaciones internas (procedimientos) y externas."},
+  {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
   {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de los SOP, misma fuente que el portal regulatorio."},
   {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
@@ -755,7 +770,7 @@ function render(){
     ["Eventos","Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"eventos","desv"],
     ["Eventos","Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs atrasadas"),"eventos","capa"],
     ["Eventos","Cierre OOS",o.kpi.oos.v,kSub(o.kpi.oos,"OOS atrasados"),"eventos","oos"],
-    ["Capacitación","Cumplimiento",o.cap.v,`${o.cap.ok} de ${o.cap.tot} en plazo`,"capacitacion"],
+    ["Capacitación","Cumplimiento",o.cap.v,`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`,"capacitacion"],
     ["Documentación","SOP vigentes",o.doc.v,plural(o.doc.venc,"SOP vencido","SOP vencidos"),"documentacion"],
     ["Autoinspecciones","Cumplimiento del programa",o.aiProg.v,`${o.aiProg.ok} de ${o.aiProg.tot} áreas`,"autoinspecciones"],
     ["Autoinspecciones","Resultado general",o.aiGen,o.aiLow?`Más baja: ${esc(o.aiLow.a)} ${pct(o.aiLow.v)}`:"","autoinspecciones"]
@@ -800,7 +815,7 @@ function render(){
        const okc=ks.filter(x=>statusI(x[0],x[1])==="ok").length;
        return ["eventos","Indicadores de eventos",ks.length?`${okc} de ${ks.length}`:"—",st.eventos[0],ks.length?(nc.length?`No cumple: ${nc.join(", ")}`:"cumplen su meta"):"Sin datos"]; })(),
     ["bodega","Ocupación bodega",pct(o.bodega.v),st.bodega[0],o.bodega.n?plural(o.bodega.venc,"pos. vencida","pos. vencidas"):"Sin datos"],
-    ["capacitacion","Capacitación",pct(o.cap.v),st.capacitacion[0],o.cap.tot?`${o.cap.ok} de ${o.cap.tot} en plazo`:"Sin datos"],
+    ["capacitacion","Capacitación",pct(o.cap.v),st.capacitacion[0],o.cap.tot?`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`:"Sin datos"],
     ["documentacion","SOP vigentes",pct(o.doc.v),status(o.doc.v),o.doc.tot?plural(o.doc.venc,"vencido","vencidos"):"Sin datos"],
     ["autoinspecciones","Autoinspecciones",pct(o.aiGen),st.autoinspecciones[0],o.aiLow?`Más baja: ${esc(o.aiLow.a)}`:"Sin datos"]
   ];
@@ -865,15 +880,20 @@ function render(){
         :`<tr><td colspan="4" class="empty">Sin datos cargados</td></tr>`}</tbody></table></div></div>`);
 
   // ---------- 4 Capacitación ----------
-  const c=o.cap, cs=status(c.v);
+  const c=o.cap, cs=status(c.v);  const CAPTOP=10;
   h+=view("capacitacion",`<div class="two"><div class="box" style="margin:0">
       <div class="metric"><span class="lbl">${dot(cs)}Cumplimiento</span><span class="big">${pct(c.v)}</span></div>
       <div class="bar ${cs}"><span style="width:${c.v==null?0:c.v*100}%"></span></div>
-      <div class="kpi-sub">${c.tot?`${c.ok} de ${c.tot} actividades en plazo`:"Sin datos"}</div>
+      <div class="kpi-sub">${c.tot?(c.programa?`${c.ok} de ${c.tot} actividades programadas a la fecha realizadas · ${c.anio} en el año`:`${c.ok} de ${c.tot} actividades en plazo`):"Sin datos"}</div>
+      ${c.programa&&c.tot?`<div class="line"><span class="lbl">Internas (procedimientos)</span><span class="val">${pct(ratio(c.tipos[0].ok,c.tipos[0].tot))} <small class="muted" style="font-size:12px">${c.tipos[0].ok}/${c.tipos[0].tot}</small></span></div>
+        <div class="line" style="margin-top:6px"><span class="lbl">Externas</span><span class="val">${pct(ratio(c.tipos[1].ok,c.tipos[1].tot))} <small class="muted" style="font-size:12px">${c.tipos[1].ok}/${c.tipos[1].tot}</small></span></div>`:""}
+      ${c.programa&&c.conFecha?`<div class="kpi-sub">${c.enPlazo} realizadas dentro del mes programado</div>`:""}
       <div class="line"><span class="lbl">${dot(c.late.length?"bad":c.tot?"ok":"")}Actividades atrasadas</span><span class="val">${c.tot?c.late.length:"—"}</span></div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Actividad atrasada</th><th>Tipo</th><th>Planificada</th><th class="n">Días</th></tr></thead><tbody>
-      ${c.late.length?c.late.map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
-        :`<tr><td colspan="4" class="empty">Sin actividades atrasadas</td></tr>`}</tbody></table></div></div>`);
+    <div class="tbl-wrap"><table><thead><tr><th>Actividad atrasada</th><th>Tipo</th><th>${c.programa?"Área":"Planificada"}</th><th>${c.programa?"Mes":""}</th><th class="n">Días</th></tr></thead><tbody>
+      ${c.late.length?c.late.slice(0,CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
+        :`<tr><td colspan="5" class="empty">Sin actividades atrasadas</td></tr>`}</tbody></table>
+      ${c.late.length>CAPTOP?`<details style="margin:8px 12px 12px"><summary>Ver ${c.late.length-CAPTOP} más</summary><table>${c.late.slice(CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n">${x.atraso}</td></tr>`).join("")}</table></details>`:""}
+    </div></div>`);
 
   // ---------- 5 Documentación ----------
   const d=o.doc;
@@ -916,7 +936,7 @@ function fillFilters(){
   if(DATA._demo) T.RFT.forEach(r=>{ if(r._mes) months.add(r._mes); });
   [...months].forEach(m=>{ if(m>hoyK) months.delete(m); });
   if(months.size>18) [...months].sort().slice(0,months.size-18).forEach(m=>months.delete(m));
-  Object.keys(KEYS).forEach(n=>T[n].forEach(r=>{ if(r._area) areas.add(r._area); }));
+  Object.keys(KEYS).forEach(n=>{ if(n==="Capacitacion" && T[n][0] && ("ejecutado (si/no)" in T[n][0])) return; T[n].forEach(r=>{ if(r._area) areas.add(r._area); }); });
   (T.Detalle||[]).forEach(r=>{ const a=col(r,"Área Responsable por Resolver","Área"); if(a) areas.add(a); });
   if(!months.size) months.add(mkey(new Date(new Date().getFullYear(),new Date().getMonth()-1,1)));
   const ms=[...months].sort().reverse();
