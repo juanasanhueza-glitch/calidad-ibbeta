@@ -217,6 +217,10 @@
   #toast.on{opacity:1;transform:translate(-50%,0)}
   .hidden{display:none!important}
   .nw{white-space:nowrap}
+  table.assoc{width:100%;border-collapse:collapse;font-size:12px}
+  table.assoc th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--slate);padding:.5rem .6rem;border-bottom:1px solid var(--border)}
+  table.assoc td{padding:.5rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+  table.assoc tr.clk{cursor:pointer} table.assoc tr.clk:hover{background:var(--ice)}
   .doc{display:inline-flex;align-items:center;gap:.25rem;font-size:11px;font-weight:600;color:var(--navy);background:var(--ice);border-radius:6px;padding:2px 8px;text-decoration:none;white-space:nowrap}
   .doc:hover{background:#D0E2F7}
   .rep{background:#fff;border:1px solid var(--border);border-left:4px solid var(--ok);border-radius:10px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.55rem}
@@ -877,7 +881,7 @@ function abrir(id){
   const b = e.baja;
   $('#drawer').innerHTML = `
     <div class="d-head"><button class="close" aria-label="Cerrar">×</button>
-      <div class="d-id">N° interno ${esc(e.id)}${e.padre?` · equipo padre ${esc(e.padre)}`:''}</div>
+      <div class="d-id">N° interno ${esc(e.id)}${e.padre ? (() => { const pa = MODEL.eq.get(K(e.padre)); return ` · instrumento de <a href="#" style="color:inherit;text-decoration:underline" onclick="event.preventDefault();abrir('${esc(e.padre)}')">${esc(e.padre)}${pa ? ' ' + esc(pa.tipo) : ''}</a>`; })() : ''}</div>
       <div class="d-title">${esc(e.tipo || 'Equipo sin nombre')}</div>
       <div class="d-chips">${chip(e.sit)} ${e.cat?`<span class="chip c-Sin-registro">${esc(e.cat)}</span>`:''} ${e.area?`<span class="chip c-Sin-registro">Área ${esc(e.area)}</span>`:''} ${e.nivel!=='OK'?chip(e.nivel, ` · ${e.alerts.length} por verificar`):chip('OK',' · sin observaciones')}</div>
     </div>
@@ -896,6 +900,14 @@ function abrir(id){
           ${dm.difs.length ? `<div class="rep-o"><b>Datos a corregir en el listado maestro</b><ul>${dm.difs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}</div>`; })()}
       <div class="section-label"><span>Estado actual</span></div>
       <div class="tiles">${tile('Calibración', e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''))}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
+      ${(() => { const hs = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
+        if (!hs.length) return '';
+        const venc = hs.filter(h => !esBaja(h.sit) && (h.estCal === 'Vencido' || h.estQ === 'Vencido')).length;
+        return `<div class="section-label"><span>Instrumentos asociados (${hs.length})${venc ? ` · <b style="color:var(--bad,#DC2626)">${venc} con vencimiento</b>` : ''}</span></div>
+        <div class="tbl-wrap"><table class="assoc"><thead><tr><th>N°</th><th>Instrumento</th><th>Situación</th><th>Calibración</th><th>Vence</th><th>Certificado</th></tr></thead><tbody>
+        ${hs.map(h => `<tr class="clk" onclick="abrir('${esc(h.id)}')" title="Abrir ficha del ${esc(h.id)}"><td><b>${esc(h.id)}</b></td><td>${esc(h.tipo)}${h.marca && !empty(h.marca) ? `<div class="muted" style="font-size:10.5px">${esc([h.marca,h.modelo].filter(x=>!empty(x)).join(' · '))}</div>` : ''}</td>
+          <td>${chip(h.sit || 'Por confirmar')}</td><td>${chip(h.estCal)}</td><td class="nw">${h.cal[0] ? fd(h.cal[0].vence) : '—'}</td><td>${docLink(h.cal[0]?.link, 'Ver') || '<span class="muted">—</span>'}</td></tr>`).join('')}
+        </tbody></table></div>`; })()}
       ${b ? `<div class="section-label"><span>Baja</span></div><dl class="kv">${kv('Tipo de baja',b['Tipo de baja'])}${kv('Fecha de baja',fd(pd(b['Fecha de baja'])))}${kv('Documento',b['Documento de evidencia'])}${kv('Código oficial',b['Código oficial'])}${kv('Ruta / archivo',b['Ruta / archivo de baja'])}${kv('Fuente',b['Fuente'])}</dl>` : ''}
       <div class="section-label"><span>Identificación y datos técnicos</span></div>
       ${(() => { const dm = DEMO && DEMO[e.id]; const fx = f['Foto (ID o enlace Google Drive)'];
