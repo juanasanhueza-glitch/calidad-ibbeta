@@ -220,6 +220,7 @@
   .doc:hover{background:#D0E2F7}
   .rep{background:#fff;border:1px solid var(--border);border-left:4px solid var(--ok);border-radius:10px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.55rem}
   .rep.warn{border-left-color:var(--warn)}
+  .rep.bad{border-left-color:var(--bad,#DC2626)} .rep.bad .rep-t{color:#991B1B}
   .rep-h{display:flex;justify-content:space-between;gap:.8rem;align-items:flex-start;flex-wrap:wrap}
   .rep-t{font-weight:700;font-size:14px}
   .rep.ok .rep-t{color:#166534} .rep.warn .rep-t{color:#92400E}
@@ -382,6 +383,7 @@ async function cargar(){
   fromEmb();
   let fuente = `Datos incrustados · corte ${fd(pd(EMB._generado))}`;
   const live = [...Object.entries(CSV).filter(([,u]) => u), ...ENLACES_CSV.filter(Boolean).map(u => [null, u])];
+  if (live.length && typeof Papa === 'undefined') fuente += ' · No cargó el lector de planillas (PapaParse); revise la conexión';
   if (live.length && typeof Papa !== 'undefined') {
     const vivas = new Set();
     const res = await Promise.allSettled(live.map(async ([s,u]) => {
@@ -393,6 +395,8 @@ async function cargar(){
     }));
     const ok = vivas.size;
     fuente = res.every(r => r.status === 'fulfilled') && ok >= 10 ? 'Sincronizado en vivo con Google Sheets' : `Sincronizado en vivo: ${ok} de 10 hojas (el resto, datos incrustados)`;
+    const fallos = res.map((r,i) => r.status === 'rejected' ? `enlace ${i+1}: ${r.reason && r.reason.message || r.reason}` : null).filter(Boolean);
+    if (fallos.length) fuente += ` · Sin lectura → ${fallos.join('; ')}`;
   }
   construir();
   $('#meta').innerHTML = `<b>${MODEL.lista.length.toLocaleString('es-CL')}</b> equipos e instrumentos · ${esc(fuente)} · estados calculados al <b>${fd(HOY)}</b>`;
@@ -437,12 +441,14 @@ function construir(){
       resp:v(r['Responsable (portal)']), naCal: /^N\/A/.test(v(r['Vence calibración'])) || /^N\/A/.test(v(r['Estado calibración'])), fuentes:v(r['Fuentes']),
       cal:[], q:[], m:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
   }
+  const listaTxt = x => v(x).split(/\s*(?:\n|\|)\s*/).filter(t => t && t !== '—' && t !== '-');
   const ev = (sheet, key) => {
     for (const r of DB[sheet] || []) {
       const e = eq.get(K(r['ID'])); if (!e) continue;
       e[key].push({fecha:pd(r['Fecha de ejecución']), tipo:v(r['Tipo']), cert:v(r['N° certificado / reporte']), ente:v(r['Ente / ejecutor']),
         frec:v(r['Frecuencia (meses)']), vence:pd(r['Vence']), fuente:v(r['Fuente(s)']), archivo:v(r['Archivo / ruta de evidencia']),
-        verif:v(r['Verificar']), regla:v(r['Regla de vigencia']), link:v(r['Enlace documento (Google Drive)'])});
+        verif:v(r['Verificar']), regla:v(r['Regla de vigencia']), link:v(r['Enlace documento (Google Drive)']),
+        dictamen:v(r['Dictamen']), detalle:v(r['Resumen del informe']), obs:listaTxt(r['Observaciones al informe']), difs:listaTxt(r['Datos a corregir en el listado'])});
     }
     for (const e of eq.values()) e[key].sort((a,b) => (b.fecha||0) - (a.fecha||0));
   };
@@ -876,10 +882,15 @@ function abrir(id){
     </div>
     <div class="d-body">
       ${e.alerts.length ? `<div class="section-label"><span>Qué verificar</span></div><div class="alerts">${e.alerts.sort((a,b)=>(a.nivel==='Rojo'?0:1)-(b.nivel==='Rojo'?0:1)).map(a=>`<div class="alert ${a.nivel}"><div class="m">${esc(a.mod)} · ${esc(a.nivel)}</div><div class="t">${esc(a.que)}</div><div class="a">→ ${esc(a.acc)}</div></div>`).join('')}</div>` : ''}
-      ${(() => { const dm = DEMO && DEMO[e.id]; if (!dm) return ''; return `<div class="section-label"><span>Informe de calificación vigente</span></div>
+      ${(() => { let dm = DEMO && DEMO[e.id];
+        if (!dm) { const q = e.q[0]; if (!q || !q.dictamen) return '';
+          const t = nk(q.dictamen);
+          dm = {dictamen:q.dictamen, nivel: /rechaz|no apto|no conform/.test(t) ? 'bad' : (/restric|condicion|observ/.test(t) ? 'warn' : 'ok'),
+                informeTxt:[q.cert, q.tipo, q.fecha ? 'ejecutada '+fd(q.fecha) : ''].filter(Boolean).join(' · '), informe: driveView(q.link) || '',
+                detalle:q.detalle, obs:q.obs, difs:q.difs}; } return `<div class="section-label"><span>Informe de calificación vigente</span></div>
         <div class="rep ${dm.nivel}"><div class="rep-h"><div><div class="rep-t">${esc(dm.dictamen)}</div><div class="rep-s">${esc(dm.informeTxt)}</div></div>
-          <a class="doc big" href="${esc(dm.informe)}" target="_blank" rel="noopener">📄 Ver informe</a></div>
-          <div class="rep-d">${esc(dm.detalle)}</div>
+          ${dm.informe ? `<a class="doc big" href="${esc(dm.informe)}" target="_blank" rel="noopener">📄 Ver informe</a>` : ''}</div>
+          ${dm.detalle ? `<div class="rep-d">${esc(dm.detalle)}</div>` : ''}
           ${dm.obs.length ? `<div class="rep-o"><b>Observaciones al documento</b><ul>${dm.obs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
           ${dm.difs.length ? `<div class="rep-o"><b>Datos a corregir en el listado maestro</b><ul>${dm.difs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}</div>`; })()}
       <div class="section-label"><span>Estado actual</span></div>
