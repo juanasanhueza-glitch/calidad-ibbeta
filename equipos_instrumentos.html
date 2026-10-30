@@ -716,7 +716,7 @@ function vModulo(key){
       {h:'N°', cl:'id', f:e=>esc(e.id)}, {h:'Equipo', f:e=>esc(e.tipo)}, {h:'Área', f:e=>esc(e.area)},
       {h:isCal?'Última calibración':'Última calificación', f:e=>e[key][0] ? fd(e[key][0].fecha) : '—'},
       ...(isCal ? [] : [{h:'Tipo', cl:'muted', f:e=>esc(e[key][0]?.tipo||'')}]),
-      {h:isCal?'N° certificado':'Reporte', f:e=>esc(e[key][0]?.cert||'')}, {h:'Ente', cl:'muted', f:e=>esc(e[key][0]?.ente||'')},
+      {h:isCal?'N° certificado':'Reporte', cl:'nw', f:e=>esc(e[key][0]?.cert||'')}, {h:'Ente', cl:'muted', f:e=>esc(e[key][0]?.ente||'')},
       {h:'Frecuencia', f:e=>e[key][0]?.frec ? (isCal ? (e[key][0].frec/12)+' año(s)' : e[key][0].frec+' meses') : (isCal && e.naCal ? 'N/A' : '—')},
       {h:'Vence', f:e=>vencTxt(e[key][0]?.vence, e[estK])}, {h:'Estado', f:e=>chip(e[estK]) + (!isCal && /^Por confirmar/.test(e[key][0]?.regla||'') ? ' '+chip('Por confirmar') : '')},
       {h:isCal?'Certificado':'Informe', f:e=>(!isCal && DEMO && DEMO[e.id]) ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 Ver</a>` : docLink(e[key][0]?.link, 'Ver')},
@@ -769,7 +769,7 @@ function vProgMant(){
     <div id="t2"></div>`;
   tabla($('#t1'), [
     {h:'N°', cl:'id', f:e=>esc(e.id)}, {h:'Equipo', f:e=>esc(e.tipo)}, {h:'Área', f:e=>esc(e.area)}, {h:'Tipo de intervención', f:e=>esc(e.m[0].tipo)},
-    {h:'Fecha', f:e=>fd(e.m[0].fecha)}, {h:'N° documento', f:e=>esc(e.m[0].cert)}, {h:'Ejecutor', cl:'muted', f:e=>esc(e.m[0].ente)},
+    {h:'Fecha', f:e=>fd(e.m[0].fecha)}, {h:'N° documento', cl:'nw', f:e=>esc(e.m[0].cert)}, {h:'Ejecutor', cl:'muted', f:e=>esc(e.m[0].ente)},
     {h:'Vence', f:e=>vencTxt(e.m[0].vence,e.estM)}, {h:'Estado', f:e=>chip(e.estM)}, {h:'Situación', f:e=>chip(e.sit)}], mant, {id:e=>e.id, rowClass:e=>`click r-${e.sit!=='Operativo'?'AMARILLO':''}`});
   tabla($('#t2'), [
     {h:'N°', cl:'id', f:r=>esc(r['ID'])}, {h:'Equipo', f:r=>esc(r['Tipo'])}, {h:'Área', f:r=>esc(r['Área'])}, {h:'Ente', cl:'muted', f:r=>esc(r['Ente'])},
@@ -874,10 +874,10 @@ function abrir(id){
   const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijos.length}).</i>` : '';
   try { const u = new URL(location); u.searchParams.set('id', e.id); history.replaceState(null,'',u); } catch(_){}
   const tile = (lbl, est, x, extra='', nota='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
-     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · ${esc(x.cert)}`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
+     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · <span class="nw">${esc(x.cert)}</span>`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
   const hist = (lst, titulo) => !lst.length ? '' : `<div class="section-label"><span>${titulo} · historial (${lst.length})</span></div>
     <div class="tl"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>N° doc.</th><th>Ente</th><th>Vence</th><th>Documento</th><th>Fuente</th></tr></thead><tbody>
-    ${lst.map((x,i) => `<tr class="${i?'old':'last'}"><td class="nw">${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td>${esc(x.cert)}</td><td>${esc(x.ente)}</td><td class="nw">${fd(x.vence)}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`).join('')}
+    ${lst.map((x,i) => `<tr class="${i?'old':'last'}"><td class="nw">${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td class="nw">${esc(x.cert)}</td><td>${esc(x.ente)}</td><td class="nw">${fd(x.vence)}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`).join('')}
     </tbody></table></div>`;
   const f = e.ficha || {};
   const kv = (k, val) => `<div><dt>${k}</dt><dd>${esc(empty(val)?'—':val)}</dd></div>`;
