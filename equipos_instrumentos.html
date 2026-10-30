@@ -399,7 +399,7 @@ async function cargar(){
       DB[hoja] = rows; vivas.add(hoja);
     }));
     const ok = vivas.size;
-    fuente = res.every(r => r.status === 'fulfilled') && ok >= 10 ? 'Sincronizado en vivo con Google Sheets' : `Sincronizado en vivo: ${ok} de 10 hojas (el resto, datos incrustados)`;
+    fuente = res.every(r => r.status === 'fulfilled') && ok >= live.length ? 'Sincronizado en vivo con Google Sheets' : `Sincronizado en vivo: ${ok} de ${live.length} hojas (el resto, datos incrustados)`;
     const fallos = res.map((r,i) => r.status === 'rejected' ? `enlace ${i+1}: ${r.reason && r.reason.message || r.reason}` : null).filter(Boolean);
     if (fallos.length) fuente += ` · Sin lectura → ${fallos.join('; ')}`;
   }
@@ -413,6 +413,8 @@ async function cargar(){
 function detectarHoja(rows){
   if (!rows.length) return null;
   const h = Object.keys(rows[0]), has = c => h.includes(c);
+  const hasT = c => h.some(x => String(x).trim() === c);
+  if (hasT('Código/N°') && hasT('Descripción Detallada')) return 'SOP';
   if (has('Situación') && has('Tipo de equipo / instrumento')) return 'LISTADO_MAESTRO';
   if (has('Qué hay que verificar')) return 'VERIFICAR';
   if (has('Sección') && has('Avance al corte')) return 'PROGRAMA_CALIFICACION';
@@ -444,7 +446,7 @@ function construir(){
     eq.set(K(id), {id, padre:v(r['Equipo padre (ID base)']), tipo:v(r['Tipo de equipo / instrumento']), cat:v(r['Categoría']), area:v(r['Área']),
       ubic:v(r['Ubicación']), func:v(r['Función']), marca:v(r['Marca']), modelo:v(r['Modelo']), serie:v(r['N° de serie']), sit:sitNorm(r['Situación']) || 'Por confirmar',
       resp:v(r['Responsable (portal)']), naCal: /^N\/A/.test(v(r['Vence calibración'])) || /^N\/A/.test(v(r['Estado calibración'])), fuentes:v(r['Fuentes']),
-      cal:[], q:[], m:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
+      cal:[], q:[], m:[], sop:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
   }
   const listaTxt = x => v(x).split(/\s*(?:\n|\|)\s*/).filter(t => t && t !== '—' && t !== '-');
   const ev = (sheet, key) => {
@@ -458,6 +460,15 @@ function construir(){
     for (const e of eq.values()) e[key].sort((a,b) => (b.fecha||0) - (a.fecha||0));
   };
   ev('CALIBRACIONES','cal'); ev('CALIFICACIONES','q'); ev('MANTENIMIENTOS','m');
+  /* SOP con N° interno en el título: "(código 1940)" */
+  const gt = (r, c) => { const k = Object.keys(r).find(x => x.trim() === c); return k ? v(r[k]) : ''; };
+  for (const r of DB.SOP || []) {
+    if (!/^SOP/i.test(gt(r,'Proceso'))) continue;
+    const txt = gt(r,'Descripción Detallada') + ' ' + gt(r,'Equipo/Instrumento/Producto') + ' ' + gt(r,'Descripción/Titulo');
+    const ids = new Set([...txt.matchAll(/c[oó]d(?:igo)?\.?\s*(?:interno\s*)?(?:n[°º]\s*)?:?\s*#?\s*([0-9]{1,4}[A-Za-z]?[0-9]?)/gi)].map(m => m[1].toUpperCase()));
+    for (const id of ids) { const e = eq.get(K(id)); if (!e) continue;
+      e.sop.push({cod:gt(r,'Código/N°'), ed:gt(r,'Edición'), tit:gt(r,'Descripción Detallada') || gt(r,'Equipo/Instrumento/Producto'), area:gt(r,'Área de Impacto'), firma:pd(gt(r,'Fecha firma')), vence:pd(gt(r,'Fecha vence')), link:gt(r,'Enlace documento (Google Drive)')}); }
+  }
   for (const r of DB.BAJAS || []) { r['Tipo de baja'] = sitNorm(r['Tipo de baja']) || v(r['Tipo de baja']); const e = eq.get(K(r['ID'])); if (e) e.baja = r; }
   for (const r of DB.FICHA_TECNICA || []) { const e = eq.get(K(r['ID'])); if (e) e.ficha = r; }
   for (const r of DB.PROGRAMA_CALIFICACION || []) { const e = eq.get(K(r['ID'])); if (e) e.prog.push(r); }
@@ -927,6 +938,10 @@ function abrir(id){
         ${kv('Fabricante / proveedor',f['Fabricante / proveedor del equipo'])}${kv('Ingreso / puesta en marcha',f['Fecha de ingreso / puesta en marcha'] ? fd(pd(f['Fecha de ingreso / puesta en marcha'])) : '')}${kv('Criticidad GMP',f['Criticidad GMP'])}${kv('Software / versión',f['Software / versión'])}</dl>
       ${e.ing ? `<div class="section-label"><span>Ingreso</span></div><dl class="kv">${kv('Fecha de ingreso',fd(pd(e.ing['Fecha de ingreso'])))}${kv('Formulario',e.ing['Documento de evidencia'])}${kv('Código',e.ing['Código oficial'])}${kv('Observación',e.ing['Verificar'])}</dl>`:''}
       ${e.prog.length ? `<div class="section-label"><span>Programa de Calificación 2026</span></div><dl class="kv">${e.prog.map(p=>kv('Actividad',p['Equipo / actividad (programa)'])+kv('Avance',p['Avance al corte'])).join('')}</dl>`:''}
+      ${e.sop.length ? `<div class="section-label"><span>Procedimientos (SOP) del equipo (${e.sop.length})</span></div>
+        <div class="tbl-wrap"><table class="assoc"><thead><tr><th>Código</th><th>Ed.</th><th>Título</th><th>Aprobación</th><th>Vence</th><th>Estado</th></tr></thead><tbody>
+        ${e.sop.map(x => { const st = estado(x.vence); return `<tr><td class="nw"><b>${esc(x.cod)}</b></td><td>${esc(x.ed)}</td><td>${esc(x.tit)}${x.link ? ' ' + docLink(x.link,'Ver') : ''}</td><td class="nw">${fd(x.firma)}</td><td class="nw">${fd(x.vence)}</td><td>${chip(st === 'Sin registro' ? 'Sin fecha' : st)}</td></tr>`; }).join('')}
+        </tbody></table></div>` : ''}
       ${hist(e.cal,'Calibraciones')}${hist(e.q,'Calificaciones')}${hist(e.m,'Mantenimientos')}
       <div class="note" style="margin-top:1.2rem">Fuentes: ${esc(e.fuentes||'—')}</div>
     </div>`;
