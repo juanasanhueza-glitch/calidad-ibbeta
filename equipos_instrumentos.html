@@ -869,9 +869,12 @@ function vVerif(){
 function abrir(id){
   const e = MODEL.eq.get(K(id));
   if (!e) { alertaNoEncontrado(id); return; }
+  const hijos = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
+  const calPorHijos = !e.cal[0] && hijos.length > 0 && !esBaja(e.sit);
+  const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijos.length}).</i>` : '';
   try { const u = new URL(location); u.searchParams.set('id', e.id); history.replaceState(null,'',u); } catch(_){}
-  const tile = (lbl, est, x, extra='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
-     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · ${esc(x.cert)}`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
+  const tile = (lbl, est, x, extra='', nota='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
+     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · ${esc(x.cert)}`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
   const hist = (lst, titulo) => !lst.length ? '' : `<div class="section-label"><span>${titulo} · historial (${lst.length})</span></div>
     <div class="tl"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>N° doc.</th><th>Ente</th><th>Vence</th><th>Documento</th><th>Fuente</th></tr></thead><tbody>
     ${lst.map((x,i) => `<tr class="${i?'old':'last'}"><td class="nw">${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td>${esc(x.cert)}</td><td>${esc(x.ente)}</td><td class="nw">${fd(x.vence)}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`).join('')}
@@ -899,8 +902,8 @@ function abrir(id){
           ${dm.obs.length ? `<div class="rep-o"><b>Observaciones al documento</b><ul>${dm.obs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
           ${dm.difs.length ? `<div class="rep-o"><b>Datos a corregir en el listado maestro</b><ul>${dm.difs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}</div>`; })()}
       <div class="section-label"><span>Estado actual</span></div>
-      <div class="tiles">${tile('Calibración', e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''))}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
-      ${(() => { const hs = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
+      <div class="tiles">${tile('Calibración', calPorHijos ? 'N/A (no aplica)' : e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''), notaCal)}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
+      ${(() => { const hs = hijos;
         if (!hs.length) return '';
         const venc = hs.filter(h => !esBaja(h.sit) && (h.estCal === 'Vencido' || h.estQ === 'Vencido')).length;
         return `<div class="section-label"><span>Instrumentos asociados (${hs.length})${venc ? ` · <b style="color:var(--bad,#DC2626)">${venc} con vencimiento</b>` : ''}</span></div>
