@@ -216,6 +216,7 @@
   #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--navy-dk);color:#fff;font-size:12.5px;padding:.65rem 1rem;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:90;max-width:90vw}
   #toast.on{opacity:1;transform:translate(-50%,0)}
   .hidden{display:none!important}
+  .nw{white-space:nowrap}
   .doc{display:inline-flex;align-items:center;gap:.25rem;font-size:11px;font-weight:600;color:var(--navy);background:var(--ice);border-radius:6px;padding:2px 8px;text-decoration:none;white-space:nowrap}
   .doc:hover{background:#D0E2F7}
   .rep{background:#fff;border:1px solid var(--border);border-left:4px solid var(--ok);border-radius:10px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.55rem}
@@ -518,7 +519,7 @@ function tabla(cont, cols, rows, opts={}){
   const draw = () => {
     if (!rows.length) { cont.innerHTML = `<div class="tbl-wrap"><div class="empty">Sin resultados para los filtros seleccionados.</div></div>`; return; }
     const head = cols.map(c => `<th>${c.h}</th>`).join('');
-    const body = rows.slice(0,n).map(r => `<tr class="${opts.rowClass ? opts.rowClass(r) : ''}" ${opts.id ? `data-id="${esc(opts.id(r))}"` : ''}>${cols.map(c => `<td class="${c.cl||''}">${c.f(r)}</td>`).join('')}</tr>`).join('');
+    const body = rows.slice(0,n).map(r => `<tr class="${opts.rowClass ? opts.rowClass(r) : ''}" ${opts.id ? `data-id="${esc(opts.id(r))}"` : ''}>${cols.map(c => { const h = c.f(r); return `<td class="${c.cl||''}${/^(<[^>]+>)?\d{2}-\d{2}-\d{4}/.test(String(h)) ? ' nw' : ''}">${h}</td>`; }).join('')}</tr>`).join('');
     cont.innerHTML = `<div class="tbl-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${rows.length > n ? `<div class="more"><button class="btn">Mostrar más (${(rows.length-n).toLocaleString('es-CL')} restantes)</button></div>` : ''}</div>`;
     const b = cont.querySelector('.more button'); if (b) b.onclick = () => { n += 200; draw(); };
     if (opts.id) cont.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => abrir(tr.dataset.id));
@@ -674,7 +675,7 @@ function vModulo(key){
   const titulo = isCal ? 'Calibraciones' : 'Calificaciones';
   const nota = isCal
     ? 'Vencimiento = fecha de calibración + frecuencia del registro ("Frec / Año"). Sin frecuencia definida = <b>N/A (no aplica)</b>, pendiente de confirmar.'
-    : 'Equipos de planta: vigencia de <b>3 años</b> desde la fecha del reporte. Equipos de Control de Calidad y otros: vigencia según la fuente, <b>por confirmar</b>.';
+    : 'Informes de calificación (planta y Control de Calidad): vigencia de <b>3 años</b> desde la fecha del reporte. Servicios externos (calificación mecánica, certificación de campanas, etc.): según el certificado del proveedor.';
   $('#view').innerHTML = `
     <div class="section-label"><span>${titulo} · último registro por equipo</span></div>
     <div class="note">${nota} "Por vencer" = ${DIAS_POR_VENCER} días o menos. Clic en una fila para ver el historial completo.</div>
@@ -869,7 +870,7 @@ function abrir(id){
      <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · ${esc(x.cert)}`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
   const hist = (lst, titulo) => !lst.length ? '' : `<div class="section-label"><span>${titulo} · historial (${lst.length})</span></div>
     <div class="tl"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>N° doc.</th><th>Ente</th><th>Vence</th><th>Documento</th><th>Fuente</th></tr></thead><tbody>
-    ${lst.map((x,i) => `<tr class="${i?'old':'last'}"><td>${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td>${esc(x.cert)}</td><td>${esc(x.ente)}</td><td>${fd(x.vence)}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`).join('')}
+    ${lst.map((x,i) => `<tr class="${i?'old':'last'}"><td class="nw">${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td>${esc(x.cert)}</td><td>${esc(x.ente)}</td><td class="nw">${fd(x.vence)}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`).join('')}
     </tbody></table></div>`;
   const f = e.ficha || {};
   const kv = (k, val) => `<div><dt>${k}</dt><dd>${esc(empty(val)?'—':val)}</dd></div>`;
