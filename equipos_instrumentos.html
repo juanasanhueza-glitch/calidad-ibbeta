@@ -470,7 +470,7 @@ function construir(){
   for (const r of DB.SOP || []) {
     if (!/^SOP/i.test(gt(r,'Proceso'))) continue;
     const txt = gt(r,'Descripción Detallada') + ' ' + gt(r,'Equipo/Instrumento/Producto') + ' ' + gt(r,'Descripción/Titulo');
-    const ids = new Set([...txt.matchAll(/c[oó]d(?:igo)?\.?\s*(?:interno\s*)?(?:n[°º]\s*)?:?\s*#?\s*([0-9]{1,4}[A-Za-z]?[0-9]?)/gi)].map(m => m[1].toUpperCase()));
+    const ids = new Set([...txt.matchAll(/(?:c[oó]d(?:igo)?\.?\s*(?:interno\s*)?(?:n[°º]\s*)?:?\s*#?\s*|\(\s*n[°º]\.?\s*)([0-9]{1,4}[A-Za-z]?[0-9]?)/gi)].map(m => m[1].toUpperCase()));
     for (const x of mapa.get(nCod(gt(r,'Código/N°'))) || []) ids.add(x);
     for (const id of ids) { const e = eq.get(K(id)); if (!e) continue;
       e.sop.push({cod:gt(r,'Código/N°'), ed:gt(r,'Edición'), tit:gt(r,'Descripción Detallada') || gt(r,'Equipo/Instrumento/Producto'), area:gt(r,'Área de Impacto'), firma:pd(gt(r,'Fecha firma')), vence:pd(gt(r,'Fecha vence')), link:gt(r,'Enlace documento (Google Drive)')}); }
