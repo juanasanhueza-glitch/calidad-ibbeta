@@ -940,7 +940,7 @@ function abrir(id){
       <div class="section-label"><span>Identificación y datos técnicos</span></div>
       ${(() => { const dm = DEMO && DEMO[e.id]; const fx = f['Foto (ID o enlace Google Drive)'];
           const did = driveId(fx);
-          const cands = dm ? [dm.foto] : (did ? [`https://lh3.googleusercontent.com/d/${did}=w800`, `https://drive.google.com/thumbnail?id=${did}&sz=w800`, fotoAuto(e.id)] : [driveImg(fx) || fotoAuto(e.id)]);
+          const cands = dm ? [dm.foto] : (did ? [`https://lh3.googleusercontent.com/d/${did}=w800`, `https://drive.google.com/thumbnail?id=${did}&sz=w800`, fotoAuto(e.id), fotoAuto(e.id).replace(/\.jpg$/,'.png')] : (driveImg(fx) ? [driveImg(fx)] : [fotoAuto(e.id), fotoAuto(e.id).replace(/\.jpg$/,'.png'), fotoAuto(e.id).replace(/\.jpg$/,'.jpeg')]));
           const ph = did ? `<div class="ph"><b>📷</b>Foto vinculada, pero no se pudo mostrar<br><a href="https://drive.google.com/file/d/${did}/view" target="_blank" rel="noopener">Abrir en Drive</a></div>` : '<div class="ph"><b>📷</b>Sin foto</div>';
           window.__ph = window.__ph || {}; window.__ph[e.id] = ph;
           const onerr = `const a=(this.dataset.alt||'').split('|').filter(Boolean); if(a.length){this.dataset.alt=a.slice(1).join('|'); this.src=a[0];} else {this.parentNode.outerHTML=window.__ph[${JSON.stringify(String(e.id)).replace(/"/g,"'")}];}`;
