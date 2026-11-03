@@ -466,7 +466,7 @@ function construir(){
   const nCod = x => String(x||'').toUpperCase().replace(/^SOP\s*/,'').replace(/\s+/g,'');
   const mapa = new Map();   /* columnas manuales: "Código SOP" | "N° equipo" */
   for (const r of DB.SOP || []) { const c = nCod(gt(r,'Código SOP')), q = gt(r,'N° equipo');
-    if (c && q) mapa.set(c, [...(mapa.get(c)||[]), ...q.split(/[,;\/\s]+/).filter(Boolean).map(x => x.toUpperCase())]); }
+    if (c && q) mapa.set(c, [...(mapa.get(c)||[]), ...q.split(/[,;\/]+|\s+/).filter(Boolean).map(x => x.toUpperCase().replace(/^(\d{1,3})\.(\d{3})$/,'$1$2').replace(/\.0+$/,''))]); }
   for (const r of DB.SOP || []) {
     if (!/^SOP/i.test(gt(r,'Proceso'))) continue;
     const txt = gt(r,'Descripción Detallada') + ' ' + gt(r,'Equipo/Instrumento/Producto') + ' ' + gt(r,'Descripción/Titulo');
@@ -938,6 +938,10 @@ function abrir(id){
           <td>${chip(h.sit || 'Por confirmar')}</td><td>${chip(h.estCal)}</td><td class="nw">${h.cal[0] ? fd(h.cal[0].vence) : '—'}</td><td>${docLink(h.cal[0]?.link, 'Ver') || '<span class="muted">—</span>'}</td></tr>`).join('')}
         </tbody></table></div>`; })()}
       ${b ? `<div class="section-label"><span>Baja</span></div><dl class="kv">${kv('Tipo de baja',b['Tipo de baja'])}${kv('Fecha de baja',fd(pd(b['Fecha de baja'])))}${kv('Documento',b['Documento de evidencia'])}${kv('Código oficial',b['Código oficial'])}${kv('Ruta / archivo',b['Ruta / archivo de baja'])}${kv('Fuente',b['Fuente'])}</dl>` : ''}
+      ${e.sop.length ? `<div class="section-label"><span>Procedimientos (SOP) del equipo (${e.sop.length})</span></div>
+        <div class="tbl-wrap"><table class="assoc"><thead><tr><th>Código</th><th>Ed.</th><th>Título</th><th>Aprobación</th><th>Vence</th><th>Estado</th></tr></thead><tbody>
+        ${e.sop.map(x => { const st = estado(x.vence); return `<tr><td class="nw"><b>${esc(x.cod)}</b></td><td>${esc(x.ed)}</td><td>${esc(x.tit)}${x.link ? ' ' + docLink(x.link,'Ver') : ''}</td><td class="nw">${fd(x.firma)}</td><td class="nw">${fd(x.vence)}</td><td>${chip(st === 'Sin registro' ? 'Sin fecha' : st)}</td></tr>`; }).join('')}
+        </tbody></table></div>` : ''}
       <div class="section-label"><span>Identificación y datos técnicos</span></div>
       ${(() => { const dm = DEMO && DEMO[e.id]; const fx = f['Foto (ID o enlace Google Drive)'];
           const did = driveId(fx);
@@ -953,10 +957,6 @@ function abrir(id){
         ${kv('Fabricante / proveedor',f['Fabricante / proveedor del equipo'])}${kv('Ingreso / puesta en marcha',f['Fecha de ingreso / puesta en marcha'] ? fd(pd(f['Fecha de ingreso / puesta en marcha'])) : '')}${kv('Criticidad GMP',f['Criticidad GMP'])}${kv('Software / versión',f['Software / versión'])}</dl>
       ${e.ing ? `<div class="section-label"><span>Ingreso</span></div><dl class="kv">${kv('Fecha de ingreso',fd(pd(e.ing['Fecha de ingreso'])))}${kv('Formulario',e.ing['Documento de evidencia'])}${kv('Código',e.ing['Código oficial'])}${kv('Observación',e.ing['Verificar'])}</dl>`:''}
       ${e.prog.length ? `<div class="section-label"><span>Programa de Calificación 2026</span></div><dl class="kv">${e.prog.map(p=>kv('Actividad',p['Equipo / actividad (programa)'])+kv('Avance',p['Avance al corte'])).join('')}</dl>`:''}
-      ${e.sop.length ? `<div class="section-label"><span>Procedimientos (SOP) del equipo (${e.sop.length})</span></div>
-        <div class="tbl-wrap"><table class="assoc"><thead><tr><th>Código</th><th>Ed.</th><th>Título</th><th>Aprobación</th><th>Vence</th><th>Estado</th></tr></thead><tbody>
-        ${e.sop.map(x => { const st = estado(x.vence); return `<tr><td class="nw"><b>${esc(x.cod)}</b></td><td>${esc(x.ed)}</td><td>${esc(x.tit)}${x.link ? ' ' + docLink(x.link,'Ver') : ''}</td><td class="nw">${fd(x.firma)}</td><td class="nw">${fd(x.vence)}</td><td>${chip(st === 'Sin registro' ? 'Sin fecha' : st)}</td></tr>`; }).join('')}
-        </tbody></table></div>` : ''}
       ${hist(e.cal,'Calibraciones')}${hist(e.q,'Calificaciones')}${hist(e.m,'Mantenimientos')}
       <div class="note" style="margin-top:1.2rem">Fuentes: ${esc(e.fuentes||'—')}</div>
     </div>`;
