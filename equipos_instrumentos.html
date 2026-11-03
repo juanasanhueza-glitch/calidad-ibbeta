@@ -489,7 +489,7 @@ function construir(){
   for (const e of eq.values()) {
     const c = e.cal[0], q = e.q[0], m = e.m[0];
     if (esBaja(e.sit)) { e.estCal = e.estQ = e.estM = 'De baja'; }
-    else { e.estCal = estado(c && c.vence, e.naCal); e.estQ = estado(q && q.vence); e.estM = estado(m && m.vence); }
+    else { const est2 = (x, na) => (x && !x.vence && !na) ? 'Por confirmar' : estado(x && x.vence, na); e.estCal = est2(c, e.naCal); e.estQ = est2(q); e.estM = est2(m); }
     e.nivel = e.alerts.some(a => a.nivel === 'Rojo') ? 'ROJO' : e.alerts.length ? 'AMARILLO' : 'OK';
     e.nR = e.alerts.filter(a => a.nivel==='Rojo').length; e.nA = e.alerts.length - e.nR;
     const op = e.sit === 'Operativo';
