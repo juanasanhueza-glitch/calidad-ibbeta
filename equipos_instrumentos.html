@@ -446,7 +446,7 @@ function construir(){
     const id = v(r['ID']); if (!id) continue;
     eq.set(K(id), {id, padre:v(r['Equipo padre (ID base)']), tipo:v(r['Tipo de equipo / instrumento']), cat:v(r['Categoría']), area:v(r['Área']),
       ubic:v(r['Ubicación']), func:v(r['Función']), marca:v(r['Marca']), modelo:v(r['Modelo']), serie:v(r['N° de serie']), sit:sitNorm(r['Situación']) || 'Por confirmar',
-      resp:v(r['Responsable (portal)']), naCal: /^N\/A/.test(v(r['Vence calibración'])) || /^N\/A/.test(v(r['Estado calibración'])), fuentes:v(r['Fuentes']),
+      resp:v(r['Responsable (portal)']), naCal: /^N\/A/.test(v(r['Vence calibración'])) || /^N\/A/.test(v(r['Estado calibración'])), naQ: /^no/i.test(v(r['¿Requiere calificación?'])), fuentes:v(r['Fuentes']),
       cal:[], q:[], m:[], sop:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
   }
   const listaTxt = x => v(x).split(/\s*(?:\n|\|)\s*/).filter(t => t && t !== '—' && t !== '-');
@@ -489,7 +489,7 @@ function construir(){
   for (const e of eq.values()) {
     const c = e.cal[0], q = e.q[0], m = e.m[0];
     if (esBaja(e.sit)) { e.estCal = e.estQ = e.estM = 'De baja'; }
-    else { const est2 = (x, na) => (x && !x.vence && !na) ? 'Por confirmar' : estado(x && x.vence, na); e.estCal = est2(c, e.naCal); e.estQ = est2(q); e.estM = est2(m); }
+    else { const est2 = (x, na) => (x && !x.vence && !na) ? 'Por confirmar' : estado(x && x.vence, na); e.estCal = est2(c, e.naCal); e.estQ = (e.naQ && !q) ? 'N/A (no aplica)' : est2(q); e.estM = est2(m); }
     e.nivel = e.alerts.some(a => a.nivel === 'Rojo') ? 'ROJO' : e.alerts.length ? 'AMARILLO' : 'OK';
     e.nR = e.alerts.filter(a => a.nivel==='Rojo').length; e.nA = e.alerts.length - e.nR;
     const op = e.sit === 'Operativo';
@@ -920,7 +920,7 @@ function abrir(id){
           ${dm.obs.length ? `<div class="rep-o"><b>Observaciones al documento</b><ul>${dm.obs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
           ${dm.difs.length ? `<div class="rep-o"><b>Datos a corregir en el listado maestro</b><ul>${dm.difs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}</div>`; })()}
       <div class="section-label"><span>Estado actual</span></div>
-      <div class="tiles">${tile('Calibración', calPorHijos ? 'N/A (no aplica)' : e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''), notaCal)}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
+      <div class="tiles">${tile('Calibración', calPorHijos ? 'N/A (no aplica)' : e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''), notaCal)}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'', e.naQ && !e.q[0] ? '<i>No aplica calificación: es un instrumento que solo requiere calibración.</i>' : '')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
       ${(() => { if (!e.padre) return ''; const pa = MODEL.eq.get(K(e.padre));
         if (!pa) return `<div class="section-label"><span>Pertenece al equipo</span></div><div class="note">N° ${esc(e.padre)} (no está en el listado maestro: verificar)</div>`;
         const herm = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(pa.id) && x.id !== e.id && !esBaja(x.sit)).map(x => x.id);
