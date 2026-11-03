@@ -750,7 +750,8 @@ function compute(){
   // 5. Documentación
   if(T.DocBase){
     const hoy=new Date(); hoy.setHours(0,0,0,0);
-    const actual = STATE.mes===mkey(hoy), ref = actual ? hoy : cut;
+    // Igual que el Panel de Control de Elementos Regulatorios: siempre el estado actual (columna Estado), sin importar el mes elegido
+    const actual = true, ref = hoy;
     const esSOP=r=>{ const pr=norm(r["proceso"]); return !!pr && !CONFIG.docExcluir.some(k=>pr.includes(norm(k))); };
     const areaDe=r=>(r["area responsable por resolver"]||r["area de impacto"]||"Sin área").trim();
     const L=T.DocBase.filter(esSOP).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area).map(r=>{
@@ -1068,7 +1069,7 @@ function render(){
   h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       ${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.actual?"Al día de hoy":"Al cierre de "+M.toLowerCase()}</div></div>
+      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Al día de hoy · igual que el Panel Regulatorio</div></div>
       <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div>
       ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
     </div>
