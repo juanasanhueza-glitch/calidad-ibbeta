@@ -439,6 +439,8 @@ function sitNorm(x){ const t = nk(x).trim(); if (!t) return '';
   if (t.includes('confirmar')) return 'Por confirmar';
   return v(x); }
 const esBaja = s => s === 'Dado de baja' || s === 'Baja temporal';
+const CORTE_BAJAS = new Date(2025, 0, 1);
+const bajasVis = () => (DB.BAJAS || []).filter(r => { const e = MODEL.eq.get(K(r['ID'])); return !e || !e.oculto; });
 let MODEL;
 function construir(){
   const eq = new Map();
@@ -497,14 +499,22 @@ function construir(){
       [e.estCal,e.estQ,e.estM].every(s => s==='Sin registro' || s==='N/A (no aplica)') ? 'Sin registros' : 'Al día';
     e.search = nk([e.id,e.tipo,e.ubic,e.marca,e.modelo,e.serie,e.area,e.func].join(' '));
   }
-  const lista = [...eq.values()].sort((a,b) => idSort(a.id, b.id));
-  MODEL = {eq, lista, sinId};
+  /* Acuerdo 03-11-2026: el panel muestra solo bajas desde 2025 (las anteriores siguen en el Listado Maestro, ocultas aquí) */
+  for (const e of eq.values()) {
+    e.oculto = false;
+    if (!esBaja(e.sit) || e.sit === 'Baja temporal') continue;
+    const fb = e.baja ? pd(e.baja['Fecha de baja']) : null;
+    const act = [e.cal[0]?.fecha, e.q[0]?.fecha, e.m[0]?.fecha, e.baja ? pd(e.baja['Última calibración']) : null].filter(Boolean).sort((a,b) => b - a)[0];
+    e.oculto = fb ? fb < CORTE_BAJAS : !(act && act >= CORTE_BAJAS);
+  }
+  const lista = [...eq.values()].filter(e => !e.oculto).sort((a,b) => idSort(a.id, b.id));
+  MODEL = {eq, lista, sinId, ocultas: [...eq.values()].filter(e => e.oculto).length};
   const op = lista.filter(e => e.sit === 'Operativo'), f = n => n.toLocaleString('es-CL');
   const sub = (id, txt, st) => { const el = document.getElementById('ns-'+id); if (el) { el.textContent = txt; el.className = 'ns ' + (st ? 's-'+st : ''); } };
   const nR = lista.filter(e => e.nivel==='ROJO').length;
   const cv = op.filter(e => e.estCal==='Vencido').length, qv = op.filter(e => e.estQ==='Vencido').length, mv = op.filter(e => e.estM==='Vencido').length;
   const pa = (DB.PROGRAMA_CALIFICACION||[]).filter(r => /^Mes planificado/.test(v(r['Avance al corte']))).length;
-  const bs = (DB.BAJAS||[]).filter(r => empty(r['Ruta / archivo de baja'])).length;
+  const bs = bajasVis().filter(r => empty(r['Ruta / archivo de baja'])).length;
   const ar = lista.reduce((n,e) => n + e.nR, 0) + sinId.filter(a => a.nivel==='Rojo').length;
   sub('maestro', nR ? `${f(nR)} por revisar` : 'Sin observaciones', nR ? 'warn' : 'ok');
   sub('ficha', 'Datos de cada equipo', '');
@@ -592,7 +602,7 @@ function vResumen(){
   const conQ = op.filter(e => e.q.length), okQ = conQ.filter(e => e.estQ==='Vigente' || e.estQ==='Por vencer');
   const pc = DB.PROGRAMA_CALIFICACION || [];
   const ejec = pc.filter(r => /^Ejecutada/.test(v(r['Avance al corte']))).length, atr = pc.filter(r => /^Mes planificado/.test(v(r['Avance al corte']))).length, cur = pc.filter(r => /^En curso/.test(v(r['Avance al corte']))).length;
-  const B = DB.BAJAS || [], bOk = B.filter(r => !empty(r['Ruta / archivo de baja'])).length;
+  const B = bajasVis(), bOk = B.filter(r => !empty(r['Ruta / archivo de baja'])).length;
   const kp = [
     {t:'cal', l:'Calibraciones al día', p:pct(okC.length, reqC.length), d:`${f(okC.length)} de ${f(reqC.length)} equipos en uso que requieren calibración`},
     {t:'calif', l:'Calificaciones al día', p:pct(okQ.length, conQ.length), d:`${f(okQ.length)} de ${f(conQ.length)} equipos en uso con calificación registrada`},
@@ -797,10 +807,10 @@ function vProgMant(){
 /* ════════════════ BAJAS ════════════════ */
 let FB = {q:'', tipo:'', ev:''};
 function vBajas(){
-  const B = DB.BAJAS || [];
+  const B = bajasVis();
   $('#view').innerHTML = `
     <div class="section-label"><span>Equipos e instrumentos dados de baja · trazabilidad</span></div>
-    <div class="note">Fila amarilla = falta formulario de baja u otra evidencia. Fila roja = baja con información contradictoria.</div>
+    <div class="note">Se muestran las bajas desde 2025 y las bajas temporales. Las ${MODEL.ocultas.toLocaleString('es-CL')} bajas anteriores a 2025 siguen registradas en el Listado Maestro, pero no se visualizan en el panel (acuerdo del 03-11-2026). Fila amarilla = falta formulario de baja u otra evidencia. Fila roja = baja con información contradictoria.</div>
     <div class="toolbar">
       <input id="bq" type="search" placeholder="Filtrar por N°, equipo, marca, serie…" value="${esc(FB.q)}">
       ${sel('bt','Todo tipo de baja',uniq(B.map(r=>v(r['Tipo de baja']))),FB.tipo)}
@@ -886,7 +896,8 @@ function vVerif(){
 function abrir(id){
   const e = MODEL.eq.get(K(id));
   if (!e) { alertaNoEncontrado(id); return; }
-  const hijos = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
+  if (e.oculto) { alertaNoEncontrado(id, `El N° ${esc(e.id)} (${esc(e.tipo)}) está dado de baja antes de 2025. Su información se mantiene en el Listado Maestro, pero no se muestra en el panel (acuerdo del 03-11-2026).`); return; }
+  const hijos = [...MODEL.eq.values()].filter(x => !x.oculto && x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
   const calPorHijos = !e.cal[0] && hijos.length > 0 && !esBaja(e.sit);
   const hijosOp = hijos.filter(h => !esBaja(h.sit)).length, hijosBaja = hijos.length - hijosOp;
   const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijosOp} operativo${hijosOp===1?'':'s'}${hijosBaja ? `, ${hijosBaja} de baja` : ''}).</i>` : '';
@@ -964,8 +975,11 @@ function abrir(id){
   $('#drawer').classList.add('on'); $('#ov').classList.add('on'); $('#drawer').scrollTop = 0;
 }
 function cerrar(){ $('#drawer').classList.remove('on'); $('#ov').classList.remove('on'); try { const u = new URL(location); u.searchParams.delete('id'); history.replaceState(null,'',u); } catch(_){} }
-function alertaNoEncontrado(id){
-  $('#drawer').innerHTML = `<div class="d-head"><button class="close">×</button><div class="d-id">Búsqueda</div><div class="d-title">N° ${esc(id)} no encontrado</div></div>
+function alertaNoEncontrado(id, msgBaja){
+  $('#drawer').innerHTML = msgBaja
+    ? `<div class="d-head"><button class="close">×</button><div class="d-id">Búsqueda</div><div class="d-title">N° ${esc(id)} · dado de baja antes de 2025</div></div>
+    <div class="d-body"><div class="alert Amarillo"><div class="t">${msgBaja}</div><div class="a">Para consultarlo, revisa la planilla base (pestañas LISTADO_MAESTRO y BAJAS).</div></div></div>`
+    : `<div class="d-head"><button class="close">×</button><div class="d-id">Búsqueda</div><div class="d-title">N° ${esc(id)} no encontrado</div></div>
     <div class="d-body"><div class="alert Rojo"><div class="t">No existe un equipo o instrumento con ese N° interno en el listado maestro.</div><div class="a">Revisa el número o búscalo por tipo/ubicación en el Listado Maestro.</div></div></div>`;
   $('#drawer').querySelector('.close').onclick = cerrar; $('#drawer').classList.add('on'); $('#ov').classList.add('on');
 }
@@ -991,7 +1005,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); })
   q.addEventListener('keydown', ev => {
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); if (!items.length) return; act = (act + (ev.key==='ArrowDown'?1:-1) + items.length) % items.length;
       box.querySelectorAll('div[data-i]').forEach((d,i)=>d.classList.toggle('act', i===act)); }
-    if (ev.key === 'Enter') { ev.preventDefault(); const e = items[act] || null; if (e) { abrir(e.id); box.style.display='none'; } else if (q.value.trim()) abrir(q.value.trim()); }
+    if (ev.key === 'Enter') { ev.preventDefault(); const t0 = q.value.trim(), ex = t0 && MODEL.eq.get(K(t0)); if (ex && (ex.oculto || !items[act] || act <= 0)) { abrir(t0); box.style.display='none'; return; } const e = items[act] || null; if (e) { abrir(e.id); box.style.display='none'; } else if (q.value.trim()) abrir(q.value.trim()); }
     if (ev.key === 'Escape') box.style.display = 'none';
   });
   box.addEventListener('mousedown', ev => { const d = ev.target.closest('div[data-i]'); if (d) { ev.preventDefault(); abrir(items[+d.dataset.i].id); box.style.display='none'; } });
