@@ -236,7 +236,22 @@
   .rep-o ul{margin:.25rem 0 0 1rem}
   .doc.big{font-size:12px;padding:.45rem .8rem}
   .photo{display:flex;gap:1rem;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.8rem}
-  .photo a,.photo .pimg{flex:0 0 300px;max-width:48%;display:block}
+  .photo a,.photo .pimg{display:block}
+  .photo .pwrap{position:relative;flex:0 0 300px;max-width:48%}
+  .photo .pwrap .ph{width:100%;max-width:none}
+  .pwrap.baja img{filter:grayscale(1) contrast(.95) brightness(1.05);opacity:.7}
+  .pwrap.temp img{filter:saturate(.45);opacity:.85}
+  .pwrap.baja .ph,.pwrap.temp .ph{color:transparent} .pwrap.baja .ph *,.pwrap.temp .ph *{visibility:hidden}
+  .pwrap.baja .ph{background:repeating-linear-gradient(135deg,#FDF2F2 0 10px,#FBE7E7 10px 20px)} .pwrap.temp .ph{background:repeating-linear-gradient(135deg,#FEF7EC 0 10px,#FCEFD9 10px 20px)}
+  .sello{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-11deg);pointer-events:none;text-align:center;
+    padding:.45rem .9rem .4rem;border:3px solid currentColor;border-radius:6px;background:rgba(255,255,255,.82);
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.9),inset 0 0 0 4px currentColor;font-family:'Arial Black',Arial,sans-serif;line-height:1.05;white-space:nowrap}
+  .sello b{display:block;font-size:20px;letter-spacing:.12em}
+  .sello span{display:block;margin-top:.25rem;font:700 9.5px/1.2 Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}
+  .sello.def{color:#C8102E}
+  .sello.tmp{color:#B45309}
+  .sello::after{content:"";position:absolute;inset:-3px;border-radius:6px;opacity:.18;
+    background:repeating-linear-gradient(115deg,transparent 0 3px,#fff 3px 4px,transparent 4px 9px)}
   .photo img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:var(--ice);border:1px solid var(--border)}
   .photo .ph{width:160px;max-width:45%;aspect-ratio:4/3;border-radius:8px;background:var(--ice);border:1px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--slate);font-size:11px;text-align:center;gap:.2rem;padding:.4rem}
   .photo .ph b{font-size:22px}
@@ -967,8 +982,12 @@ function abrir(id){
           const ph = did ? `<div class="ph"><b>📷</b>Foto vinculada, pero no se pudo mostrar<br><a href="https://drive.google.com/file/d/${did}/view" target="_blank" rel="noopener">Abrir en Drive</a></div>` : '<div class="ph"><b>📷</b>Sin foto</div>';
           window.__ph = window.__ph || {}; window.__ph[e.id] = ph;
           const onerr = `const a=(this.dataset.alt||'').split('|').filter(Boolean); if(a.length){this.dataset.alt=a.slice(1).join('|'); this.src=a[0];} else {this.parentNode.outerHTML=window.__ph[${JSON.stringify(String(e.id)).replace(/"/g,"'")}];}`;
-          return `<div class="photo" style="margin-bottom:.7rem">${dm ? `<div class="pimg"><img src="${esc(cands[0])}" alt="Foto del equipo ${esc(e.id)}"></div>`
-            : `<div class="pimg" data-ph="1"><img src="${esc(cands[0])}" data-alt="${esc(cands.slice(1).join('|'))}" alt="Foto del equipo ${esc(e.id)}" referrerpolicy="no-referrer" onerror="${esc(onerr)}"></div>`}
+          const fbaja = e.baja ? pd(e.baja['Fecha de baja']) : null;
+          const sello = e.sit === 'Dado de baja' ? `<div class="sello def" title="Equipo dado de baja"><b>DADO DE BAJA</b><span>Fuera de servicio${fbaja ? ' · ' + fd(fbaja) : ''}</span></div>`
+                      : e.sit === 'Baja temporal' ? `<div class="sello tmp" title="Baja temporal"><b>BAJA TEMPORAL</b><span>Temporalmente fuera de servicio</span></div>` : '';
+          const wcls = e.sit === 'Dado de baja' ? ' baja' : e.sit === 'Baja temporal' ? ' temp' : '';
+          return `<div class="photo" style="margin-bottom:.7rem"><div class="pwrap${wcls}">${dm ? `<div class="pimg"><img src="${esc(cands[0])}" alt="Foto del equipo ${esc(e.id)}"></div>`
+            : `<div class="pimg" data-ph="1"><img src="${esc(cands[0])}" data-alt="${esc(cands.slice(1).join('|'))}" alt="Foto del equipo ${esc(e.id)}" referrerpolicy="no-referrer" onerror="${esc(onerr)}"></div>`}${sello}</div>
         <div class="pt">${dm ? `<div style="font-size:10px;margin-bottom:.3rem">📷 ${esc(dm.fotoTxt)}</div>${Object.entries(dm.ficha).map(([k,x])=>`${esc(k)}: <b>${esc(x)}</b>`).join('<br>')}<br>${esc(e.ubic||'')}` : `<b>${esc(e.tipo)}</b><br>${esc([e.marca,e.modelo].filter(x=>!empty(x)).join(' · ')) || 'Marca y modelo sin registrar'}<br>Serie: ${esc(empty(e.serie)?'—':e.serie)}<br>${esc(e.ubic||'')}`}</div></div>`; })()}
       <dl class="kv">${kv('Marca',e.marca)}${kv('Modelo',e.modelo)}${kv('N° de serie',e.serie)}${kv('Ubicación',e.ubic)}${kv('Función',e.func)}${kv('Responsable (portal)',e.resp)}
         ${kv('Rango de trabajo',f['Rango de trabajo'])}${kv('Error máx. permisible',f['Error máx. permisible'])}${kv('Puntos de calibración',f['Puntos de calibración'])}${kv('Proveedor de calibración',f['Proveedor de calibración (último)'])}
