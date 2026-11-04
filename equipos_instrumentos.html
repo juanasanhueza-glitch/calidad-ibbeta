@@ -441,6 +441,7 @@ function sitNorm(x){ const t = nk(x).trim(); if (!t) return '';
   return v(x); }
 const esBaja = s => s === 'Dado de baja' || s === 'Baja temporal';
 const CORTE_BAJAS = new Date(2025, 0, 1);
+const verifBaja = r => { let t = v(r['Verificar']); if (!empty(r['Ruta / archivo de baja'])) t = t.split(/\s*·\s*/).filter(x => !/^Baja sin formulario/i.test(x)).join(' · '); return t; };
 const bajasVis = () => (DB.BAJAS || []).filter(r => { const e = MODEL.eq.get(K(r['ID'])); return !e || !e.oculto; });
 let MODEL;
 function construir(){
@@ -487,7 +488,9 @@ function construir(){
     const st = v(r['Estado de la verificación']) || 'Pendiente';
     if (/^(Resuelto|No aplica)$/i.test(st)) continue;
     const a = {nivel:v(r['Nivel']), mod:v(r['Módulo del panel']), que:v(r['Qué hay que verificar']), acc:v(r['Acción sugerida']), resp:v(r['Responsable de la verificación']), st, id:v(r['ID'])};
-    const e = eq.get(K(r['ID'])); if (e) e.alerts.push(a); else sinId.push(a);
+    const e = eq.get(K(r['ID']));
+    if (e && /^Baja sin formulario/i.test(a.que) && e.baja && !empty(e.baja['Ruta / archivo de baja'])) continue; /* formulario ya vinculado en BAJAS */
+    if (e) e.alerts.push(a); else sinId.push(a);
   }
   for (const e of eq.values()) {
     const c = e.cal[0], q = e.q[0], m = e.m[0];
@@ -828,8 +831,8 @@ function vBajas(){
       {h:'Marca / modelo / serie', cl:'muted', f:r=>esc([r['Marca'],r['Modelo'],r['N° de serie']].filter(x=>!empty(x)).join(' · '))},
       {h:'Última calibración', f:r=>fd(pd(r['Última calibración']))}, {h:'Fecha de baja', f:r=>fd(pd(r['Fecha de baja']))},
       {h:'Evidencia', f:r=>empty(r['Ruta / archivo de baja']) ? chip('Sin registro').replace('Sin registro','Sin formulario') : (driveId(r['Ruta / archivo de baja']) || /^https?:/.test(v(r['Ruta / archivo de baja'])) ? docLink(r['Ruta / archivo de baja'],'Ver formulario') : `<span style="font-size:11px">${esc(String(r['Ruta / archivo de baja']).split('/').pop())}</span>`)+`${!empty(r['Código oficial'])?`<div class="muted" style="font-size:10.5px">${esc(r['Código oficial'])}</div>`:''}`},
-      {h:'Verificar', cl:'muted', f:r=>esc(r['Verificar']||'')}],
-      R, {id:r=>v(r['ID']), rowClass:r=>`click ${/confirmada verbalmente/.test(v(r['Verificar']))?'r-ROJO':!empty(r['Verificar'])?'r-AMARILLO':''}`});
+      {h:'Verificar', cl:'muted', f:r=>esc(verifBaja(r))}],
+      R, {id:r=>v(r['ID']), rowClass:r=>`click ${/confirmada verbalmente/.test(verifBaja(r))?'r-ROJO':!empty(verifBaja(r))?'r-AMARILLO':''}`});
   };
   const bind = (id,k) => $(id).addEventListener('input', ev => { FB[k] = ev.target.value; draw(); });
   bind('#bq','q'); bind('#bt','tipo'); bind('#be','ev');
