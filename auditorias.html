@@ -54,6 +54,9 @@
   .p-realizada{background:#D1F0DC;color:#1A6B3A}
   .p-programada{background:#E3F0FF;color:#1557A0}
   .p-pendiente{background:#EAEEF3;color:#556677}
+  .p-pendreporte{background:#FFECB0;color:#8A5500}
+  .p-porcalificar{background:#FDE2C4;color:#9A4A00}
+  .apqa-noprog-tag{font-size:9.5px;font-weight:700;color:#5B2C8F;background:#EDE3FA;padding:1px 6px;border-radius:20px;white-space:nowrap}
   .apqa-chevron{color:#8a9bb0;font-size:11px;transition:transform .15s ease}
   .apqa-row.open .apqa-chevron{transform:rotate(90deg)}
 
@@ -136,7 +139,7 @@
   <div class="apqa-toolbar" id="apqaToolbar"></div>
   <div class="apqa-list" id="apqaList"></div>
   <div class="apqa-toast" id="apqaToast">✅ Información guardada correctamente</div>
-  <p class="apqa-foot">👁️ Vista de solo lectura. Los datos se leen directo del CSV publicado de la hoja Seguimiento_AUD-PROV (igual que el Calendario).</p>
+  <p class="apqa-foot">👁️ Vista de solo lectura. Los datos se leen directo de la planilla «Seguimiento Auditorías a Proveedores 2026» (hoja Seguimiento, publicada como CSV).</p>
 </div>
 
 <script>
@@ -184,13 +187,15 @@
   var openId=null;
   var plazoDias=20; // días hábiles para enviar F-QA-009.03 (se confirmó que en la práctica se usan 20, no los 45 del historial de cambios)
 
+  // Feriados Chile (mismos que la hoja Parámetros de la planilla de seguimiento)
+  var FERIADOS = ['2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-21','2026-06-29','2026-07-16','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01','2027-03-26','2027-03-27','2027-05-01','2027-05-21','2027-06-21','2027-06-28','2027-07-16'];
+  function isHabil(d){ var day=d.getDay(); return day!==0 && day!==6 && FERIADOS.indexOf(fmtISO(d))===-1; }
   function addBusinessDays(date, days){
     var d=new Date(date);
     var added=0, guard=0;
     while(added<days && guard<3650){ // guard: nunca más de ~10 años de iteraciones, por seguridad
       d.setDate(d.getDate()+1);
-      var day=d.getDay();
-      if(day!==0&&day!==6) added++;
+      if(isHabil(d)) added++;
       guard++;
     }
     return d;
@@ -203,8 +208,7 @@
     var guard=0;
     while(cur.toDateString()!==end.toDateString() && guard<3650){
       cur.setDate(cur.getDate()+sign);
-      var day=cur.getDay();
-      if(day!==0&&day!==6) count+=sign;
+      if(isHabil(cur)) count+=sign;
       guard++;
     }
     return count;
@@ -221,7 +225,7 @@
   }
   function mismatchInfo(item, rec){
     var d=parseFechaSafe(rec.fecha);
-    if(!d) return null;
+    if(!d || item.noProg || !item.mes) return null;
     var mesReal=d.getMonth()+1;
     if(mesReal===item.mes) return null;
     return {mesProgramado:MESES[item.mes], mesReal:MESES[mesReal]};
@@ -272,6 +276,11 @@
   // Se usa automáticamente en la versión de solo lectura.
   var USE_CSV_SOURCE = true;
   var CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgLe_KANMBW1uX0Dp7qWY4AktHhe6WXw5oKQj_8UKTZcBlPFiyhBDlUexdZX52SEOnSv-4qWniIZwl/pub?gid=219780106&single=true&output=csv';
+
+  // ── FUENTE ÚNICA: planilla «Seguimiento Auditorías a Proveedores 2026» ──
+  // Pega aquí el enlace CSV de la hoja «Seguimiento» (Archivo › Compartir › Publicar en la web › Seguimiento › CSV).
+  // Si queda vacío, el panel sigue leyendo la hoja anterior (CSV_URL).
+  var SEGUIMIENTO_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxjVOwsaOIdMaEcjZnGHnsBe5NGEabDSHkqCMjUC7EimpLjyV2fIKL1B0sdzB4zk3YZxn4pdbOLGNA/pub?gid=1803631074&single=true&output=csv';
 
   function showSyncBar(msg, cls){
     var bar=document.getElementById('apqaSyncBar');
@@ -365,7 +374,54 @@
     }
   }
 
+  var MES_IDX={'enero':1,'febrero':2,'marzo':3,'abril':4,'mayo':5,'junio':6,'julio':7,'agosto':8,'septiembre':9,'setiembre':9,'octubre':10,'noviembre':11,'diciembre':12};
+  var CALIF_KEY={'bueno':'bueno','aceptable':'aceptable','aceptable con reparo':'reparo','rechazado':'rechazado'};
+  function norm(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+  async function loadStateFromSeguimiento(){
+    var res = await fetch(SEGUIMIENTO_CSV_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var rows = parseCSVRows(await res.text());
+    var h=-1;
+    for(var i=0;i<rows.length;i++){
+      var r0=rows[i].map(norm);
+      if(r0.indexOf('codigo')!==-1 && r0.indexOf('proveedor')!==-1){ h=i; break; }
+    }
+    if(h<0) throw new Error('No se encontró la fila de encabezados (Código / Proveedor) en la hoja Seguimiento.');
+    var hdr=rows[h].map(norm);
+    function col(name){ var k=norm(name); for(var c=0;c<hdr.length;c++){ if(hdr[c]===k || hdr[c].indexOf(k)===0) return c; } return -1; }
+    var C={cod:col('Código'), prov:col('Proveedor'), tipo:col('Tipo'), mes:col('Mes programado'), fprog:col('Fecha programada'),
+      estado:col('Estado'), fejec:col('Fecha ejecución'), calif:col('Calificación'), pct:col('Puntaje'), idaud:col('Código auditoría'),
+      auditor:col('Auditor'), fenv:col('Fecha envío reporte'), obs:col('Observaciones'), origen:col('Origen'), cert:col('N° Certificado')};
+    function v(r,k){ return C[k]>=0 ? String(r[C[k]]||'').trim() : ''; }
+    var prog=[], st={};
+    for(var j=h+1;j<rows.length;j++){
+      var r=rows[j], cod=v(r,'cod').toUpperCase();
+      if(!/^P\d+$/.test(cod)) continue;
+      var fP=csvParseFlexibleFecha(v(r,'fprog')), fE=csvParseFlexibleFecha(v(r,'fejec')), fR=csvParseFlexibleFecha(v(r,'fenv'));
+      var noProg = norm(v(r,'origen'))==='no programada';
+      var mes = MES_IDX[norm(v(r,'mes'))] || 0;
+      if(!mes && noProg && fE.iso) mes = parseInt(fE.iso.slice(5,7),10);
+      var tipo=v(r,'tipo'); if(tipo==='SERV') tipo='SERV.';
+      var item={nprov:cod, nombre:v(r,'prov')||cod, mes:mes, dia:fP.iso?parseInt(fP.iso.slice(8,10),10):0, tipo:tipo, estadoBase:'Pendiente', noProg:noProg};
+      prog.push(item);
+      var est=v(r,'estado')||'Pendiente';
+      st[cod]=Object.assign(defaultRecord(item),{
+        estado:est, fecha:fE.iso, fechaRaw:fE.raw, fechaReporte:fR.iso, fechaReporteRaw:fR.raw,
+        calificacion:CALIF_KEY[norm(v(r,'calif'))]||'pendiente',
+        pctCalificacion:v(r,'pct'), idaud:v(r,'idaud'), idcert:v(r,'cert'), auditor:v(r,'auditor'), notas:v(r,'obs')
+      });
+    }
+    if(!prog.length) throw new Error('La hoja Seguimiento no tiene proveedores.');
+    PROGRAMA=prog; state=st;
+    showSyncBar('','');
+  }
+
   async function loadState(){
+    if(SEGUIMIENTO_CSV_URL){
+      try{ return await loadStateFromSeguimiento(); }
+      catch(e){ console.error(e); showSyncBar('⚠️ No se pudo leer la planilla de seguimiento ('+e.message+'). Mostrando la fuente anterior.','err'); }
+    }
     if(USE_CSV_SOURCE){ return loadStateFromCSV(); }
     var remoteData = {};
     if(BACKEND_CONFIGURED){
@@ -413,24 +469,29 @@
   }
   function fmt(d){return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});}
   function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-  function initials(n){return n.split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();}
+  function initials(n){return n.replace(/\(.*?\)/g,' ').split(/\s+/).filter(function(w){return /^[A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/.test(w);}).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();}
   function esc(s){return (s||'').toString();}
 
   function render(){renderStats();renderProgress();renderToolbar();renderList();}
 
+  function soloPrograma(){ return PROGRAMA.filter(function(p){return !p.noProg;}); }
   function renderStats(){
-    var total=PROGRAMA.length;
-    var realizadas=PROGRAMA.filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
+    var prog=soloPrograma(), total=prog.length;
+    var realizadas=prog.filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
     var pendientes=total-realizadas;
+    var noProg=PROGRAMA.filter(function(p){return p.noProg;}).length;
+    var pendRep=PROGRAMA.filter(function(p){var r=state[p.nprov];return r.estado==='Realizada'&&!parseFechaSafe(r.fechaReporte);}).length;
     document.getElementById('apqaStats').innerHTML=
       '<div class="apqa-st"><div class="apqa-stv">'+total+'</div><div class="apqa-stl">Programa 2026</div></div>'+
       '<div class="apqa-st"><div class="apqa-stv" style="color:#8fd9ac">'+realizadas+'</div><div class="apqa-stl">Realizadas</div></div>'+
-      '<div class="apqa-st"><div class="apqa-stv" style="color:#ffd9a0">'+pendientes+'</div><div class="apqa-stl">Pendientes</div></div>';
+      '<div class="apqa-st"><div class="apqa-stv" style="color:#ffd9a0">'+pendientes+'</div><div class="apqa-stl">Pendientes</div></div>'+
+      '<div class="apqa-st"><div class="apqa-stv" style="color:#FFC66B">'+pendRep+'</div><div class="apqa-stl">Pend. reporte</div></div>'+
+      (noProg?'<div class="apqa-st"><div class="apqa-stv" style="color:#d7c4f5">'+noProg+'</div><div class="apqa-stl">No programadas</div></div>':'');
   }
 
   function renderProgress(){
-    var total=PROGRAMA.length;
-    var realizadas=PROGRAMA.filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
+    var total=soloPrograma().length;
+    var realizadas=soloPrograma().filter(function(p){return state[p.nprov].estado==='Realizada';}).length;
     var pct=total>0?Math.round(realizadas/total*100):0;
     var color=pct>=80?'#1A9A50':pct>=50?'#F5A623':'#E24B4A';
     document.getElementById('apqaProgFill').style.width=pct+'%';
@@ -440,7 +501,7 @@
   }
 
   function renderToolbar(){
-    var chips=[['todos','Todos'],['sem1','1er Semestre'],['sem2','2do Semestre'],['Realizada','Realizadas'],['Programada','Programadas'],['Pendiente','Pendientes'],['porcalificar','Por calificar']];
+    var chips=[['todos','Todos'],['sem1','1er Semestre'],['sem2','2do Semestre'],['Realizada','Realizadas'],['Programada','Programadas'],['Pendiente','Pendientes'],['pendreporte','Pendiente reporte'],['porcalificar','Por calificar'],['noprog','No programadas']];
     document.getElementById('apqaToolbar').innerHTML=chips.map(function(c){
       return '<button class="apqa-chip '+(filter===c[0]?'active':'')+'" data-f="'+c[0]+'">'+c[1]+'</button>';
     }).join('');
@@ -452,9 +513,11 @@
   function passesFilter(item){
     var rec=state[item.nprov];
     if(filter==='todos')return true;
-    if(filter==='sem1')return item.mes<=7;
-    if(filter==='sem2')return item.mes>=8;
-    if(filter==='porcalificar')return rec.estado==='Realizada'&&rec.calificacion==='pendiente';
+    if(filter==='sem1')return item.mes>=1&&item.mes<=6;
+    if(filter==='sem2')return item.mes>=7;
+    if(filter==='pendreporte')return rec.estado==='Realizada'&&!parseFechaSafe(rec.fechaReporte);
+    if(filter==='porcalificar')return rec.estado==='Realizada'&&!!parseFechaSafe(rec.fechaReporte)&&rec.calificacion==='pendiente';
+    if(filter==='noprog')return !!item.noProg;
     return rec.estado===filter;
   }
 
@@ -470,9 +533,14 @@
       var q=QUALIF[rec.calificacion];
       var isOpen=openId===item.nprov;
       var badgeColor = rec.estado==='Realizada' ? '#1A6B3A' : rec.estado==='Programada' ? '#1557A0' : '#8a9bb0';
-      var pillClass = rec.estado==='Realizada' ? (rec.calificacion!=='pendiente' ? (q.pill||'') : 'p-realizada') : rec.estado==='Programada' ? 'p-programada' : 'p-pendiente';
-      var pillLabel = rec.estado==='Realizada' && rec.calificacion!=='pendiente' ? q.label : rec.estado;
-      var pillStyle = q.pill ? '' : (rec.calificacion==='reparo'?'background:#FFECB0;color:#8A5500':rec.calificacion==='rechazado'?'background:#FFD7D7;color:#9C1515':'');
+      var sinReporte = rec.estado==='Realizada' && !parseFechaSafe(rec.fechaReporte);
+      var pillClass = sinReporte ? 'p-pendreporte'
+        : rec.estado==='Realizada' ? (rec.calificacion!=='pendiente' ? (q.pill||'') : 'p-porcalificar')
+        : rec.estado==='Programada' ? 'p-programada' : 'p-pendiente';
+      var pillLabel = sinReporte ? 'Pendiente reporte'
+        : rec.estado==='Realizada' ? (rec.calificacion!=='pendiente' ? q.label : 'Por calificar') : rec.estado;
+
+      var pillStyle = (sinReporte||q.pill) ? '' : (rec.calificacion==='reparo'?'background:#FFECB0;color:#8A5500':rec.calificacion==='rechazado'?'background:#FFD7D7;color:#9C1515':'');
       var dia=item.dia>0?'Día '+item.dia:'Fecha por definir';
       var checkboxHTML = READONLY
         ? '<span class="apqa-rocheck">'+(rec.estado==='Realizada'?'✅':'⬜')+'</span>'
@@ -522,7 +590,10 @@
           +'<div class="apqa-badge" style="background:'+badgeColor+'">'+initials(item.nombre)+'</div>'
           +'<div class="apqa-row-main">'
             +'<div class="apqa-row-name">'+esc(item.nombre)+'</div>'
-            +'<div class="apqa-row-meta"><span class="apqa-nprov">'+item.nprov+'</span>'+MESES[item.mes]+' 2026 · '+dia+' · '+item.tipo
+            +'<div class="apqa-row-meta"><span class="apqa-nprov">'+item.nprov+'</span>'
+              +(item.noProg
+                 ? '<span class="apqa-noprog-tag">No programada</span> · '+(parseFechaSafe(rec.fecha)?'Realizada el '+fmt(parseFechaSafe(rec.fecha)):'Fecha por definir')+' · '+item.tipo
+                 : MESES[item.mes]+' 2026 · '+dia+' · '+item.tipo)
               +(mismatchInfo(item,rec) ? ' · <span class="apqa-mismatch-tag">⚠ Realizada en '+mismatchInfo(item,rec).mesReal+'</span>' : '')
             +'</div>'
           +'</div>'
