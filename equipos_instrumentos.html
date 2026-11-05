@@ -725,7 +725,9 @@ function vMaestro(){
 /* ════════════════ CALIBRACIONES / CALIFICACIONES ════════════════ */
 const FMOD = {cal:{q:'',area:'',est:'',sit:'Operativo',ente:'',hz:'',modo:''}, q:{q:'',area:'',est:'',sit:'Operativo',ente:'',hz:''}};
 const MODOS = ['Interna','Externa','Sin ente informado'];
-function modoCal(ente){ const t = nk(ente||''); if (!t) return 'Sin ente informado'; return /intern|ibbeta|ibb\b|propi|in house|inhouse/.test(t) ? 'Interna' : 'Externa'; }
+const PREF_EXT = {SMI:'SMI', SMA:'Cesmec', LNM:'Cesmec', LABC:'Veto'};
+function enteDed(x){ if (!x || v(x.ente)) return ''; const m = String(x.cert||'').trim().toUpperCase().match(/^([A-Z]+)-/); return m && PREF_EXT[m[1]] ? PREF_EXT[m[1]] : ''; }
+function modoCal(ente, x){ const t = nk(ente||''); if (!t) return x && enteDed(x) ? 'Externa' : 'Sin ente informado'; return /intern|ibbeta|ibb\b|propi|in house|inhouse/.test(t) ? 'Interna' : 'Externa'; }
 const HZ = ['Vencidos','Vencen hoy','Próximos 30 días','Próximos 60 días','Próximos 90 días','Vencidos + próximos 60 días'];
 function enHz(d, hz){ if (!hz) return true; if (!d) return false; const n = dias(d); return hz==='Vencidos' ? n<0 : hz==='Vencen hoy' ? n===0 : hz==='Próximos 30 días' ? n>=0&&n<=30 : hz==='Próximos 60 días' ? n>=0&&n<=60 : hz==='Próximos 90 días' ? n>=0&&n<=90 : n<=60; }
 function vModulo(key){
@@ -750,7 +752,7 @@ function vModulo(key){
     <div class="toolbar" style="margin-top:-.3rem">${botonesExp()}<span class="note" style="margin:0">Descarga o copia exactamente lo que ves filtrado, para gestionar con las áreas y los entes.</span></div>
     ${isCal ? '<div class="ie" id="mie"></div>' : ''}<div id="mbar" style="margin-bottom:.8rem"></div><div class="entes" id="ments"></div><div id="t"></div>`;
   const expCols = [{h:'N°',x:e=>e.id},{h:'Equipo',x:e=>e.tipo},{h:'Área',x:e=>e.area},{h:'Ubicación',x:e=>e.ubic},{h:'Marca',x:e=>e.marca},{h:'Modelo',x:e=>e.modelo},{h:'N° de serie',x:e=>e.serie},
-    {h:isCal?'Última calibración':'Última calificación',x:e=>e[key][0]?.fecha||''},{h:isCal?'N° certificado':'Reporte',x:e=>e[key][0]?.cert||''},{h:'Ente',x:e=>e[key][0]?.ente||''},...(isCal ? [{h:'Ejecución',x:e=>e.cal[0] ? modoCal(e.cal[0].ente) : ''}] : []),
+    {h:isCal?'Última calibración':'Última calificación',x:e=>e[key][0]?.fecha||''},{h:isCal?'N° certificado':'Reporte',x:e=>e[key][0]?.cert||''},{h:'Ente',x:e=>e[key][0]?.ente||''},...(isCal ? [{h:'Ejecución',x:e=>e.cal[0] ? modoCal(e.cal[0].ente, e.cal[0]) : ''}] : []),
     {h:'Frecuencia',x:e=>e[key][0]?.frec ? (isCal ? (e[key][0].frec/12)+' año(s)' : e[key][0].frec+' meses') : ''},{h:'Vence',x:e=>e[key][0]?.vence||''},
     {h:'Días',x:e=>e[key][0]?.vence ? dias(e[key][0].vence) : ''},{h:'Estado',x:e=>e[estK]},{h:'Responsable',x:e=>e.resp},{h:'Gestión (completar)',x:()=>''}];
   let ULT = [];
@@ -760,10 +762,10 @@ function vModulo(key){
     if (isCal) {
       const conR = base0.filter(e => e.cal[0]);
       $('#mie').innerHTML = MODOS.map(m => {
-        const g = conR.filter(e => modoCal(e.cal[0].ente)===m); if (m==='Sin ente informado' && !g.length) return '';
+        const g = conR.filter(e => modoCal(e.cal[0].ente, e.cal[0])===m); if (m==='Sin ente informado' && !g.length) return '';
         const c = contar(g, e=>e.estCal), req = g.filter(e=>e.estCal!=='N/A (no aplica)').length, ok = (c['Vigente']||0)+(c['Por vencer']||0);
         const col = m==='Interna' ? '#2563EB' : m==='Externa' ? '#7C3AED' : '#94A3B8';
-        const sub = m==='Interna' ? 'Ejecutadas por personal IBBeta' : m==='Externa' ? 'Ejecutadas por entes externos (SMI, Metrocal, Covery…)' : 'Último registro sin ente: completar en CALIBRACIONES';
+        const sub = m==='Interna' ? 'Ejecutadas por personal IBBeta' : m==='Externa' ? 'Ejecutadas por entes externos (SMI, Metrocal, Covery…). * = ente deducido del certificado' : 'Último registro sin ente ni certificado reconocible: completar en CALIBRACIONES';
         return `<div class="kpi ${F.modo===m?'on':''}" style="--c:${col}" data-mo="${m}" title="Clic para filtrar">
           <div class="l">Calibraciones ${m==='Sin ente informado' ? '· sin ente informado' : m.toLowerCase()+'s'}</div>
           <div class="v">${g.length.toLocaleString('es-CL')}<small>equipos · ${req ? Math.round(ok/req*100) : 0}% al día</small></div>
@@ -771,7 +773,7 @@ function vModulo(key){
           ${barra(c)}</div>`; }).join('');
       $('#mie').querySelectorAll('[data-mo]').forEach(b => b.onclick = () => { F.modo = F.modo===b.dataset.mo ? '' : b.dataset.mo; $('#mx').value = F.modo; draw(); });
     }
-    const base = isCal && F.modo ? base0.filter(e => e.cal[0] && modoCal(e.cal[0].ente)===F.modo) : base0;
+    const base = isCal && F.modo ? base0.filter(e => e.cal[0] && modoCal(e.cal[0].ente, e.cal[0])===F.modo) : base0;
     $('#mbar').innerHTML = `<div class="kpi" style="padding:.8rem 1rem">${barra(contar(base,e=>e[estK]))}</div>`;
     const pre = base.filter(e => (!F.est || e[estK]===F.est) && enHz(e[key][0]?.vence, F.hz) && (!q || nk(e.search + ' ' + (e[key][0] ? e[key][0].cert+' '+e[key][0].ente : '')).includes(q)));
     const R = pre.filter(e => !F.ente || e[key][0]?.ente===F.ente)
@@ -786,8 +788,8 @@ function vModulo(key){
       {h:'N°', cl:'id', f:e=>esc(e.id)}, {h:'Equipo', f:e=>esc(e.tipo)}, {h:'Área', f:e=>esc(e.area)},
       {h:isCal?'Última calibración':'Última calificación', f:e=>e[key][0] ? fd(e[key][0].fecha) : '—'},
       ...(isCal ? [] : [{h:'Tipo', cl:'muted', f:e=>esc(e[key][0]?.tipo||'')}]),
-      {h:isCal?'N° certificado':'Reporte', cl:'nw', f:e=>esc(e[key][0]?.cert||'')}, {h:'Ente', cl:'muted', f:e=>esc(e[key][0]?.ente||'')},
-      ...(isCal ? [{h:'Ejecución', f:e=>e.cal[0] ? `<span class="chip" style="background:${modoCal(e.cal[0].ente)==='Interna'?'#DBEAFE;color:#1E40AF':modoCal(e.cal[0].ente)==='Externa'?'#EDE9FE;color:#5B21B6':'#F1F5F9;color:#475569'}">${modoCal(e.cal[0].ente)==='Sin ente informado'?'Sin ente':modoCal(e.cal[0].ente)}</span>` : ''}] : []),
+      {h:isCal?'N° certificado':'Reporte', cl:'nw', f:e=>esc(e[key][0]?.cert||'')}, {h:'Ente', cl:'muted', f:e=>esc(e[key][0]?.ente||'') || (isCal && enteDed(e.cal[0]) ? `<span title="Deducido del N° de certificado; falta escribirlo en CALIBRACIONES">${esc(enteDed(e.cal[0]))}*</span>` : '')},
+      ...(isCal ? [{h:'Ejecución', f:e=>e.cal[0] ? `<span class="chip" style="background:${modoCal(e.cal[0].ente, e.cal[0])==='Interna'?'#DBEAFE;color:#1E40AF':modoCal(e.cal[0].ente, e.cal[0])==='Externa'?'#EDE9FE;color:#5B21B6':'#F1F5F9;color:#475569'}">${modoCal(e.cal[0].ente, e.cal[0])==='Sin ente informado'?'Sin ente':modoCal(e.cal[0].ente, e.cal[0])}</span>` : ''}] : []),
       {h:'Frecuencia', f:e=>e[key][0]?.frec ? (isCal ? (e[key][0].frec/12)+' año(s)' : e[key][0].frec+' meses') : (isCal && e.naCal ? 'N/A' : '—')},
       {h:'Vence', f:e=>vencTxt(e[key][0]?.vence, e[estK])}, {h:'Estado', f:e=>chip(e[estK]) + (!isCal && /^Por confirmar/.test(e[key][0]?.regla||'') ? ' '+chip('Por confirmar') : '')},
       {h:isCal?'Certificado':'Informe', f:e=>(!isCal && DEMO && DEMO[e.id]) ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 Ver</a>` : docLink(e[key][0]?.link, 'Ver')},
