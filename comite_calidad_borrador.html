@@ -271,6 +271,9 @@ const CONFIG = {
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1734110398",
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1953016827"
     ],
+    /* Programa anual de mantención (Resumen_Anual_Mantenimiento_2026, Mantenimiento) · enlace CSV publicado.
+       Una fila por equipo; columnas ENE..DIC: 1 = ejecutada, 0 = programada no ejecutada, vacío = sin mantención ese mes */
+    MantPrograma: "",
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -455,6 +458,10 @@ async function loadSheets(){
       const snap=await firebase.firestore().collection("kpi_ibbeta").doc("auditorias_internas_2026").get();
       if(snap.exists && snap.data() && snap.data().estados) tables.AudEst=JSON.parse(snap.data().estados);
     }catch(e){ errors.push(`Auditorías internas (Programa Anual 2026): ${e.message}`); } }
+  const mpu=(CONFIG.fuentes||{}).MantPrograma; tables.MantProg=null;
+  if(mpu){ try{ const r=await fetch(mpu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.MantProg=toTable(parseCSV(await r.text()),"equipo").filter(r=>(r["equipo"]||"").trim()); }
+    catch(e){ errors.push(`Programa de mantención (Resumen Anual Mantenimiento): ${e.message}`); } }
   tables.ValDet={};
   const vd=(CONFIG.fuentes||{}).ValDetalle||{};
   await Promise.all(Object.entries(vd).filter(([,u])=>u).map(async([prog,u])=>{
@@ -606,6 +613,17 @@ function compute(){
         if(ult && ult.ve && ult.ve<refD0) atrVal.push({r:{"programa":"Calibración","actividad / equipo":eqNombre(id),"responsable":respEq[id]||""},plan:ult.ve,atraso:Math.round((refD0-ult.ve)/DAY)}); });
       const delMes=EQ.CALIB.filter(r=>{ const fe=parseDate(r["fecha de ejecucion"]); return fe&&mkey(fe)===STATE.mes&&eqOp(r["id"]); }).length;
       return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej,delMes,txt:"calibraciones que vencían en el mes"};
+    }
+    if(norm(p)==="mantencion" && T.MantProg && T.MantProg.length && +STATE.mes.slice(0,4)===(CONFIG.anioProgramas||+STATE.mes.slice(0,4))){
+      // Programa anual de Mantenimiento: 1 = ejecutada, 0 = programada no ejecutada
+      const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"], mi=+STATE.mes.slice(5,7)-1;
+      const val=(r,k)=>{ const v=String(r[MM[k]]??"").trim(); return v===""?null:parseNum(v)>=1; };
+      let tot=0, ok=0, totA=0, okA=0;
+      T.MantProg.forEach(r=>{ for(let k=0;k<=mi;k++){ const v=val(r,k); if(v===null) continue;
+        totA++; if(v) okA++; if(k===mi){ tot++; if(v) ok++; }
+        if(!v){ const fin=new Date(+STATE.mes.slice(0,4),k+1,0);
+          atrVal.push({r:{"programa":"Mantención","actividad / equipo":[r["equipo"],r["area"],r["cod. interno"]?"N° "+String(r["cod. interno"]).replace(/\.0$/,""):""].filter(Boolean).join(" · "),"responsable":"Mantenimiento"},plan:fin,atraso:Math.max(0,Math.round((refD0-fin)/DAY))}); } } });
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:tot?`${ok} de ${tot} ejecutadas en el mes · ${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes · ${okA} de ${totA} en el año`,txt:"mantenciones programadas en el mes"};
     }
     if(norm(p)==="mantencion" && EQ.PROG_MANT && EQ.PROG_MANT.length){
       const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -1009,7 +1027,7 @@ function render(){
     return `<span class="est est-${cls}">${esc(cls==="pend"&&!x.estado&&!x.r["estado"]?"Pendiente":t.charAt(0).toUpperCase()+t.slice(1).toLowerCase())}</span>`; };
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${estAtr(x)}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Estado</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
+  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
     ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="6" class="empty">Sin atrasos en el período</td></tr>`}
