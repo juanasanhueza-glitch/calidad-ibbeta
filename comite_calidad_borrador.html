@@ -273,6 +273,8 @@ const CONFIG = {
     ],
     /* Programa anual de mantención (Resumen_Anual_Mantenimiento_2026, Mantenimiento) · enlace CSV publicado.
        Una fila por equipo; columnas ENE..DIC: 1 = ejecutada, 0 = programada no ejecutada, vacío = sin mantención ese mes */
+    /* Seguimiento Programa de Auditorías a Proveedores 2026 · hoja «Seguimiento» · enlace CSV publicado (con gid de esa hoja) */
+    AudProv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxjVOwsaOIdMaEcjZnGHnsBe5NGEabDSHkqCMjUC7EimpLjyV2fIKL1B0sdzB4zk3YZxn4pdbOLGNA/pub?gid=1803631074&single=true&output=csv",
     MantPrograma: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDwGK-ZjOs1D1Sy_9XjmOYATUU5ng302ni4iPYl8D4tpuekEZuiwYpwJ3OaIQKjyp3faxzMM5Xcs0/pub?gid=264693335&single=true&output=csv",
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
@@ -329,7 +331,7 @@ const CONFIG = {
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
   alerta: 0.80,          // bajo este % el indicador se marca en rojo (propuesta, por confirmar)
   ocupacionAlta: 0.90,   // ocupación de bodega desde la cual se marca en ámbar (propuesta)
-  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías"],
+  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías","Auditorías a proveedores"],
   eventos:   ["No conformidad","Desvío","Reclamo","OOS","CAPA"],
   eventosPlural: {"No conformidad":"No conformidades","Desvío":"Desvíos","Reclamo":"Reclamos","OOS":"OOS","CAPA":"CAPAs"}
 };
@@ -466,6 +468,10 @@ async function loadSheets(){
       tables.MantProg=toTable(parseCSV(await r.text()),"equipo").filter(r=>(r["equipo"]||"").trim()); }
     catch(e){ errors.push(`Programa de mantención (Resumen Anual Mantenimiento): ${e.message}`); } }
   if(!tables.MantProg||!tables.MantProg.length){ tables.MantProg=MANT_PROG_SNAPSHOT.rows; tables.MantSnap=MANT_PROG_SNAPSHOT.fecha; }
+  const apu=(CONFIG.fuentes||{}).AudProv; tables.AudProv=null;
+  if(apu){ try{ const r=await fetch(apu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.AudProv=toTable(parseCSV(await r.text()),"codigo").filter(r=>/^p\d+/i.test((r["codigo"]||"").trim())); }
+    catch(e){ errors.push(`Auditorías a proveedores: ${e.message}`); } }
   tables.ValDet={};
   const vd=(CONFIG.fuentes||{}).ValDetalle||{};
   await Promise.all(Object.entries(vd).filter(([,u])=>u).map(async([prog,u])=>{
@@ -683,6 +689,19 @@ function compute(){
       prog.filter(x=>x.estado!=="ejecutada").forEach(x=>atrVal.push({r:{"programa":"Auditorías","actividad / equipo":x.area+(x.estado==="no_ejecutada"?" · no ejecutada":""),"responsable":"Aseguramiento de Calidad"},
         plan:x.fin, atraso:Math.max(0,Math.round((cut-x.fin)/DAY)), done:null}));
       return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,anio:L.length};
+    }
+    if(norm(p)==="auditorias a proveedores" && T.AudProv){
+      // Programa 2026: % = realizadas en el mes programado / programadas hasta el mes (no programadas no cuentan)
+      const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"], yr=+STATE.mes.slice(0,4);
+      const L=T.AudProv.filter(r=>!norm(r["origen"]).startsWith("no")).map(r=>{ const mi=MES.indexOf(norm(r["mes programado"]));
+        const fin=mi>=0?new Date(yr,mi+1,0):null, fp=parseDate(r["fecha programada"]), fe=parseDate(r["fecha ejecucion"]);
+        const hecha=!!(fe&&fe<=cut);
+        return {r,fin,fp,fe,hecha,enPlazo:hecha&&fin&&fe<=fin,nom:`${r["proveedor"]||""} (${r["codigo"]})`,est:(r["estado"]||"").trim()}; }).filter(x=>x.fin);
+      const prog=L.filter(x=>x.fin<=cut), ok=prog.filter(x=>x.enPlazo).length, ej=prog.filter(x=>x.hecha).length;
+      prog.forEach(x=>{
+        if(!x.hecha) atrVal.push({r:{"programa":"Auditorías a proveedores","actividad / equipo":x.nom,"responsable":"Aseguramiento de Calidad"},plan:x.fp||x.fin,atraso:Math.max(0,Math.round((cut-x.fin)/DAY)),estado:x.est||"Pendiente"});
+        else if(!x.enPlazo) atrVal.push({r:{"programa":"Auditorías a proveedores","actividad / equipo":x.nom+" · ejecutada "+fdate(x.fe),"responsable":"Aseguramiento de Calidad"},plan:x.fin,atraso:Math.round((x.fe-x.fin)/DAY),estado:"Ejecutada fuera de plazo"}); });
+      return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,plazo:true,ej,anio:L.length};
     }
     const V=T.Val&&T.Val[p];
     if(V) return {p,tot:V.tot,ok:V.ok,v:ratio(V.ok,V.tot),anual:true,code:V.code};
@@ -1031,7 +1050,7 @@ function render(){
     return `<span class="est est-${cls}">${esc(cls==="pend"&&!x.estado&&!x.r["estado"]?"Pendiente":t.charAt(0).toUpperCase()+t.slice(1).toLowerCase())}</span>`; };
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${estAtr(x)}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Estado</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
+  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p==="Auditorías"?"Auditorías internas":p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
     ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="6" class="empty">Sin atrasos en el período</td></tr>`}
