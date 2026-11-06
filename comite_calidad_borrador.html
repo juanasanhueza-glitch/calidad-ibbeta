@@ -985,6 +985,10 @@ function kpiCard(label, v, sub, k, extra){
 const kSub=(x,txt)=> x&&x.d===0 ? "Sin registros abiertos" : x&&x.d!=null&&x.exact ? `${x.n} de ${x.d} ${txt}` : (x&&x.v!=null?"Según resumen CONSOLIDADO_CALIDAD":"Sin datos");
 const worst=arr=>{ const v=arr.filter(x=>x&&x!=="nodata"&&x!=="neutral"); return !v.length?"nodata":v.includes("bad")?"bad":v.includes("warn")?"warn":"ok"; };
 
+function filtroDoc(k){
+  STATE.docF = (k && STATE.docF!==k) ? k : null; render();
+  const t=document.getElementById("doc-tit"); if(t && STATE.docF) t.scrollIntoView({behavior:"smooth",block:"start"});
+}
 function filtroProg(p){
   STATE.progF = (p && STATE.progF!==p) ? p : null; render();
   const t=document.getElementById("atr-tit"); if(t && STATE.progF) t.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1147,22 +1151,23 @@ function render(){
   const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td class="fecha">${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
   const docHead=t=>`<thead><tr><th>Código</th><th>Título</th><th>Área responsable</th><th>${t}</th><th class="n">Días</th><th>Responsable</th></tr></thead>`;
   const areasT=[...new Set([...d.porArea.map(x=>x[0]),...Object.keys(d.porAreaP||{})])].map(a=>[a,(d.porArea.find(x=>x[0]===a)||[0,0])[1],(d.porAreaP||{})[a]||0]).sort((a,b)=>b[1]-a[1]||b[2]-a[2]);
+  const DF=STATE.docF||null, docHint=`<span class="atr-hint">Haga clic en una tarjeta para ver su detalle</span>`, docAll=`<a href="#" class="atr-all" onclick="filtroDoc(null);return false">Ver resumen</a>`;
   h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-      ${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.foto?`Foto al cierre de ${mlabel(d.foto).toLowerCase()}`:d.sinFoto?`Sin foto de ${mlabel(STATE.mes).toLowerCase()} · estado al <span style="white-space:nowrap">${fdate(new Date())}</span>`:`Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio`}</div></div>
-      <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div>
-      ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
+      <div class="kpi-click${DF==="tipo"?" sel":""}" onclick="filtroDoc('tipo')">${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}</div>
+      <div class="kpi-click${DF==="area"?" sel":""}" onclick="filtroDoc('area')"><div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.foto?`Foto al cierre de ${mlabel(d.foto).toLowerCase()}`:d.sinFoto?`Sin foto de ${mlabel(STATE.mes).toLowerCase()} · estado al <span style="white-space:nowrap">${fdate(new Date())}</span>`:`Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio`}</div></div></div>
+      <div class="kpi-click${DF==="venc"?" sel":""}" onclick="filtroDoc('venc')"><div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div></div>
+      ${d.base?`<div class="kpi-click${DF==="prox"?" sel":""}" onclick="filtroDoc('prox')"><div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div></div>`:""}
     </div>
-    ${d.tipos&&d.tipos.length?`<div class="sub-title">Por tipo de documento</div>
+    ${(!DF||DF==="tipo")&&d.tipos&&d.tipos.length?`<div class="sub-title" id="doc-tit">Por tipo de documento ${DF?docAll:docHint}</div>
     <div class="tbl-wrap"><table><thead><tr><th>Tipo (proceso)</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">Por vencer</th><th class="n">Vencidos</th><th class="n">% vigente</th></tr></thead><tbody>
       ${d.tipos.map(([p,x])=>`<tr><td class="strong">${esc(p)}</td><td class="n">${x.tot}</td><td class="n">${x.vig}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td><td class="n">${pct(ratio(x.vig+x.prox,x.tot))}</td></tr>`).join("")}</tbody></table></div>`:""}
-    <div class="sub-title">Por área</div>
+    ${!DF||DF==="area"?`    <div class="sub-title"${DF?' id="doc-tit"':""}>Por área ${DF?docAll:""}</div>
     <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">% vigente</th><th class="n">Por vencer</th><th class="n">Vencidos</th></tr></thead><tbody>
-      ${(d.areasT||[]).length?d.areasT.map(([a,x])=>{ const v=ratio(x.vig+x.prox,x.tot); return `<tr><td class="strong">${esc(a)}</td><td class="n">${x.tot}</td><td class="n">${x.vig+x.prox}</td><td class="n">${dot(status(v))} ${pct(v)}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td></tr>`; }).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>
-    ${d.foto?`<div class="note">El listado de documentos está disponible solo para el mes en curso; la foto mensual guarda las cantidades.</div>`:""}
-    ${d.venc&&!d.foto?`<details><summary>Ver documentos vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
-    ${d.prox&&!d.foto?`<details><summary>Ver documentos próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
+      ${(d.areasT||[]).length?d.areasT.map(([a,x])=>{ const v=ratio(x.vig+x.prox,x.tot); return `<tr><td class="strong">${esc(a)}</td><td class="n">${x.tot}</td><td class="n">${x.vig+x.prox}</td><td class="n">${dot(status(v))} ${pct(v)}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td></tr>`; }).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>`:""}
+    ${DF==="venc"||DF==="prox"?`<div class="sub-title" id="doc-tit">${DF==="venc"?`Documentos vencidos · ${d.venc}`:`Documentos próximos a vencer · ${d.prox}`} ${docAll}</div>
+      ${d.foto?`<div class="note">El listado de documentos está disponible solo para el mes en curso; la foto mensual guarda las cantidades. Elija el mes en curso para ver el detalle.</div>`
+      :`<div class="tbl-wrap"><table>${docHead(DF==="venc"?"Venció":"Vence")}<tbody>${(DF==="venc"?d.list:(d.listP||[])).length?(DF==="venc"?d.list:(d.listP||[])).map(docRow).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>`}`:""}
     ${d.excl&&d.excl.length?`<div class="note" style="margin-top:14px">No se incluyen aquí (se miden en otros indicadores): ${d.excl.map(esc).join(" · ")}</div>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
