@@ -96,6 +96,8 @@ a{color:inherit;text-decoration:none}
 .sub-title{font-size:12.5px;font-weight:700;color:var(--navy);margin:16px 0 8px}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{border:1px solid var(--line);border-radius:10px;padding:13px 15px 12px;background:#fff}
 .kpi.bad{background:var(--bad-bg);border-color:#F3D5D3}
 .kpi-label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--slate);line-height:1.2;min-height:30px}
@@ -105,7 +107,6 @@ a{color:inherit;text-decoration:none}
 .kpi-meta{font-size:11px;color:var(--slate-lt);margin-top:3px}
 .kpi-codes{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);color:var(--slate)}
 .kpi-codes a.dv{margin-right:0;font-weight:700;color:var(--bad);border-bottom-color:#E8A9A6}
-.kpi-codes a.dv:last-child{color:var(--blue);font-weight:400;border-bottom-color:#9FB3D9}
 .kpi-codes.ok{color:var(--ok);gap:6px}
 .bar{height:4px;border-radius:99px;background:var(--line);overflow:hidden}
 .bar span{display:block;height:100%;border-radius:99px;background:var(--slate-lt)}
@@ -175,6 +176,20 @@ a.dv:hover{color:var(--blue);border-bottom-color:var(--blue)}
 .dv-sec{font-size:12px;font-weight:700;color:var(--navy);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.5px}
 .dv-panel p{font-size:13px;line-height:1.5}
 .dv-miss{background:#FBF6EC;border:1px solid #EFDDBA;color:#6E4A0E;border-radius:8px;padding:10px 12px;font-size:12.5px}
+.dvo.wide .dv-panel{width:760px}
+.dv-back{display:inline-block;font-size:12.5px;margin-bottom:12px}
+.dv-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.dv-sum div{background:var(--panel);border-radius:8px;padding:8px 10px}
+.dv-sum b{display:block;font-size:22px;font-weight:300;color:var(--navy)} .dv-sum span{font-size:11.5px;color:var(--slate)}
+.dv-t tr.con-d td{background:var(--bad-bg)}
+.kpi-more{margin-top:8px;font-size:12.5px}
+.rft-chart{position:relative;display:flex;align-items:flex-end;gap:8px;margin:6px 0 16px;padding:0 4px 0 0;border-bottom:1px solid var(--line)}
+.rft-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.rft-bar{width:70%;max-width:34px;border-radius:4px 4px 0 0;background:var(--slate-lt)}
+.rft-bar.ok{background:var(--ok)} .rft-bar.warn{background:var(--warn)} .rft-bar.bad{background:var(--bad)}
+.rft-val{font-size:11px;color:var(--text);margin-bottom:3px} .rft-lbl{font-size:11px;color:var(--slate);height:22px;line-height:22px} .rft-lbl.on{color:var(--navy);font-weight:700}
+.rft-meta{position:absolute;left:0;right:0;border-top:1.5px dashed var(--navy);opacity:.55}
+.rft-meta span{position:absolute;left:-2px;top:-15px;background:#fff;padding:0 4px;font-size:10.5px;color:var(--navy)}
 .dv-t{width:100%;font-size:12.5px} .dv-t th{background:var(--panel)} .dv-t td{padding:6px 10px}
 
 @media (max-width:1100px){ .cv-tiles{grid-template-columns:repeat(3,1fr)} }
@@ -196,6 +211,13 @@ a.dv:hover{color:var(--blue);border-bottom-color:var(--blue)}
   details,.dvo{display:none!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+td.fecha,th.fecha{white-space:nowrap}
+.est{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+.est-pend{background:#fbe3e3;color:#b42323}.est-curso{background:#fdf1dc;color:#9a6200}.est-fuera{background:#eef2f8;color:#4a5878}
+.kpi-click{cursor:pointer;display:flex}.kpi-click>.kpi{flex:1;transition:box-shadow .15s,transform .15s}
+.kpi-click:hover>.kpi{box-shadow:0 4px 14px rgba(11,42,91,.12);transform:translateY(-1px)}
+.kpi-click.sel>.kpi{outline:2px solid #0b2a5b;outline-offset:-2px}
+.atr-all{font-size:12px;font-weight:600;margin-left:10px;color:#2563eb}.atr-hint{font-size:11.5px;font-weight:400;color:#8a94a8;margin-left:10px}
 </style>
 </head>
 <body>
@@ -239,6 +261,29 @@ const CONFIG = {
   /* Fuentes que ya existen en el portal: enlace CSV publicado de la hoja original.
      Si una pestaña tiene enlace aquí, se lee desde esa planilla y no desde CONSOLIDADO_COMITE. */
   fuentes: {
+    Capacitacion: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmr3HrrAMQ5co9ueB5P7KRPrzaT69whq-p2GOKyrItMgWv1TE8gSGWloTEb9EXMewVyZaBq6bmseLR/pub?gid=53843363&single=true&output=csv",   // Capacitaciones_2026_Ejecucion (PRG-GP-003.01)
+    DocBase: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmkghsO9Jm3d17VSsnPsM8fDX7GnRAldQjNmbCOMhO_FrMXCspulXJQfLLQcwwld2tqJyBhGa7LDe0/pub?gid=878784138&single=true&output=csv",   // Panel de Control_Elementos Regulatorios 2026 · hoja "Base datos" (enlace CSV publicado)
+    /* BASE_CONSOLIDADA_Equipos_Instrumentos_IBBeta: las 10 hojas publicadas (mismos enlaces que la página de Equipos).
+       Cada hoja se reconoce por sus encabezados; se usan Listado maestro, Calibraciones, Programa de mantenimiento y Mantenimientos. */
+    Equipos: [
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1651720808",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=326939236",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=853708659",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1570180092",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=862205337",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=30396813",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1366279225",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1142251509",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1734110398",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdq7yjFmfoJsGevVJ5UXleNN19mpGqttDvf6OoR_IQYnQfprqEejIU4-6Fjn4zFk9RF_G1hJLobuAR/pub?single=true&output=csv&gid=1953016827"
+    ],
+    /* Programa anual de mantención (Resumen_Anual_Mantenimiento_2026, Mantenimiento) · enlace CSV publicado.
+       Una fila por equipo; columnas ENE..DIC: 1 = ejecutada, 0 = programada no ejecutada, vacío = sin mantención ese mes */
+    /* Seguimiento Programa de Auditorías a Proveedores 2026 · hoja «Seguimiento» · enlace CSV publicado (con gid de esa hoja) */
+    /* Historial mensual de Documentación (hoja «Historial_Documentacion» de Elementos Regulatorios, foto al cierre de cada mes) · enlace CSV publicado */
+    DocHist: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmkghsO9Jm3d17VSsnPsM8fDX7GnRAldQjNmbCOMhO_FrMXCspulXJQfLLQcwwld2tqJyBhGa7LDe0/pub?gid=874411873&single=true&output=csv",
+    AudProv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxjVOwsaOIdMaEcjZnGHnsBe5NGEabDSHkqCMjUC7EimpLjyV2fIKL1B0sdzB4zk3YZxn4pdbOLGNA/pub?gid=1803631074&single=true&output=csv",
+    MantPrograma: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDwGK-ZjOs1D1Sy_9XjmOYATUU5ng302ni4iPYl8D4tpuekEZuiwYpwJ3OaIQKjyp3faxzMM5Xcs0/pub?gid=264693335&single=true&output=csv",
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -282,11 +327,19 @@ const CONFIG = {
     ["Control de Calidad — Laboratorio Fco-Qco.",8,"25 agosto"],["Control de Calidad — Material envase empaque",9,"9 septiembre"],
     ["Aseguramiento de Calidad",9,"24 septiembre"],["Auditorías de seguimiento 2026",11,"22 noviembre"],["Cierre del Programa Anual 2026",12,"diciembre"]
   ],
+  /* Documentación (criterio Cecilia 29-10): SOP, instructivos y todo lo documental que NO se mide en otro indicador.
+     Se excluyen los procesos de la Base datos cuyo nombre contiene alguno de estos textos (ya están en Programas). */
+  /* Estatus "en curso" (homologar con el procedimiento de calificaciones): textos de la columna Estado que indican actividad iniciada pero no cerrada */
+  estadosEnCurso: ["en curso","en proceso","en firma","en revision","en ejecucion"],
+  docExcluir: ["calibr","manten","valid","calific","hvac","sc-","sistemas de apoyo","mapeo"],
+  /* Programas que se miden por vigencia desde la Base datos de Elementos Regulatorios (texto que contiene el Proceso) */
+  progVigencia: {},   // Calibración y mantención se conectarán al Sistema de Gestión de Equipos e Instrumentos
+  docDiasAviso: 60,
   anioProgramas: 2026,   // año de los programas cuando el "Mes programado" no indica año
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
   alerta: 0.80,          // bajo este % el indicador se marca en rojo (propuesta, por confirmar)
   ocupacionAlta: 0.90,   // ocupación de bodega desde la cual se marca en ámbar (propuesta)
-  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías"],
+  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías","Auditorías a proveedor"],
   eventos:   ["No conformidad","Desvío","Reclamo","OOS","CAPA"],
   eventosPlural: {"No conformidad":"No conformidades","Desvío":"Desvíos","Reclamo":"Reclamos","OOS":"OOS","CAPA":"CAPAs"}
 };
@@ -294,7 +347,7 @@ const CONFIG = {
 /* Columna que identifica la fila de encabezados de cada pestaña */
 const KEYS = {
   Programas:"programa", Eventos:"tipo de evento", RFT:"fecha liberacion", Bodega:"posiciones totales",
-  Capacitacion:"fecha de realizacion", Documentacion:"codigo sop", Autoinspeccion:"item del checklist"
+  Capacitacion:"actividad", Documentacion:"codigo sop", Autoinspeccion:"item del checklist"
 };
 
 /* ---------------- utilidades ---------------- */
@@ -352,10 +405,14 @@ const tagFor = p => { const s=status(p); return s==="warn" ? '<span class="tag w
 const plural = (n,a,b) => `${n} ${n===1?a:b}`;
 
 /* ---------------- carga de datos ---------------- */
+/* Respaldo: registro de ejecución del Programa Anual de Mantención Preventivo MAN-013.05 (Resumen_Anual_Mantenimiento_2026, actualizado por Mantenimiento 06-11-2026).
+   Se usa solo mientras CONFIG.fuentes.MantPrograma esté vacío; al publicar la planilla, el panel lee los datos en vivo. */
+const MANT_PROG_SNAPSHOT={fecha:"06-11-2026",rows:[{"area":"Producción 1","equipo":"Horno de secado 5","cod. interno":"61","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"0","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Horno de secado 4","cod. interno":"62","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Sachetera VPR","cod. interno":"214","ene":"1","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Horno de secado 1","cod. interno":"377","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Reactor 2000 lts.","cod. interno":"378","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"1","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Horno de secado 3E","cod. interno":"444","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"1","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Paila de recubrimiento 5","cod. interno":"464","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"1","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Granuladora Lödige 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Granuladora Lödige 2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Horno de secado 3","cod. interno":"646","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"0","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Mezclador Pantalón 2","cod. interno":"691","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"Producción 1","equipo":"Horno de secado 2","cod. interno":"696","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Molino Cónico","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Comprimidora 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Reactor 300 lts.","cod. interno":"1040","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Reactor 200 lts.","cod. interno":"1041","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Agitador Ekato","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"Producción 1","equipo":"Reactor Laborall","cod. interno":"1043","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"Producción 1","equipo":"Granuladora Alexanderwerk","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"Producción 1","equipo":"Mezclador Tambor","cod. interno":"1045","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Mezclador Pantalón 1","cod. interno":"1046","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Comprimidora 2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Comprimidora 6","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"1","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Comprimidora 8","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"Producción 1","equipo":"Agitador Silverson","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Agitador 3","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Tamizador vibrador 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Tamizador vibrador 2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Molino Fitz Mill","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Molino Tornado Stokes","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Tamizador oscilante 4","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Tamizador oscilante 3","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"Producción 1","equipo":"Amasadora Glen-Mixer","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Mezclador Doble cono","cod. interno":"1069","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"Producción 1","equipo":"Serpentín enfriador de agua","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"1","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Comprimidora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"1","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Paila de recubrimiento","cod. interno":"1099","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"Producción 1","equipo":"Bomba centrífuga de trasvasije 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"0","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Bomba centrífuga de trasvasije 2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Bomba centrífuga de trasvasije 3","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"Producción 1","equipo":"Encapsuladora MG2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"Producción 1","equipo":"Bomba lobular","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"Producción 1","equipo":"Detector de metales","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"Producción 1","equipo":"Tablero control bombas","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"1","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Agitador de suspensiones","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Argentécnica 1","cod. interno":"","ene":"1","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Blipack 1","cod. interno":"","ene":"","feb":"1","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Blistera CAM","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"PRODUCCIÓN 2","equipo":"Codificadora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Dobladora de folletos","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"PRODUCCIÓN 2","equipo":"Dosificadora de Polvos","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":"0"},{"area":"PRODUCCIÓN 2","equipo":"Dosificadora de cremas","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Dosificadora de Polvos (perfumol)","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Dosificadora FOX","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"1","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Envasadora de cremas","cod. interno":"","ene":"1","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Envasadora de líquidos Groninger","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Envasadora de líquidos Kalishmatic","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"1","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora 2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"0","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora 3","cod. interno":"","ene":"1","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora 4","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Estuchadora 5","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"1","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Etiquetadora Strunks 2","cod. interno":"","ene":"","feb":"","mar":"1","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Impresora de aluminio Siat","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Impresora de aluminio Tecnomaco","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"1","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Línea 4","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Máquina selladora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"0","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Sopladora de frascos","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Sopladora de frascos N°2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"1","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Tapadora de frascos","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"1","jun":"","jul":"","ago":"1","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Tapadora Mewes","cod. interno":"","ene":"1","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"PRODUCCIÓN 2","equipo":"Uhlmann 1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"1","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Cámara fría N°1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Montacarga N°1","cod. interno":"","ene":"1","feb":"1","mar":"1","abr":"1","may":"1","jun":"1","jul":"1","ago":"1","sep":"1","oct":"1","nov":"0","dic":"0"},{"area":"BODEGA","equipo":"Montacarga N°2","cod. interno":"","ene":"1","feb":"1","mar":"1","abr":"1","may":"1","jun":"1","jul":"1","ago":"1","sep":"1","oct":"1","nov":"0","dic":"0"},{"area":"BODEGA","equipo":"Apilador eléctrico N°1","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Apilador eléctrico N°2","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Grúa Horquilla","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Refrigerador Clínico","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"BODEGA","equipo":"Congelador clínico","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"DESARROLLO","equipo":"Máquina recubridora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"DESARROLLO","equipo":"Máquina comprimidora","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"MAN","equipo":"Compresor de tornillo","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"MAN","equipo":"Caldera (Registro Seremi N°019)","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"MAN","equipo":"Cámara climática","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"MAN","equipo":"Generador","cod. interno":"","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"CC","equipo":"Horno Vertical","cod. interno":"264","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"CC","equipo":"Horno de Esterilización","cod. interno":"68","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""},{"area":"CC","equipo":"Horno","cod. interno":"147","ene":"","feb":"","mar":"","abr":"","may":"","jun":"","jul":"","ago":"","sep":"","oct":"","nov":"","dic":""}]};
+const normH = c => norm(c).replace(/\s+/g," ");   // encabezados con saltos de línea o dobles espacios
 function toTable(rows, key){
-  const idx = rows.findIndex(r => r.some(c => norm(c)===key));
+  const idx = rows.findIndex(r => r.some(c => normH(c)===key));
   if(idx<0) throw new Error("no se encontró la fila de encabezados");
-  const heads = rows[idx].map(norm);
+  const heads = rows[idx].map(normH);
   return rows.slice(idx+1).map(r => { const o={}; heads.forEach((h,i)=>{ if(h) o[h]=(r[i]??"").trim(); }); return o; })
              .filter(o => (o[key]??"")!=="");
 }
@@ -379,6 +436,29 @@ async function loadSheets(){
   }));
   res.forEach((r,i)=>{ if(r.status==="fulfilled") raw[names[i]]=r.value; else { raw[names[i]]=[]; errors.push(`${names[i]}: ${r.reason.message}`); } });
   const tables=prepare(raw); tables.Detalle=[];
+  tables.Eq={};
+  const eqU=(CONFIG.fuentes||{}).Equipos||[];
+  if(eqU.length){
+    const res=await Promise.allSettled(eqU.map(async u=>{ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`); return parseCSV(await r.text()); }));
+    let fallas=0;
+    res.forEach(x=>{ if(x.status!=="fulfilled"){ fallas++; return; }
+      const rows=x.value; if(!rows.length) return;
+      const H=rows[0].map(norm); const has=c=>H.includes(c);
+      const objs=rows.slice(1).map(r=>{ const o={}; H.forEach((h,i)=>{ if(h) o[h]=(r[i]??"").trim(); }); return o; }).filter(o=>Object.values(o).some(v=>v));
+      let hoja=null;
+      if(has("situacion") && has("tipo de equipo / instrumento")) hoja="LISTADO";
+      else if(H.some(h=>/^ene-\d{2}$/.test(h)) && has("id")) hoja="PROG_MANT";
+      else if(has("regla de vigencia")){ const reg=objs.map(o=>norm(o["regla de vigencia"]));
+        if(reg.some(v=>v.startsWith("segun certificado"))) hoja="MANT";
+        else if(reg.some(v=>v.startsWith("planta")||v.startsWith("por confirmar"))) hoja="CALIF";
+        else if(reg.some(v=>v.startsWith("frecuencia del registro")||v.startsWith("n/a"))) hoja="CALIB"; }
+      if(hoja) tables.Eq[hoja]=objs; });
+    if(fallas===eqU.length) errors.push("Equipos e Instrumentos (BASE_CONSOLIDADA): no se pudo leer ninguna hoja publicada");
+  }
+  tables.DocBase=null;
+  const dbu=(CONFIG.fuentes||{}).DocBase;
+  if(dbu){ try{ const r=await fetch(dbu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.DocBase=toTable(parseCSV(await r.text()),"fecha vence"); }catch(e){ errors.push(`Documentación (Elementos Regulatorios · Base datos): ${e.message}`); } }
   tables.Aud=null;
   const au=(CONFIG.fuentes||{}).Auditorias;
   if(au){ try{ const r=await fetch(au,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
@@ -391,6 +471,19 @@ async function loadSheets(){
       const snap=await firebase.firestore().collection("kpi_ibbeta").doc("auditorias_internas_2026").get();
       if(snap.exists && snap.data() && snap.data().estados) tables.AudEst=JSON.parse(snap.data().estados);
     }catch(e){ errors.push(`Auditorías internas (Programa Anual 2026): ${e.message}`); } }
+  const mpu=(CONFIG.fuentes||{}).MantPrograma; tables.MantProg=null;
+  if(mpu){ try{ const r=await fetch(mpu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.MantProg=toTable(parseCSV(await r.text()),"equipo").filter(r=>(r["equipo"]||"").trim()); }
+    catch(e){ errors.push(`Programa de mantención (Resumen Anual Mantenimiento): ${e.message}`); } }
+  if(!tables.MantProg||!tables.MantProg.length){ tables.MantProg=MANT_PROG_SNAPSHOT.rows; tables.MantSnap=MANT_PROG_SNAPSHOT.fecha; }
+  const apu=(CONFIG.fuentes||{}).AudProv; tables.AudProv=null;
+  if(apu){ try{ const r=await fetch(apu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.AudProv=toTable(parseCSV(await r.text()),"codigo").filter(r=>/^p\d+/i.test((r["codigo"]||"").trim())); }
+    catch(e){ errors.push(`Auditorías a proveedores: ${e.message}`); } }
+  const dhu=(CONFIG.fuentes||{}).DocHist; tables.DocHist=null;
+  if(dhu){ try{ const r=await fetch(dhu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.DocHist=toTable(parseCSV(await r.text()),"mes").filter(r=>/^\d{4}-\d{2}$/.test((r["mes"]||"").trim())); }
+    catch(e){ errors.push(`Historial de Documentación: ${e.message}`); } }
   tables.ValDet={};
   const vd=(CONFIG.fuentes||{}).ValDetalle||{};
   await Promise.all(Object.entries(vd).filter(([,u])=>u).map(async([prog,u])=>{
@@ -406,7 +499,11 @@ async function loadSheets(){
   const du=(CONFIG.fuentes||{}).Detalle;
   if(du){ try{ const r=await fetch(du,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.Detalle=toTable(parseCSV(await r.text()),"tipo_evento"); }catch(e){ errors.push(`Detalle de eventos (CONSOLIDADO_CALIDAD): ${e.message}`); } }
-  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length)).map(n=>n==="Programas"&&(tables.Val||Object.keys(tables.ValDet).length)?((tables.AudEst||tables.Aud)?"Programas (calibración y mantención)":"Programas (calibración, mantención y auditorías)"):n);
+  const faltaProg=[]; if(!Object.keys(tables.Eq||{}).length) faltaProg.push("calibración","mantención");
+  if(!(tables.Val||Object.keys(tables.ValDet).length)) faltaProg.push("validaciones");
+  if(!(tables.AudEst||tables.Aud)) faltaProg.push("auditorías");
+  const pend=pendientes.filter(n=>!(n==="Eventos" && tables.Detalle.length) && !(n==="Documentacion" && tables.DocBase) && !(n==="Programas" && !faltaProg.length))
+    .map(n=>n==="Programas"?`Programas (${faltaProg.join(", ")})`:n);
   return {tables, errors, pendientes:pend};
 }
 
@@ -519,7 +616,61 @@ function compute(){
   // 1. Programas
   const pr=byScope(T.Programas).map(r=>Object.assign({r},activity(r,cut,"fecha planificada","fecha de cierre")));
   const atrVal=[];
+  const EQ=T.Eq||{}, opIDs=new Set(), nomEq={}, respEq={};
+  (EQ.LISTADO||[]).forEach(r=>{ nomEq[r["id"]]=[r["tipo de equipo / instrumento"],r["area"]].filter(Boolean).join(" · "); respEq[r["id"]]=(r["responsable (portal)"]||"").split("/")[0].trim(); if(norm(r["situacion"]).startsWith("operativ")) opIDs.add(r["id"]); });
+  const eqOp=id=>!EQ.LISTADO||opIDs.has(id);
+  const eqNombre=id=>(nomEq[id]?nomEq[id]+" ":"")+"(N° "+id+")";
+  const hoyD=new Date(); hoyD.setHours(0,0,0,0);
+  const refD0 = STATE.mes===mkey(hoyD) ? hoyD : cut, mIni=som(STATE.mes);
+  const refD = STATE.mes===mkey(hoyD) ? hoyD : cut;
   out.programas=CONFIG.programas.map(p=>{
+    if(norm(p)==="calibracion" && EQ.CALIB && EQ.CALIB.length){
+      // Calibraciones que vencían en el mes: en plazo si hay una nueva calibración registrada a más tardar al cierre del mes
+      const porID={}; EQ.CALIB.forEach(r=>{ const id=r["id"]; if(!id||!eqOp(id)) return; const fe=parseDate(r["fecha de ejecucion"]), ve=parseDate(r["vence"]); if(!fe) return; (porID[id]=porID[id]||[]).push({fe,ve}); });
+      let tot=0, ok=0, ej=0;
+      Object.entries(porID).forEach(([id,L])=>{ L.sort((a,b)=>a.fe-b.fe);
+        L.forEach((x,k)=>{ if(!x.ve || mkey(x.ve)!==STATE.mes) return; const sig=L.slice(k+1).find(y=>y.fe>x.fe && y.fe<=refD0);
+          tot++; if(sig){ ej++; if(sig.fe<=eom(STATE.mes)) ok++; } });
+        const vig=L.filter(y=>y.fe<=refD0); const ult=vig[vig.length-1];
+        if(ult && ult.ve && ult.ve<refD0) atrVal.push({r:{"programa":"Calibración","actividad / equipo":eqNombre(id),"responsable":respEq[id]||""},plan:ult.ve,atraso:Math.round((refD0-ult.ve)/DAY)}); });
+      const delMes=EQ.CALIB.filter(r=>{ const fe=parseDate(r["fecha de ejecucion"]); return fe&&mkey(fe)===STATE.mes&&eqOp(r["id"]); }).length;
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej,delMes,txt:"calibraciones que vencían en el mes"};
+    }
+    if(norm(p)==="mantencion" && T.MantProg && T.MantProg.length && +STATE.mes.slice(0,4)===(CONFIG.anioProgramas||+STATE.mes.slice(0,4))){
+      // Programa anual de Mantenimiento: 1 = ejecutada, 0 = programada no ejecutada
+      const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"], mi=+STATE.mes.slice(5,7)-1;
+      const val=(r,k)=>{ const v=String(r[MM[k]]??"").trim(); return v===""?null:parseNum(v)>=1; };
+      let tot=0, ok=0, totA=0, okA=0;
+      T.MantProg.forEach(r=>{ for(let k=0;k<=mi;k++){ const v=val(r,k); if(v===null) continue;
+        totA++; if(v) okA++; if(k===mi){ tot++; if(v) ok++; }
+        if(!v){ const fin=new Date(+STATE.mes.slice(0,4),k+1,0);
+          atrVal.push({r:{"programa":"Mantención","actividad / equipo":[r["equipo"],r["area"],r["cod. interno"]?"N° "+String(r["cod. interno"]).replace(/\.0$/,""):""].filter(Boolean).join(" · "),"responsable":"Mantenimiento"},plan:fin,atraso:Math.max(0,Math.round((refD0-fin)/DAY))}); } } });
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:(tot?`${ok} de ${tot} ejecutadas este mes<br>${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes<br>${okA} de ${totA} en el año`)+(T.MantSnap?`<br>MAN-013.05 · registro al <span style="white-space:nowrap">${T.MantSnap}</span>`:`<br>MAN-013.05 · en línea con Mantenimiento`),txt:"mantenciones programadas en el mes"};
+    }
+    if(norm(p)==="mantencion" && EQ.PROG_MANT && EQ.PROG_MANT.length){
+      const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      const colM=MM[+STATE.mes.slice(5,7)-1]+"-"+STATE.mes.slice(2,4);
+      const plan=EQ.PROG_MANT.filter(r=>parseNum(r[colM])>=1 && !norm(r["situacion"]).includes("baja"));
+      const ejec=new Set((EQ.MANT||[]).filter(r=>{ const fe=parseDate(r["fecha de ejecucion"]); return fe&&fe>=mIni&&fe<=eom(STATE.mes)&&fe<=refD0; }).map(r=>r["id"]));
+      const ok=plan.filter(r=>ejec.has(r["id"])).length;
+      plan.filter(r=>!ejec.has(r["id"])).forEach(r=>atrVal.push({r:{"programa":"Mantención","actividad / equipo":(r["tipo"]?r["tipo"]+" · ":"")+(r["area"]||"")+" (N° "+r["id"]+")"+(r["ente"]?" · "+r["ente"]:""),"responsable":respEq[r["id"]]||""},plan:eom(STATE.mes),atraso:Math.max(0,Math.round((refD0-eom(STATE.mes))/DAY))}));
+      return {p,tot:plan.length,ok,v:ratio(ok,plan.length),mensual:true,ej:ok,txt:"mantenciones programadas en el mes"};
+    }
+    const claves=(CONFIG.progVigencia||{})[p];
+    if(claves && T.DocBase){
+      const actual=STATE.mes===mkey(hoyD);
+      const L=T.DocBase.filter(r=>{ const pr=norm(r["proceso"]); return claves.some(k=>pr.includes(norm(k))); })
+        .filter(r=>!STATE.area||(r["area responsable por resolver"]||"").trim()===STATE.area||(r["area de impacto"]||"").trim()===STATE.area);
+      if(L.length){
+        const its=L.map(r=>{ const ven=parseDate(r["fecha vence"]), fir=parseDate(r["fecha firma"]), est=norm(r["estado"]);
+          const venc = actual&&est ? est.startsWith("venc") : (ven ? ven<refD : false);
+          return {r,ven,fir,venc}; });
+        const ok=its.filter(x=>!x.venc).length, delMes=its.filter(x=>x.fir&&mkey(x.fir)===STATE.mes).length;
+        its.filter(x=>x.venc).forEach(x=>atrVal.push({r:{"programa":p,"actividad / equipo":((x.r["equipo/instrumento/producto"]||x.r["descripcion detallada"]||"").trim()+(x.r["codigo/n°"]?` (N° ${x.r["codigo/n°"].trim()})`:"")),
+          "responsable":(x.r["nombre y cargo responsable"]||"").split("/")[0].trim()}, plan:x.ven, atraso:x.ven?Math.max(0,Math.round((refD-x.ven)/DAY)):0}));
+        return {p,tot:its.length,ok,v:ratio(ok,its.length),vigencia:true,delMes};
+      }
+    }
     const VD=T.ValDet&&T.ValDet[p];
     if(VD&&VD.length){
       const its=VD.map(r=>{ const venc=parseDate(r["fecha vencimiento"]); const fin=finMesProgramado(r["mes programado"],venc);
@@ -528,7 +679,7 @@ function compute(){
           return {r,fin,fr,hecha,enPlazo: hecha && fr && fin && fr<=fin}; });
       const prog=its.filter(x=>x.fin && x.fin<=cut), ok=prog.filter(x=>x.hecha).length;
       prog.filter(x=>!x.hecha).forEach(x=>atrVal.push({r:{"programa":p,"actividad / equipo":x.r["item / punto / actividad"]||"","responsable":(x.r["responsable"]||"").split("/")[0].trim()},
-        plan:x.fin, atraso:Math.max(0,Math.round((cut-x.fin)/DAY)), done:null, estado:"Pendiente"}));
+        plan:x.fin, atraso:Math.max(0,Math.round((cut-x.fin)/DAY)), done:null, estado:(x.r["estado"]||"").trim()||"Pendiente"}));
       return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,enPlazo:prog.filter(x=>x.enPlazo).length,anio:its.length};
     }
     if(norm(p)==="auditorias" && T.Aud){
@@ -540,7 +691,7 @@ function compute(){
       const prog=L.filter(x=>x.fp&&x.fp<=cut), ok=prog.filter(x=>x.enPlazo).length, ej=prog.filter(x=>x.hecha).length;
       prog.forEach(x=>{
         if(!x.hecha) atrVal.push({r:{"programa":"Auditorías","actividad / equipo":x.area,"responsable":x.resp},plan:x.fp,atraso:Math.max(0,Math.round((cut-x.fp)/DAY))});
-        else if(!x.enPlazo) atrVal.push({r:{"programa":"Auditorías","actividad / equipo":x.area+" · ejecutada "+fdate(x.fe),"responsable":x.resp},plan:x.fp,atraso:Math.round((x.fe-x.fp)/DAY)}); });
+        else if(!x.enPlazo) atrVal.push({r:{"programa":"Auditorías","actividad / equipo":x.area+" · ejecutada "+fdate(x.fe),"responsable":x.resp},plan:x.fp,atraso:Math.round((x.fe-x.fp)/DAY),estado:"Ejecutada fuera de plazo"}); });
       return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,plazo:true,ej,anio:L.length};
     }
     if(norm(p)==="auditorias" && T.AudEst){
@@ -550,6 +701,19 @@ function compute(){
       prog.filter(x=>x.estado!=="ejecutada").forEach(x=>atrVal.push({r:{"programa":"Auditorías","actividad / equipo":x.area+(x.estado==="no_ejecutada"?" · no ejecutada":""),"responsable":"Aseguramiento de Calidad"},
         plan:x.fin, atraso:Math.max(0,Math.round((cut-x.fin)/DAY)), done:null}));
       return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,anio:L.length};
+    }
+    if(norm(p)==="auditorias a proveedor" && T.AudProv){
+      // Programa 2026: % = realizadas en el mes programado / programadas hasta el mes (no programadas no cuentan)
+      const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"], yr=+STATE.mes.slice(0,4);
+      const L=T.AudProv.filter(r=>!norm(r["origen"]).startsWith("no")).map(r=>{ const mi=MES.indexOf(norm(r["mes programado"]));
+        const fin=mi>=0?new Date(yr,mi+1,0):null, fp=parseDate(r["fecha programada"]), fe=parseDate(r["fecha ejecucion"]);
+        const hecha=!!(fe&&fe<=cut);
+        return {r,fin,fp,fe,hecha,enPlazo:hecha&&fin&&fe<=fin,nom:`${r["proveedor"]||""} (${r["codigo"]})`,est:(r["estado"]||"").trim()}; }).filter(x=>x.fin);
+      const prog=L.filter(x=>x.fin<=cut), ok=prog.filter(x=>x.enPlazo).length, ej=prog.filter(x=>x.hecha).length;
+      prog.forEach(x=>{
+        if(!x.hecha) atrVal.push({r:{"programa":"Auditorías a proveedor","actividad / equipo":x.nom,"responsable":"Aseguramiento de Calidad"},plan:x.fp||x.fin,atraso:Math.max(0,Math.round((cut-x.fin)/DAY)),estado:x.est||"Pendiente"});
+        else if(!x.enPlazo) atrVal.push({r:{"programa":"Auditorías a proveedor","actividad / equipo":x.nom+" · ejecutada "+fdate(x.fe),"responsable":"Aseguramiento de Calidad"},plan:x.fin,atraso:Math.round((x.fe-x.fin)/DAY),estado:"Ejecutada fuera de plazo"}); });
+      return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,plazo:true,ej,anio:L.length};
     }
     const V=T.Val&&T.Val[p];
     if(V) return {p,tot:V.tot,ok:V.ok,v:ratio(V.ok,V.tot),anual:true,code:V.code};
@@ -565,7 +729,7 @@ function compute(){
     const tipoOf=r=>{ const t=norm(col(r,"Tipo_Evento")); return t.startsWith("desv")?"Desvío":t.startsWith("no conf")?"No conformidad":t.includes("reclam")?"Reclamo":t==="oos"?"OOS":t.startsWith("capa")?"CAPA":""; };
     const rows=BD.filter(r=>!STATE.area||areaOf(r)===STATE.area).map(r=>{ const est=col(r,"Estado"), comp=col(r,"Estado Compromiso de Fecha (Alerta)","Estado Compromiso de Fecha");
       return {r,tipo:tipoOf(r),est,vivo:est==="Abierto"||est==="En Seguimiento",cerrado:/cerrad/i.test(est),fuera:/^fuera de plazo/i.test(comp),
-        code:col(r,"Código/N°","Codigo/N°","ID_Registro"),area:areaOf(r),ap:parseDate(col(r,"Fecha_Apertura")),dias:parseNum(col(r,"Dias Transcurridos"))}; });
+        code:col(r,"Código/N°","Codigo/N°","ID_Registro"),ido:col(r,"ID_Origen","ID Origen"),area:areaOf(r),ap:parseDate(col(r,"Fecha_Apertura")),dias:parseNum(col(r,"Dias Transcurridos"))}; });
     out.eventos=CONFIG.eventos.map(t=>{ const rs=rows.filter(x=>x.tipo===t&&x.vivo), ve=rs.filter(x=>x.fuera);
       const cnt={}; ve.forEach(x=>{ const a=x.area||"Sin área"; cnt[a]=(cnt[a]||0)+1; }); const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
       return {t,ab:rs.length,ve:ve.length,area: top.length ? top.filter(x=>x[1]===top[0][1]).slice(0,2).map(x=>x[0]).join(" / ")+(top.filter(x=>x[1]===top[0][1]).length>2?" y otras":"") : "—", list:ve}; });
@@ -598,12 +762,19 @@ function compute(){
     out.kpi={desv:{v:I.desv??null,n:dm?29:null,d:dm?117:null,exact:true},capa:{v:I.capa??null,n:dm?215:null,d:dm?271:null,exact:true},oos:{v:I.oos??null,n:dm?6:null,d:dm?13:null,exact:true}};
   }
   const rftMes=T.RFT.filter(r=>r._mes===STATE.mes);
+  { const yr=STATE.mes.slice(0,4), meses=[];
+    for(let m=1;m<=+STATE.mes.slice(5,7);m++){ const k=`${yr}-${String(m).padStart(2,"0")}`; const L=T.RFT.filter(r=>r._mes===k);
+      if(!L.length){ meses.push({k,tot:0}); continue; }
+      if("cantidad liberaciones por mes" in L[0]){ const last=L[L.length-1], lib=parseNum(last["cantidad liberaciones por mes"])||L.length, des=parseNum(last["cantidad desvios por mes"])||0;
+        meses.push({k,tot:lib,des,lotesD:L.filter(r=>parseNum(r["tiene desvio?"])>0||(r["desvio/nc/fde"]||"").trim()).length,v:lib>0?1-des/lib:null}); }
+      else { const ok=L.filter(r=>norm(r["correcto a la primera"]).startsWith("s")).length; meses.push({k,tot:L.length,des:L.length-ok,lotesD:L.length-ok,v:ratio(ok,L.length)}); } }
+    out.rftAnual=meses; }
   if(rftMes.length && ("cantidad liberaciones por mes" in rftMes[0])){
     // Planilla de liberación: el indicador oficial es 1 − K/J de la última fila del mes (igual que la columna L)
     const last=rftMes[rftMes.length-1];
     const lib=parseNum(last["cantidad liberaciones por mes"]), des=parseNum(last["cantidad desvios por mes"]);
     out.rft={tot:lib||0, ok:(lib||0)-(des||0), v:lib>0?1-(des||0)/lib:null, general:true,
-      lotes:rftMes.filter(r=>parseNum(r["tiene desvio?"])>0 || (r["desvio/nc/fde"]||"").trim()!==""), lotesMes:rftMes.length};
+      lotes:rftMes.filter(r=>parseNum(r["tiene desvio?"])>0 || (r["desvio/nc/fde"]||"").trim()!==""), lotesMes:rftMes.length, todos:rftMes};
   } else {
     const rft=STATE.area?rftMes.filter(r=>r._area===STATE.area):rftMes; const rftOk=rft.filter(r=>norm(r["correcto a la primera"]).startsWith("s")).length;
     out.rft={ok:rftOk,tot:rft.length,v:ratio(rftOk,rft.length),lotes:[]};
@@ -615,15 +786,78 @@ function compute(){
   out.bodega.v=ratio(out.bodega.occ,out.bodega.tot);
 
   // 4. Capacitación
+  if(T.Capacitacion.length && ("ejecutado (si/no)" in T.Capacitacion[0] || "mes" in T.Capacitacion[0] && !("fecha planificada" in T.Capacitacion[0]))){
+    // Programa Anual de Capacitación (PRG-GP-003.01): realizadas / programadas hasta el mes según "Mes"
+    const yr=+STATE.mes.slice(0,4);
+    const its=byArea(T.Capacitacion).map(r=>{ const fin=finMesProgramado(r["mes"],new Date(yr,0,1)); const fe=parseDate(r["fecha de ejecucion"]||r["fecha de realizacion"]);
+        const si=norm(r["ejecutado (si/no)"]||r["ejecutado"]||"").startsWith("s");
+        const hecha = fe ? fe<=cut : si;
+        return {r,plan:fin,fe,hecha,enPlazo: hecha&&fe&&fin&&fe<=fin, atraso: fin?Math.max(0,Math.round((cut-fin)/DAY)):0}; });
+    const prog=its.filter(x=>x.plan&&x.plan<=cut);
+    out.cap={tot:prog.length,ok:prog.filter(x=>x.hecha).length,anio:its.length,conFecha:its.some(x=>x.fe),enPlazo:prog.filter(x=>x.enPlazo).length,programa:true,
+      late:prog.filter(x=>!x.hecha).sort((a,b)=>b.atraso-a.atraso),
+      tipos:["Interno","Externo"].map(t=>{ const L=prog.filter(x=>norm(x.r["tipo"])===norm(t)); return {t,tot:L.length,ok:L.filter(x=>x.hecha).length}; })};
+    out.cap.v=ratio(out.cap.ok,out.cap.tot);
+  } else {
   const ca=byScope(T.Capacitacion).map(r=>Object.assign({r},activity(r,cut,"fecha planificada","fecha de realizacion")));
   out.cap={tot:ca.length,ok:ca.filter(x=>x.enPlazo).length,late:ca.filter(x=>!x.enPlazo && x.atraso>0).sort((a,b)=>b.atraso-a.atraso)};
   out.cap.v=ratio(out.cap.ok,out.cap.tot);
+  }
 
   // 5. Documentación
+  if(T.DocBase){
+    const hoy=new Date(); hoy.setHours(0,0,0,0);
+    // Igual que el Panel de Control de Elementos Regulatorios: siempre el estado actual (columna Estado), sin importar el mes elegido
+    const actual = true, ref = hoy;
+    const esSOP=r=>{ const pr=norm(r["proceso"]); return !!pr && !CONFIG.docExcluir.some(k=>pr.includes(norm(k))); };
+    const areaDe=r=>(r["area responsable por resolver"]||r["area de impacto"]||"Sin área").trim();
+    const L=T.DocBase.filter(esSOP).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area).map(r=>{
+      const ven=parseDate(r["fecha vence"]); const est=norm(r["estado"]);
+      let e;
+      if(actual && est) e = est.startsWith("venc") ? "venc" : (est.startsWith("prox")||est.startsWith("por venc")) ? "prox" : "vig";
+      else e = !ven ? "vig" : ven<ref ? "venc" : (ven-ref)/DAY<=CONFIG.docDiasAviso ? "prox" : "vig";
+      return {r,e,ven,area:areaDe(r),code:(r["codigo/n°"]||"").trim(),ed:(r["edicion"]||"").trim(),
+        title:(r["descripcion detallada"]||r["equipo/instrumento/producto"]||r["requerimiento"]||"").trim(),
+        dias:ven?Math.round((ven-ref)/DAY):null,resp:(r["nombre y cargo responsable"]||"").split("/")[0].trim()}; });
+    const estDe=r=>{ const ven=parseDate(r["fecha vence"]), est=norm(r["estado"]);
+      if(actual && est) return est.startsWith("venc")?"venc":(est.startsWith("prox")||est.startsWith("por venc"))?"prox":"vig";
+      return !ven?"vig":ven<ref?"venc":(ven-ref)/DAY<=CONFIG.docDiasAviso?"prox":"vig"; };
+    const todos=T.DocBase.filter(r=>(r["proceso"]||"").trim()).filter(r=>!STATE.area||areaDe(r)===STATE.area||(r["area de impacto"]||"")===STATE.area);
+    const porProc={}; todos.forEach(r=>{ const p=(r["proceso"]||"").trim(); const e=estDe(r); (porProc[p]=porProc[p]||{vig:0,prox:0,venc:0,tot:0}); porProc[p][e]++; porProc[p].tot++; });
+    const tg={vig:0,prox:0,venc:0}; Object.values(porProc).forEach(x=>{ tg.vig+=x.vig; tg.prox+=x.prox; tg.venc+=x.venc; });
+    const regTot={tot:todos.length,...tg,procesos:Object.entries(porProc).sort((a,b)=>b[1].tot-a[1].tot)};
+    const venc=L.filter(x=>x.e==="venc"), prox=L.filter(x=>x.e==="prox");
+    const porArea={}; venc.forEach(x=>{ porArea[x.area]=(porArea[x.area]||0)+1; });
+    const porAreaP={}; prox.forEach(x=>{ porAreaP[x.area]=(porAreaP[x.area]||0)+1; });
+    const porAreaT={}; L.forEach(x=>{ const o=(porAreaT[x.area]=porAreaT[x.area]||{vig:0,prox:0,venc:0,tot:0}); o[x.e]++; o.tot++; });
+    const porTipo={}; L.forEach(x=>{ const t=(x.r["proceso"]||"").trim(); const o=(porTipo[t]=porTipo[t]||{vig:0,prox:0,venc:0,tot:0}); o[x.e]++; o.tot++; });
+    const excl=[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(p=>p&&!esSOP({"proceso":p})))];
+    out.doc={tot:L.length,vig:L.length-venc.length,venc:venc.length,prox:prox.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),
+      procesos:[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(Boolean))],
+      reg:regTot, porAreaP, areasT:Object.entries(porAreaT).sort((a,b)=>b[1].venc-a[1].venc||ratio(a[1].vig+a[1].prox,a[1].tot)-ratio(b[1].vig+b[1].prox,b[1].tot)), tipos:Object.entries(porTipo).sort((a,b)=>b[1].tot-a[1].tot), excl, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
+    out.doc.v=ratio(out.doc.vig,out.doc.tot);
+    // Meses pasados: foto guardada al cierre del mes (Historial_Documentacion). El mes en curso siempre es el estado actual.
+    if(STATE.mes!==mkey(hoy)){
+      const H=(T.DocHist||[]).filter(r=>r["mes"].trim()===STATE.mes && esSOP(r)).filter(r=>!STATE.area||(r["area"]||"").trim()===STATE.area);
+      if(H.length){
+        const n=k=>r=>parseNum(r[k])||0, sum=(A,f)=>A.reduce((a,r)=>a+f(r),0);
+        const agg=key=>{ const o={}; H.forEach(r=>{ const k=(r[key]||"").trim()||"Sin área"; const x=(o[k]=o[k]||{vig:0,prox:0,venc:0,tot:0});
+          x.tot+=n("total")(r); x.vig+=n("vigentes")(r); x.prox+=n("por vencer")(r); x.venc+=n("vencidos")(r); }); return o; };
+        const tot=sum(H,n("total")), venc=sum(H,n("vencidos")), prox=sum(H,n("por vencer"));
+        const A=agg("area"), P=agg("proceso");
+        Object.assign(out.doc,{foto:STATE.mes,tot,vig:tot-venc,venc,prox,
+          porArea:Object.entries(A).filter(([,x])=>x.venc).map(([a,x])=>[a,x.venc]).sort((a,b)=>b[1]-a[1]),
+          areasT:Object.entries(A).sort((a,b)=>b[1].venc-a[1].venc||ratio(a[1].vig+a[1].prox,a[1].tot)-ratio(b[1].vig+b[1].prox,b[1].tot)),
+          tipos:Object.entries(P).sort((a,b)=>b[1].tot-a[1].tot), list:[], listP:[]});
+        out.doc.v=ratio(out.doc.vig,out.doc.tot);
+      } else out.doc.sinFoto=true;
+    }
+  } else {
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
   const venc=dc.filter(x=>!x.vig); const porArea={}; venc.forEach(x=>{ const a=x.r["area"]||"Sin área"; porArea[a]=(porArea[a]||0)+1; });
   out.doc={tot:dc.length,vig:dc.length-venc.length,venc:venc.length,porArea:Object.entries(porArea).sort((a,b)=>b[1]-a[1]),list:venc};
   out.doc.v=ratio(out.doc.vig,out.doc.tot);
+  }
 
   // 6. Autoinspecciones
   const progAI=pr.filter(x=>norm(x.r["programa"])==="autoinspeccion");
@@ -641,7 +875,49 @@ function compute(){
 }
 
 /* ---------------- ficha de desvío ---------------- */
-let LOTES_MES=[];
+let LOTES_MES=[], LOTES_TODOS=[], DESDE_LOTES=false, RFT_ANUAL=[];
+function verRFTAnual(){
+  DESDE_LOTES=false;
+  const A=RFT_ANUAL, con=A.filter(x=>x.tot);
+  const totL=con.reduce((a,x)=>a+x.tot,0), totD=con.reduce((a,x)=>a+(x.des||0),0);
+  const prom=totL?1-totD/totL:null, meta=CONFIG.ind.rft.verde/100;
+  const H=180;
+  document.getElementById("dvBody").innerHTML=`
+    <div class="dv-head"><div><div class="dv-k">RFT · ${STATE.mes.slice(0,4)}</div><div class="dv-code">Comportamiento anual</div></div><button class="dv-x" onclick="cerrarDesvio()" aria-label="Cerrar">×</button></div>
+    <div class="dv-sum" style="grid-template-columns:repeat(3,1fr)">
+      <div><b style="color:var(--${statusI("rft",prom)==="ok"?"ok":statusI("rft",prom)==="warn"?"warn":"bad"})">${pct(prom)}</b><span>RFT acumulado del año</span></div>
+      <div><b>${totL.toLocaleString("es-CL")}</b><span>lotes liberados</span></div>
+      <div><b>${con.filter(x=>statusI("rft",x.v)!=="ok").length} de ${con.length}</b><span>meses bajo la meta</span></div></div>
+    <div class="rft-chart" style="height:${H+40}px">
+      <div class="rft-meta" style="bottom:${28+meta*H}px"><span>Meta ${CONFIG.ind.rft.verde}%</span></div>
+      ${A.map(x=>{ const s=statusI("rft",x.v); return `<div class="rft-col"><div class="rft-val">${x.tot?pct(x.v):""}</div>
+        <div class="rft-bar ${s}" style="height:${x.tot?Math.max(2,(x.v||0)*H):0}px"></div><div class="rft-lbl${x.k===STATE.mes?" on":""}">${MESES[+x.k.slice(5,7)-1].slice(0,3)}</div></div>`; }).join("")}
+    </div>
+    <table class="dv-t"><thead><tr><th>Mes</th><th style="text-align:right">Lotes liberados</th><th style="text-align:right">Desvíos</th><th style="text-align:right">RFT</th></tr></thead><tbody>
+      ${A.map(x=>`<tr${x.k===STATE.mes?' style="font-weight:700"':''}><td>${mlabel(x.k)}</td><td style="text-align:right">${x.tot||"—"}</td><td style="text-align:right">${x.tot?(x.des||0):"—"}</td>
+        <td style="text-align:right"><span class="cnt" style="justify-content:flex-end">${x.tot?dot(statusI("rft",x.v))+pct(x.v):"—"}</span></td></tr>`).join("")}
+    </tbody></table>
+    <p class="muted" style="font-size:12px;margin-top:8px">RFT mensual = 1 − Cantidad Desvíos Por Mes / Cantidad Liberaciones Por Mes (planilla de liberación). Acumulado = total del año con el mismo criterio.</p>`;
+  const ov=document.getElementById("dv"); ov.classList.add("on","wide"); ov.querySelector(".dv-panel").scrollTop=0;
+}
+function verLotes(){
+  DESDE_LOTES=true;
+  const tieneD=r=>((r["desvio/nc/fde"]||"").trim()||parseNum(r["tiene desvio?"])>0)?1:0;
+  const L=[...LOTES_TODOS].sort((a,b)=>(tieneD(b)-tieneD(a))||((parseDate(b["fecha liberacion"])||0)-(parseDate(a["fecha liberacion"])||0)));
+  const conD=L.filter(r=>(r["desvio/nc/fde"]||"").trim()||parseNum(r["tiene desvio?"])>0);
+  const cant=L.reduce((a,r)=>a+(parseNum(r["cant. liberada ingreso"])||0),0);
+  const prods=new Set(L.map(r=>r["descripcion producto"])).size;
+  document.getElementById("dvBody").innerHTML=`
+    <div class="dv-head"><div><div class="dv-k">RFT · ${mlabel(STATE.mes)}</div><div class="dv-code">Lotes liberados</div></div><button class="dv-x" onclick="cerrarDesvio()" aria-label="Cerrar">×</button></div>
+    <div class="dv-sum"><div><b>${L.length}</b><span>lotes liberados</span></div><div><b>${prods}</b><span>productos</span></div>
+      <div><b style="color:${conD.length?"var(--bad)":"var(--ok)"}">${conD.length}</b><span>con desvío / NC</span></div><div><b>${Math.round(cant).toLocaleString("es-CL")}</b><span>unidades liberadas</span></div></div>
+    <table class="dv-t"><thead><tr><th>Liberación</th><th>Producto</th><th>Serie</th><th style="text-align:right">Cantidad</th><th>Desvío / NC</th></tr></thead><tbody>
+    ${L.map(r=>{ const cs=codigos(r["desvio/nc/fde"]); return `<tr${cs.length?' class="con-d"':''}><td class="fecha">${fdate(parseDate(r["fecha liberacion"]))}</td><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td>
+      <td style="text-align:right">${(parseNum(r["cant. liberada ingreso"])||0).toLocaleString("es-CL")}</td>
+      <td>${cs.length?cs.map(c=>`<a class="dv" onclick="verDesvio('${esc(c)}')">${dot("bad")}${esc(c)}</a>`).join(""):'<span class="muted">—</span>'}</td></tr>`; }).join("")}
+    </tbody></table>`;
+  const ov=document.getElementById("dv"); ov.classList.add("on","wide"); ov.querySelector(".dv-panel").scrollTop=0;
+}
 const codigos = t => String(t||"").split(/[\/,;]+/).map(x=>x.trim()).filter(Boolean);
 const codKey = c => { const m=String(c).match(/(\d+)\D+(\d{2,4})\s*$/); return m ? `${+m[1]}-${m[2].slice(-2)}` : norm(c).replace(/[^a-z0-9]/g,""); };
 const col = (r,...ks) => { for(const k of ks){ const v=r[norm(k)]; if(v!=null && String(v).trim()!=="") return String(v).trim(); } return ""; };
@@ -658,6 +934,7 @@ function verDesvio(code){
   const diasAb = ap ? Math.round(((ci||new Date())-ap)/DAY) : null;
   const f=(l,v)=>v?`<div class="f"><span>${l}</span><b>${esc(v)}</b></div>`:"";
   document.getElementById("dvBody").innerHTML=`
+    ${DESDE_LOTES?`<a class="dv dv-back" onclick="verLotes()">← Volver a lotes liberados</a>`:""}
     <div class="dv-head"><div><div class="dv-k">${ev?esc(col(ev,"Tipo_Evento")):"Desvío"}</div><div class="dv-code">${esc(code)}</div></div>
       <button class="dv-x" onclick="cerrarDesvio()" aria-label="Cerrar">×</button></div>
     ${ev?`<div class="dv-state"><span class="cnt">${dot(abierto?"bad":"ok")}${esc(estado||(abierto?"Abierto":"Cerrado"))}</span>${diasAb!=null?`<span>${abierto?`${diasAb} días abierto`:`Cerrado en ${diasAb} días`}</span>`:""}</div>
@@ -667,10 +944,10 @@ function verDesvio(code){
       ${col(ev,"Acción a Implementar")?`<div class="dv-sec">Acción a implementar</div><p>${esc(col(ev,"Acción a Implementar"))}</p>`:""}`
     :`<div class="dv-miss">${(DATA&&DATA._demo)?"Vista de demostración: la ficha se mostrará con los datos de CONSOLIDADO_CALIDAD.":"No se encontró este código en CONSOLIDADO_CALIDAD. Revise que esté registrado con el mismo número."}</div>`}
     <div class="dv-sec">Lotes liberados asociados en ${mlabel(STATE.mes).toLowerCase()} · ${lotes.length}</div>
-    ${lotes.length?`<table class="dv-t"><thead><tr><th>Producto</th><th>Serie</th><th>Liberación</th></tr></thead><tbody>${lotes.map(r=>`<tr><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td><td>${fdate(parseDate(r["fecha liberacion"]))}</td></tr>`).join("")}</tbody></table>`:`<p class="muted">Sin lotes asociados en el período.</p>`}`;
+    ${lotes.length?`<table class="dv-t"><thead><tr><th>Producto</th><th>Serie</th><th>Liberación</th></tr></thead><tbody>${lotes.map(r=>`<tr><td>${esc(r["descripcion producto"])}</td><td>${esc(r["serie"])}</td><td class="fecha">${fdate(parseDate(r["fecha liberacion"]))}</td></tr>`).join("")}</tbody></table>`:`<p class="muted">Sin lotes asociados en el período.</p>`}`;
   document.getElementById("dv").classList.add("on");
 }
-function cerrarDesvio(){ document.getElementById("dv").classList.remove("on"); }
+function cerrarDesvio(){ document.getElementById("dv").classList.remove("on","wide"); DESDE_LOTES=false; }
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") cerrarDesvio(); });
 
 /* ---------------- render ---------------- */
@@ -689,13 +966,12 @@ const ICONS={
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const VIEWS=[
   {id:"resumen",grp:"Inicio",t:"Resumen",title:"Resumen del mes"},
-  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Actividades realizadas / programadas hasta el mes. Validaciones y calificación según su Mes programado; auditorías según el Programa Anual 2026."},
+  {id:"programas",grp:"Indicadores del Comité",t:"Programas",title:"1 · Cumplimiento de programas",d:"Calibración y mantención: ejecutadas en plazo / programadas del mes (Sistema de Equipos e Instrumentos). Validaciones, calificación y auditorías: realizadas / programadas hasta el mes."},
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
-  {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Capacitaciones internas (procedimientos) y externas."},
-  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de los SOP, misma fuente que el portal regulatorio."},
-  {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."},
-  {id:"detalle",grp:"Detalle",t:"Desvíos en liberación",title:"Detalle · Desvíos asociados a lotes liberados",d:"Lotes liberados en el mes con desvío, NC o FDE asociado. Haga clic en un código para ver su estado y responsable."}
+  {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
+  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas. <b>Meses cerrados: foto guardada al cierre de cada mes (desde octubre 2026). Mes en curso: estado actual.</b>"},
+  {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
 const dot = s => (!s||s==="neutral") ? "" : `<i class="dot ${s}"></i>`;
 const cnt=(n,s)=>n?`<span class="cnt">${dot(s)}${n}</span>`:`<span class="muted">0</span>`;
@@ -709,6 +985,14 @@ function kpiCard(label, v, sub, k, extra){
 const kSub=(x,txt)=> x&&x.d===0 ? "Sin registros abiertos" : x&&x.d!=null&&x.exact ? `${x.n} de ${x.d} ${txt}` : (x&&x.v!=null?"Según resumen CONSOLIDADO_CALIDAD":"Sin datos");
 const worst=arr=>{ const v=arr.filter(x=>x&&x!=="nodata"&&x!=="neutral"); return !v.length?"nodata":v.includes("bad")?"bad":v.includes("warn")?"warn":"ok"; };
 
+function filtroDoc(k){
+  STATE.docF = (k && STATE.docF!==k) ? k : null; render();
+  const t=document.getElementById("doc-tit"); if(t && STATE.docF) t.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function filtroProg(p){
+  STATE.progF = (p && STATE.progF!==p) ? p : null; render();
+  const t=document.getElementById("atr-tit"); if(t && STATE.progF) t.scrollIntoView({behavior:"smooth",block:"start"});
+}
 function show(id){
   STATE.view=id;
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.dataset.v===id));
@@ -726,13 +1010,13 @@ function render(){
   const pTot=o.programas.reduce((a,p)=>a+p.tot,0), pOk=o.programas.reduce((a,p)=>a+p.ok,0), pV=ratio(pOk,pTot);
 
   const pctItems=[
-    ...o.programas.map(p=>["Programas",p.p,p.v,p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
+    ...o.programas.map(p=>["Programas",p.p,p.v,p.mensual?`${p.ok} de ${p.tot} en plazo (mes)`:p.vigencia?`${p.ok} de ${p.tot} vigentes`:p.plazo?`${p.ok} en plazo de ${p.tot} programadas`:p.acum?`${p.ok} de ${p.tot} programadas a la fecha`:p.anual?`${p.ok} de ${p.tot} realizadas`:`${p.ok} de ${p.tot} en plazo`,"programas",(p.anual||p.acum)?"val":undefined]),
     ["Eventos","RFT · Lotes liberados sin desviación",o.rft.v,`${o.rft.ok} de ${o.rft.tot} lotes`,"eventos","rft"],
     ["Eventos","Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"eventos","desv"],
     ["Eventos","Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs atrasadas"),"eventos","capa"],
     ["Eventos","Cierre OOS",o.kpi.oos.v,kSub(o.kpi.oos,"OOS atrasados"),"eventos","oos"],
-    ["Capacitación","Cumplimiento",o.cap.v,`${o.cap.ok} de ${o.cap.tot} en plazo`,"capacitacion"],
-    ["Documentación","SOP vigentes",o.doc.v,plural(o.doc.venc,"SOP vencido","SOP vencidos"),"documentacion"],
+    ["Capacitación","Cumplimiento",o.cap.v,`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`,"capacitacion"],
+    ["Documentación","Documentos vigentes",o.doc.v,plural(o.doc.venc,"documento vencido","documentos vencidos"),"documentacion"],
     ["Autoinspecciones","Cumplimiento del programa",o.aiProg.v,`${o.aiProg.ok} de ${o.aiProg.tot} áreas`,"autoinspecciones"],
     ["Autoinspecciones","Resultado general",o.aiGen,o.aiLow?`Más baja: ${esc(o.aiLow.a)} ${pct(o.aiLow.v)}`:"","autoinspecciones"]
   ];
@@ -751,8 +1035,7 @@ function render(){
       return ss.every(x=>x==="nodata")?["","Sin datos"]: nb?["bad",plural(nb,"indicador no cumple","indicadores no cumplen")]: nw?["warn",plural(nw,"indicador en alerta","indicadores en alerta")]:["ok","Cumplen"]; })(),
     bodega:o.bodega.n?(o.bodega.venc?["bad",plural(o.bodega.venc,"posición vencida","posiciones vencidas")]:["ok",`${pct(o.bodega.v)} ocupación`]):["","Sin datos"],
     capacitacion:o.cap.tot?[status(o.cap.v),`${pct(o.cap.v)} · ${plural(o.cap.late.length,"atrasada","atrasadas")}`]:["","Sin datos"],
-    documentacion:o.doc.tot?[o.doc.venc?status(o.doc.v)==="ok"?"warn":status(o.doc.v):"ok",plural(o.doc.venc,"SOP vencido","SOP vencidos")]:["","Sin datos"],
-    detalle:(o.rft.lotesMes?((o.rft.lotes||[]).length?["bad",plural(o.rft.lotes.length,"lote con desvío","lotes con desvío")]:["ok","Sin desvíos"]):["","Sin datos"]),
+    documentacion:o.doc.tot?[o.doc.venc?status(o.doc.v)==="ok"?"warn":status(o.doc.v):"ok",plural(o.doc.venc,"documento vencido","documentos vencidos")]:["","Sin datos"],
     autoinspecciones:o.aiGen!=null||o.aiProg.tot?(()=>{ const sg=status(o.aiGen), sp=status(o.aiProg.v), w=worst([sg,sp]);
       return [w, (w===sp&&w!==sg)?`Programa ${pct(o.aiProg.v)}`:`Resultado ${pct(o.aiGen)}`]; })():["","Sin datos"]
   };
@@ -777,8 +1060,8 @@ function render(){
        const okc=ks.filter(x=>statusI(x[0],x[1])==="ok").length;
        return ["eventos","Indicadores de eventos",ks.length?`${okc} de ${ks.length}`:"—",st.eventos[0],ks.length?(nc.length?`No cumple: ${nc.join(", ")}`:"cumplen su meta"):"Sin datos"]; })(),
     ["bodega","Ocupación bodega",pct(o.bodega.v),st.bodega[0],o.bodega.n?plural(o.bodega.venc,"pos. vencida","pos. vencidas"):"Sin datos"],
-    ["capacitacion","Capacitación",pct(o.cap.v),st.capacitacion[0],o.cap.tot?`${o.cap.ok} de ${o.cap.tot} en plazo`:"Sin datos"],
-    ["documentacion","SOP vigentes",pct(o.doc.v),status(o.doc.v),o.doc.tot?plural(o.doc.venc,"vencido","vencidos"):"Sin datos"],
+    ["capacitacion","Capacitación",pct(o.cap.v),st.capacitacion[0],o.cap.tot?`${o.cap.ok} de ${o.cap.tot} ${o.cap.programa?"realizadas a la fecha":"en plazo"}`:"Sin datos"],
+    ["documentacion","Documentos vigentes",pct(o.doc.v),status(o.doc.v),o.doc.tot?plural(o.doc.venc,"vencido","vencidos"):"Sin datos"],
     ["autoinspecciones","Autoinspecciones",pct(o.aiGen),st.autoinspecciones[0],o.aiLow?`Más baja: ${esc(o.aiLow.a)}`:"Sin datos"]
   ];
   h+=view("resumen",`<div class="cover" style="background-image:url(${IMG_COVER})">
@@ -798,24 +1081,31 @@ function render(){
 
   // ---------- 1 Programas ----------
   const TOP=5;
-  const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
-  const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
-    <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
+  const estAtr=x=>{ const t=(x.estado||x.r["estado"]||"Pendiente").trim(); const n=norm(t);
+    const cls=CONFIG.estadosEnCurso.some(k=>n.includes(norm(k)))?"curso":n.startsWith("ejecutada")?"fuera":"pend";
+    return `<span class="est est-${cls}">${esc(cls==="pend"&&!x.estado&&!x.r["estado"]?"Pendiente":t.charAt(0).toUpperCase()+t.slice(1).toLowerCase())}</span>`; };
+  const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${estAtr(x)}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
+  const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Estado</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
+  const PF=STATE.progF, atrF=PF?o.atrasos.filter(x=>norm(x.r["programa"])===norm(PF)):o.atrasos;
+  h+=view("programas",`<div class="kpis${o.programas.length>6?" k4":""}">${o.programas.map(p=>`<div class="kpi-click${PF===p.p?" sel":""}" title="Ver atrasos de ${esc(p.p)}" onclick="filtroProg('${p.p.replace(/'/g,"\\'")}')">`+kpiCard(p.p==="Auditorías"?"Auditorías internas":p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)+`</div>`).join("")}</div>
+    <div class="sub-title" id="atr-tit">Detalle de atrasos${PF?` · ${esc(PF==="Auditorías"?"Auditorías internas":PF)}`:""}${atrF.length?` · ${atrF.length}`:""}${PF?` <a href="#" class="atr-all" onclick="filtroProg(null);return false">Ver todos los programas</a>`:` <span class="atr-hint">Haga clic en una tarjeta para ver sus atrasos</span>`}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
-    ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="5" class="empty">Sin atrasos en el período</td></tr>`}
+    ${atrF.length?(PF?atrF:atrF.slice(0,TOP)).map(atrRow).join(""):`<tr><td colspan="6" class="empty">${PF?"Sin atrasos de este programa en el período":"Sin atrasos en el período"}</td></tr>`}
     </tbody></table></div>
-    ${o.atrasos.length>TOP?`<details><summary>Ver ${o.atrasos.length-TOP} más</summary><div class="tbl-wrap"><table>${atrHead}<tbody>${o.atrasos.slice(TOP).map(atrRow).join("")}</tbody></table></div></details>`:""}`);
+    ${!PF&&atrF.length>TOP?`<details><summary>Ver ${atrF.length-TOP} más</summary><div class="tbl-wrap"><table>${atrHead}<tbody>${atrF.slice(TOP).map(atrRow).join("")}</tbody></table></div></details>`:""}`);
 
   // ---------- 2 Eventos ----------
   const evAbT=o.eventos.reduce((a,e)=>a+e.ab,0);
-  LOTES_MES=o.rft.lotes||[];
+  LOTES_MES=o.rft.lotes||[]; LOTES_TODOS=o.rft.todos||[];
   const rftCodes=[...new Set(LOTES_MES.flatMap(r=>codigos(r["desvio/nc/fde"])))];
   const rftExtra = !o.rft.tot ? "" : rftCodes.length
-    ? `<div class="kpi-codes"><span>${plural(LOTES_MES.length,"lote con","lotes con")} desvío/NC:</span>${rftCodes.map(c=>`<a class="dv" onclick="verDesvio('${esc(c)}')">${esc(c)}</a>`).join("")}<a class="dv" ${go("detalle")}>ver detalle →</a></div>`
+    ? `<div class="kpi-codes"><span>${plural(LOTES_MES.length,"lote con","lotes con")} desvío/NC:</span>${rftCodes.map(c=>`<a class="dv" onclick="DESDE_LOTES=false;verDesvio('${esc(c)}')">${esc(c)}</a>`).join("")}</div>`
     : `<div class="kpi-codes ok">${dot("ok")}Sin desvíos ni NC asociados en el mes</div>`;
+  RFT_ANUAL=o.rftAnual||[];
+  const rftVer = (o.rft.tot ? `<div class="kpi-more"><a class="dv" onclick="verLotes()">Ver ${plural(LOTES_TODOS.length,"lote liberado","lotes liberados")} →</a></div>` : "")
+    + (RFT_ANUAL.some(x=>x.tot) ? `<div class="kpi-more" style="margin-top:4px"><a class="dv" onclick="verRFTAnual()">Ver comportamiento anual →</a></div>` : "");
   h+=view("eventos",`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">
-      ${kpiCard("RFT · Lotes liberados sin desviación",o.rft.v,o.rft.tot?`${o.rft.ok} de ${o.rft.tot} lotes sin desviación${o.rft.general&&STATE.area?" · total planta":""}`:"Sin datos","rft",rftExtra)}
+      ${kpiCard("RFT · Lotes liberados sin desviación",o.rft.v,o.rft.tot?`${o.rft.ok} de ${o.rft.tot} lotes sin desviación${o.rft.general&&STATE.area?" · total planta":""}`:"Sin datos","rft",rftExtra+rftVer)}
       ${kpiCard("Cierre Desviaciones",o.kpi.desv.v,kSub(o.kpi.desv,"abiertas por emitir"),"desv")}
       ${kpiCard("Cierre CAPA",o.kpi.capa.v,kSub(o.kpi.capa,"CAPAs abiertas atrasadas"),"capa")}
       ${kpiCard("Cierre OOS",o.kpi.oos.v,kSub(o.kpi.oos,"OOS abiertos atrasados"),"oos")}
@@ -826,7 +1116,7 @@ function render(){
       :`<tr><td colspan="4" class="empty">Sin eventos cargados</td></tr>`}
     </tbody></table></div>
     ${totVenc?`<details><summary>Ver eventos vencidos (${totVenc})</summary><div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Tipo</th><th>Área</th><th>Apertura</th><th class="n">Días</th></tr></thead><tbody>
-      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td>${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
+      ${o.eventos.flatMap(e=>e.list).sort((a,b)=>(b.dias||0)-(a.dias||0)).map(x=>`<tr><td class="strong">${esc(x.ido||x.code||"—")}</td><td>${esc(x.tipo||"")}</td><td>${esc(x.area||"—")}</td><td class="fecha">${fdate(x.ap)}</td><td class="n">${x.dias==null||isNaN(x.dias)?"—":Math.round(x.dias)}</td></tr>`).join("")}
       </tbody></table></div></details>`:""}`);
 
   // ---------- 3 Bodega ----------
@@ -841,29 +1131,44 @@ function render(){
         :`<tr><td colspan="4" class="empty">Sin datos cargados</td></tr>`}</tbody></table></div></div>`);
 
   // ---------- 4 Capacitación ----------
-  const c=o.cap, cs=status(c.v);
+  const c=o.cap, cs=status(c.v);  const CAPTOP=10;
   h+=view("capacitacion",`<div class="two"><div class="box" style="margin:0">
       <div class="metric"><span class="lbl">${dot(cs)}Cumplimiento</span><span class="big">${pct(c.v)}</span></div>
       <div class="bar ${cs}"><span style="width:${c.v==null?0:c.v*100}%"></span></div>
-      <div class="kpi-sub">${c.tot?`${c.ok} de ${c.tot} actividades en plazo`:"Sin datos"}</div>
+      <div class="kpi-sub">${c.tot?(c.programa?`${c.ok} de ${c.tot} actividades programadas a la fecha realizadas · ${c.anio} en el año`:`${c.ok} de ${c.tot} actividades en plazo`):"Sin datos"}</div>
+      ${c.programa&&c.tot?`<div class="line"><span class="lbl">Internas (procedimientos)</span><span class="val">${pct(ratio(c.tipos[0].ok,c.tipos[0].tot))} <small class="muted" style="font-size:12px">${c.tipos[0].ok}/${c.tipos[0].tot}</small></span></div>
+        <div class="line" style="margin-top:6px"><span class="lbl">Externas</span><span class="val">${pct(ratio(c.tipos[1].ok,c.tipos[1].tot))} <small class="muted" style="font-size:12px">${c.tipos[1].ok}/${c.tipos[1].tot}</small></span></div>`:""}
+      ${c.programa&&c.conFecha?`<div class="kpi-sub">${c.enPlazo} realizadas dentro del mes programado</div>`:""}
       <div class="line"><span class="lbl">${dot(c.late.length?"bad":c.tot?"ok":"")}Actividades atrasadas</span><span class="val">${c.tot?c.late.length:"—"}</span></div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Actividad atrasada</th><th>Tipo</th><th>Planificada</th><th class="n">Días</th></tr></thead><tbody>
-      ${c.late.length?c.late.map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td>${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
-        :`<tr><td colspan="4" class="empty">Sin actividades atrasadas</td></tr>`}</tbody></table></div></div>`);
+    <div class="tbl-wrap"><table><thead><tr><th>Actividad atrasada</th><th>Tipo</th><th>${c.programa?"Área":"Planificada"}</th><th>${c.programa?"Mes":""}</th><th class="n">Días</th></tr></thead><tbody>
+      ${c.late.length?c.late.slice(0,CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td class="${c.programa?"":"fecha"}">${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td></tr>`).join("")
+        :`<tr><td colspan="5" class="empty">Sin actividades atrasadas</td></tr>`}</tbody></table>
+      ${c.late.length>CAPTOP?`<details style="margin:8px 12px 12px"><summary>Ver ${c.late.length-CAPTOP} más</summary><table>${c.late.slice(CAPTOP).map(x=>`<tr><td>${esc(x.r["actividad"])}</td><td>${esc(x.r["tipo"])}</td><td class="${c.programa?"":"fecha"}">${c.programa?esc(x.r["area"]):fdate(x.plan)}</td><td>${c.programa?esc(x.r["mes"]):""}</td><td class="n">${x.atraso}</td></tr>`).join("")}</table></details>`:""}
+    </div></div>`);
 
   // ---------- 5 Documentación ----------
   const d=o.doc;
-  h+=view("documentacion",`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-      ${kpiCard("SOP vigentes",d.v,d.tot?`${d.vig} de ${d.tot} SOP`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Al cierre de ${M.toLowerCase()}</div></div>
-      <div class="kpi"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">Desglose por área abajo</div></div>
+  const docRow=x=>`<tr><td class="strong">${esc(x.code||x.r["codigo sop"]||"")}${x.ed?` <span class="muted">Ed. ${esc(x.ed)}</span>`:""}</td><td>${esc(x.title||x.r["titulo"]||"")}</td><td>${esc(x.area||x.r["area"]||"")}</td><td class="fecha">${fdate(x.ven||parseDate(x.r["fecha de vencimiento"]))}</td><td class="n">${x.dias==null?"—":Math.abs(x.dias)}</td><td>${esc(x.resp||"")}</td></tr>`;
+  const docHead=t=>`<thead><tr><th>Código</th><th>Título</th><th>Área responsable</th><th>${t}</th><th class="n">Días</th><th>Responsable</th></tr></thead>`;
+  const areasT=[...new Set([...d.porArea.map(x=>x[0]),...Object.keys(d.porAreaP||{})])].map(a=>[a,(d.porArea.find(x=>x[0]===a)||[0,0])[1],(d.porAreaP||{})[a]||0]).sort((a,b)=>b[1]-a[1]||b[2]-a[2]);
+  const DF=STATE.docF||null, docHint=`<span class="atr-hint">Haga clic en una tarjeta para ver su detalle</span>`, docAll=`<a href="#" class="atr-all" onclick="filtroDoc(null);return false">Ver resumen</a>`;
+  h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="kpi-click${DF==="tipo"?" sel":""}" onclick="filtroDoc('tipo')">${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}</div>
+      <div class="kpi-click${DF==="area"?" sel":""}" onclick="filtroDoc('area')"><div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.foto?`Foto al cierre de ${mlabel(d.foto).toLowerCase()}`:d.sinFoto?`Sin foto de ${mlabel(STATE.mes).toLowerCase()} · estado al <span style="white-space:nowrap">${fdate(new Date())}</span>`:`Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio`}</div></div></div>
+      <div class="kpi-click${DF==="venc"?" sel":""}" onclick="filtroDoc('venc')"><div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div></div>
+      ${d.base?`<div class="kpi-click${DF==="prox"?" sel":""}" onclick="filtroDoc('prox')"><div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div></div>`:""}
     </div>
-    <div class="sub-title">SOP vencidos por área</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Nº vencidos</th></tr></thead><tbody>
-      ${d.porArea.length?d.porArea.map(([a,n])=>`<tr><td class="strong">${esc(a)}</td><td class="n"><span class="cnt">${dot("bad")}${n}</span></td></tr>`).join(""):`<tr><td colspan="2" class="empty">Sin SOP vencidos</td></tr>`}</tbody></table></div>
-    ${d.venc?`<details><summary>Ver listado de SOP vencidos (${d.venc})</summary><div class="tbl-wrap"><table><thead><tr><th>Área</th><th>Código</th><th>Título</th><th>Venció</th></tr></thead><tbody>
-      ${d.list.sort((a,b)=>(a.r["area"]||"").localeCompare(b.r["area"]||"")).map(x=>`<tr><td class="strong">${esc(x.r["area"])}</td><td>${esc(x.r["codigo sop"])}</td><td>${esc(x.r["titulo"])}</td><td>${fdate(parseDate(x.r["fecha de vencimiento"]))}</td></tr>`).join("")}
-      </tbody></table></div></details>`:""}`);
+    ${(!DF||DF==="tipo")&&d.tipos&&d.tipos.length?`<div class="sub-title" id="doc-tit">Por tipo de documento ${DF?docAll:docHint}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Tipo (proceso)</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">Por vencer</th><th class="n">Vencidos</th><th class="n">% vigente</th></tr></thead><tbody>
+      ${d.tipos.map(([p,x])=>`<tr><td class="strong">${esc(p)}</td><td class="n">${x.tot}</td><td class="n">${x.vig}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td><td class="n">${pct(ratio(x.vig+x.prox,x.tot))}</td></tr>`).join("")}</tbody></table></div>`:""}
+    ${!DF||DF==="area"?`    <div class="sub-title"${DF?' id="doc-tit"':""}>Por área ${DF?docAll:""}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">% vigente</th><th class="n">Por vencer</th><th class="n">Vencidos</th></tr></thead><tbody>
+      ${(d.areasT||[]).length?d.areasT.map(([a,x])=>{ const v=ratio(x.vig+x.prox,x.tot); return `<tr><td class="strong">${esc(a)}</td><td class="n">${x.tot}</td><td class="n">${x.vig+x.prox}</td><td class="n">${dot(status(v))} ${pct(v)}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td></tr>`; }).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>`:""}
+    ${DF==="venc"||DF==="prox"?`<div class="sub-title" id="doc-tit">${DF==="venc"?`Documentos vencidos · ${d.venc}`:`Documentos próximos a vencer · ${d.prox}`} ${docAll}</div>
+      ${d.foto?`<div class="note">El listado de documentos está disponible solo para el mes en curso; la foto mensual guarda las cantidades. Elija el mes en curso para ver el detalle.</div>`
+      :`<div class="tbl-wrap"><table>${docHead(DF==="venc"?"Venció":"Vence")}<tbody>${(DF==="venc"?d.list:(d.listP||[])).length?(DF==="venc"?d.list:(d.listP||[])).map(docRow).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>`}`:""}
+    ${d.excl&&d.excl.length?`<div class="note" style="margin-top:14px">No se incluyen aquí (se miden en otros indicadores): ${d.excl.map(esc).join(" · ")}</div>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
   h+=view("autoinspecciones",`<div class="ai-grid"><div class="ai-left">
@@ -879,30 +1184,6 @@ function render(){
       <div class="note">Filtre por área para ver sus ítems más bajos.</div></div>
     </div>`);
 
-  // ---------- Detalle de desvíos en liberación ----------
-  h+=view("detalle",(()=>{ const L=o.rft.lotes||[]; LOTES_MES=L;
-    if(!o.rft.lotesMes) return `<div class="box"><div class="empty">Sin liberaciones registradas en el período.</div></div>`;
-    if(!L.length) return `<div class="box"><div class="all-ok">${dot("ok")}Ningún lote liberado con desviación en ${M.toLowerCase()}.</div></div>`;
-    const g={}; L.forEach(r=>codigos(r["desvio/nc/fde"]||"Sin código").forEach(c=>{ (g[c]=g[c]||[]).push(r); }));
-    const rows=Object.entries(g).map(([k,rs])=>{ const ev=buscarEvento(k); const ap=ev?parseDate(col(ev,"Fecha_Apertura")):null, ci=ev?parseDate(col(ev,"Fecha_Cierre")):null;
-        const est=ev?col(ev,"Estado"):""; const ab=ev&&!ci&&!/cerrad/i.test(est);
-        return {k,ev,est:ev?(est||(ab?"Abierto":"Cerrado")):"—",ab,dias:ap?Math.round(((ci||new Date())-ap)/DAY):null,
-          area:ev?col(ev,"Área Responsable por Resolver","Área"):"",n:rs.length,cant:rs.reduce((a,r)=>a+(parseNum(r["cant. liberada ingreso"])||0),0),
-          prods:[...new Set(rs.map(r=>r["descripcion producto"]))]}; })
-      .sort((a,b)=>(b.ab-a.ab)||b.n-a.n||a.k.localeCompare(b.k));
-    const tc=L.reduce((a,r)=>a+(parseNum(r["cant. liberada ingreso"])||0),0), abiertos=rows.filter(r=>r.ab).length;
-    return `<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:14px">
-        ${kpiCard("RFT · Lotes liberados sin desviación",o.rft.v,`${o.rft.ok} de ${o.rft.tot} lotes sin desviación`,"rft")}
-        <div class="kpi"><div class="kpi-label">${dot("bad")}<span>Lotes con desvío</span></div><div class="kpi-val">${L.length}</div><div class="kpi-sub">de ${o.rft.lotesMes} lotes liberados</div></div>
-        <div class="kpi"><div class="kpi-label">${dot(abiertos?"bad":"ok")}<span>Desvíos aún abiertos</span></div><div class="kpi-val">${DATA.Detalle&&DATA.Detalle.length?abiertos:"—"}</div><div class="kpi-sub">${plural(rows.length,"código asociado","códigos asociados")}</div></div>
-      </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Desvío / NC / FDE</th><th>Estado</th><th class="n">Días</th><th>Área responsable</th><th>Producto</th><th class="n">Nº lotes</th><th class="n">Cantidad liberada</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td class="strong"><a class="dv" onclick="verDesvio('${esc(r.k)}')">${dot(r.ev?(r.ab?"bad":"ok"):"")}${esc(r.k)}</a></td><td>${esc(r.est)}</td><td class="n">${r.dias??"—"}</td><td>${esc(r.area||"—")}</td>
-        <td>${r.prods.map(esc).join("<br>")}</td><td class="n">${r.n}</td><td class="n">${Math.round(r.cant).toLocaleString("es-CL")}</td></tr>`).join("")}
-      <tr><td class="strong">Total</td><td></td><td></td><td></td><td></td><td class="n strong">${L.length} de ${o.rft.lotesMes}</td><td class="n strong">${Math.round(tc).toLocaleString("es-CL")}</td></tr>
-      </tbody></table></div>
-      <p class="view-desc" style="margin-top:8px">Un lote puede tener más de un código asociado; en ese caso aparece en cada uno.</p>`; })());
-
   document.getElementById("app").innerHTML=h;
   show(STATE.view||"resumen");
 }
@@ -916,7 +1197,7 @@ function fillFilters(){
   if(DATA._demo) T.RFT.forEach(r=>{ if(r._mes) months.add(r._mes); });
   [...months].forEach(m=>{ if(m>hoyK) months.delete(m); });
   if(months.size>18) [...months].sort().slice(0,months.size-18).forEach(m=>months.delete(m));
-  Object.keys(KEYS).forEach(n=>T[n].forEach(r=>{ if(r._area) areas.add(r._area); }));
+  Object.keys(KEYS).forEach(n=>{ if(n==="Capacitacion" && T[n][0] && ("ejecutado (si/no)" in T[n][0])) return; T[n].forEach(r=>{ if(r._area) areas.add(r._area); }); });
   (T.Detalle||[]).forEach(r=>{ const a=col(r,"Área Responsable por Resolver","Área"); if(a) areas.add(a); });
   if(!months.size) months.add(mkey(new Date(new Date().getFullYear(),new Date().getMonth()-1,1)));
   const ms=[...months].sort().reverse();
