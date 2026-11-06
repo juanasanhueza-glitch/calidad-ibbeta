@@ -627,7 +627,7 @@ function compute(){
         totA++; if(v) okA++; if(k===mi){ tot++; if(v) ok++; }
         if(!v){ const fin=new Date(+STATE.mes.slice(0,4),k+1,0);
           atrVal.push({r:{"programa":"Mantención","actividad / equipo":[r["equipo"],r["area"],r["cod. interno"]?"N° "+String(r["cod. interno"]).replace(/\.0$/,""):""].filter(Boolean).join(" · "),"responsable":"Mantenimiento"},plan:fin,atraso:Math.max(0,Math.round((refD0-fin)/DAY))}); } } });
-      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:(tot?`${ok} de ${tot} ejecutadas en el mes · ${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes · ${okA} de ${totA} en el año`)+(T.MantSnap?` · Programa MAN-013.05, registro al ${T.MantSnap}`:` · Programa MAN-013.05`),txt:"mantenciones programadas en el mes"};
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:(tot?`${ok} de ${tot} ejecutadas este mes<br>${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes<br>${okA} de ${totA} en el año`)+(T.MantSnap?`<br>MAN-013.05 · registro al <span style="white-space:nowrap">${T.MantSnap}</span>`:`<br>Programa MAN-013.05`),txt:"mantenciones programadas en el mes"};
     }
     if(norm(p)==="mantencion" && EQ.PROG_MANT && EQ.PROG_MANT.length){
       const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
