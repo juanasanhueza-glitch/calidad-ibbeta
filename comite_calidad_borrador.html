@@ -96,6 +96,8 @@ a{color:inherit;text-decoration:none}
 .sub-title{font-size:12.5px;font-weight:700;color:var(--navy);margin:16px 0 8px}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{border:1px solid var(--line);border-radius:10px;padding:13px 15px 12px;background:#fff}
 .kpi.bad{background:var(--bad-bg);border-color:#F3D5D3}
 .kpi-label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--slate);line-height:1.2;min-height:30px}
@@ -273,6 +275,10 @@ const CONFIG = {
     ],
     /* Programa anual de mantención (Resumen_Anual_Mantenimiento_2026, Mantenimiento) · enlace CSV publicado.
        Una fila por equipo; columnas ENE..DIC: 1 = ejecutada, 0 = programada no ejecutada, vacío = sin mantención ese mes */
+    /* Seguimiento Programa de Auditorías a Proveedores 2026 · hoja «Seguimiento» · enlace CSV publicado (con gid de esa hoja) */
+    /* Historial mensual de Documentación (hoja «Historial_Documentacion» de Elementos Regulatorios, foto al cierre de cada mes) · enlace CSV publicado */
+    DocHist: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmkghsO9Jm3d17VSsnPsM8fDX7GnRAldQjNmbCOMhO_FrMXCspulXJQfLLQcwwld2tqJyBhGa7LDe0/pub?gid=874411873&single=true&output=csv",
+    AudProv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxjVOwsaOIdMaEcjZnGHnsBe5NGEabDSHkqCMjUC7EimpLjyV2fIKL1B0sdzB4zk3YZxn4pdbOLGNA/pub?gid=1803631074&single=true&output=csv",
     MantPrograma: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDwGK-ZjOs1D1Sy_9XjmOYATUU5ng302ni4iPYl8D4tpuekEZuiwYpwJ3OaIQKjyp3faxzMM5Xcs0/pub?gid=264693335&single=true&output=csv",
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
@@ -329,7 +335,7 @@ const CONFIG = {
   meta: 0.90,            // % desde el cual el indicador está en meta (propuesta, por confirmar)
   alerta: 0.80,          // bajo este % el indicador se marca en rojo (propuesta, por confirmar)
   ocupacionAlta: 0.90,   // ocupación de bodega desde la cual se marca en ámbar (propuesta)
-  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías"],
+  programas: ["Calibración","Mantención","Validación de proceso","Validación de limpieza","Calificación de equipos","Auditorías","Auditorías a proveedor"],
   eventos:   ["No conformidad","Desvío","Reclamo","OOS","CAPA"],
   eventosPlural: {"No conformidad":"No conformidades","Desvío":"Desvíos","Reclamo":"Reclamos","OOS":"OOS","CAPA":"CAPAs"}
 };
@@ -466,6 +472,14 @@ async function loadSheets(){
       tables.MantProg=toTable(parseCSV(await r.text()),"equipo").filter(r=>(r["equipo"]||"").trim()); }
     catch(e){ errors.push(`Programa de mantención (Resumen Anual Mantenimiento): ${e.message}`); } }
   if(!tables.MantProg||!tables.MantProg.length){ tables.MantProg=MANT_PROG_SNAPSHOT.rows; tables.MantSnap=MANT_PROG_SNAPSHOT.fecha; }
+  const apu=(CONFIG.fuentes||{}).AudProv; tables.AudProv=null;
+  if(apu){ try{ const r=await fetch(apu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.AudProv=toTable(parseCSV(await r.text()),"codigo").filter(r=>/^p\d+/i.test((r["codigo"]||"").trim())); }
+    catch(e){ errors.push(`Auditorías a proveedores: ${e.message}`); } }
+  const dhu=(CONFIG.fuentes||{}).DocHist; tables.DocHist=null;
+  if(dhu){ try{ const r=await fetch(dhu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
+      tables.DocHist=toTable(parseCSV(await r.text()),"mes").filter(r=>/^\d{4}-\d{2}$/.test((r["mes"]||"").trim())); }
+    catch(e){ errors.push(`Historial de Documentación: ${e.message}`); } }
   tables.ValDet={};
   const vd=(CONFIG.fuentes||{}).ValDetalle||{};
   await Promise.all(Object.entries(vd).filter(([,u])=>u).map(async([prog,u])=>{
@@ -684,6 +698,19 @@ function compute(){
         plan:x.fin, atraso:Math.max(0,Math.round((cut-x.fin)/DAY)), done:null}));
       return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,anio:L.length};
     }
+    if(norm(p)==="auditorias a proveedor" && T.AudProv){
+      // Programa 2026: % = realizadas en el mes programado / programadas hasta el mes (no programadas no cuentan)
+      const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"], yr=+STATE.mes.slice(0,4);
+      const L=T.AudProv.filter(r=>!norm(r["origen"]).startsWith("no")).map(r=>{ const mi=MES.indexOf(norm(r["mes programado"]));
+        const fin=mi>=0?new Date(yr,mi+1,0):null, fp=parseDate(r["fecha programada"]), fe=parseDate(r["fecha ejecucion"]);
+        const hecha=!!(fe&&fe<=cut);
+        return {r,fin,fp,fe,hecha,enPlazo:hecha&&fin&&fe<=fin,nom:`${r["proveedor"]||""} (${r["codigo"]})`,est:(r["estado"]||"").trim()}; }).filter(x=>x.fin);
+      const prog=L.filter(x=>x.fin<=cut), ok=prog.filter(x=>x.enPlazo).length, ej=prog.filter(x=>x.hecha).length;
+      prog.forEach(x=>{
+        if(!x.hecha) atrVal.push({r:{"programa":"Auditorías a proveedor","actividad / equipo":x.nom,"responsable":"Aseguramiento de Calidad"},plan:x.fp||x.fin,atraso:Math.max(0,Math.round((cut-x.fin)/DAY)),estado:x.est||"Pendiente"});
+        else if(!x.enPlazo) atrVal.push({r:{"programa":"Auditorías a proveedor","actividad / equipo":x.nom+" · ejecutada "+fdate(x.fe),"responsable":"Aseguramiento de Calidad"},plan:x.fin,atraso:Math.round((x.fe-x.fin)/DAY),estado:"Ejecutada fuera de plazo"}); });
+      return {p,tot:prog.length,ok,v:ratio(ok,prog.length),acum:true,plazo:true,ej,anio:L.length};
+    }
     const V=T.Val&&T.Val[p];
     if(V) return {p,tot:V.tot,ok:V.ok,v:ratio(V.ok,V.tot),anual:true,code:V.code};
     const rows=pr.filter(x=>norm(x.r["programa"])===norm(p));
@@ -805,6 +832,22 @@ function compute(){
       procesos:[...new Set(T.DocBase.map(r=>(r["proceso"]||"").trim()).filter(Boolean))],
       reg:regTot, porAreaP, areasT:Object.entries(porAreaT).sort((a,b)=>b[1].venc-a[1].venc||ratio(a[1].vig+a[1].prox,a[1].tot)-ratio(b[1].vig+b[1].prox,b[1].tot)), tipos:Object.entries(porTipo).sort((a,b)=>b[1].tot-a[1].tot), excl, list:venc.sort((a,b)=>(a.dias??0)-(b.dias??0)), listP:prox.sort((a,b)=>(a.dias??0)-(b.dias??0)), base:true, actual};
     out.doc.v=ratio(out.doc.vig,out.doc.tot);
+    // Meses pasados: foto guardada al cierre del mes (Historial_Documentacion). El mes en curso siempre es el estado actual.
+    if(STATE.mes!==mkey(hoy)){
+      const H=(T.DocHist||[]).filter(r=>r["mes"].trim()===STATE.mes && esSOP(r)).filter(r=>!STATE.area||(r["area"]||"").trim()===STATE.area);
+      if(H.length){
+        const n=k=>r=>parseNum(r[k])||0, sum=(A,f)=>A.reduce((a,r)=>a+f(r),0);
+        const agg=key=>{ const o={}; H.forEach(r=>{ const k=(r[key]||"").trim()||"Sin área"; const x=(o[k]=o[k]||{vig:0,prox:0,venc:0,tot:0});
+          x.tot+=n("total")(r); x.vig+=n("vigentes")(r); x.prox+=n("por vencer")(r); x.venc+=n("vencidos")(r); }); return o; };
+        const tot=sum(H,n("total")), venc=sum(H,n("vencidos")), prox=sum(H,n("por vencer"));
+        const A=agg("area"), P=agg("proceso");
+        Object.assign(out.doc,{foto:STATE.mes,tot,vig:tot-venc,venc,prox,
+          porArea:Object.entries(A).filter(([,x])=>x.venc).map(([a,x])=>[a,x.venc]).sort((a,b)=>b[1]-a[1]),
+          areasT:Object.entries(A).sort((a,b)=>b[1].venc-a[1].venc||ratio(a[1].vig+a[1].prox,a[1].tot)-ratio(b[1].vig+b[1].prox,b[1].tot)),
+          tipos:Object.entries(P).sort((a,b)=>b[1].tot-a[1].tot), list:[], listP:[]});
+        out.doc.v=ratio(out.doc.vig,out.doc.tot);
+      } else out.doc.sinFoto=true;
+    }
   } else {
   const dc=byScope(T.Documentacion).map(r=>{ const v=parseDate(r["fecha de vencimiento"]); return {r,vig: !!(v && v>cut)}; });
   const venc=dc.filter(x=>!x.vig); const porArea={}; venc.forEach(x=>{ const a=x.r["area"]||"Sin área"; porArea[a]=(porArea[a]||0)+1; });
@@ -923,7 +966,7 @@ const VIEWS=[
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
-  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas. <b>Esta sección muestra siempre el estado actual de la base (no cambia al elegir otro mes).</b>"},
+  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas. <b>Meses cerrados: foto guardada al cierre de cada mes (desde octubre 2026). Mes en curso: estado actual.</b>"},
   {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
 const dot = s => (!s||s==="neutral") ? "" : `<i class="dot ${s}"></i>`;
@@ -1031,7 +1074,7 @@ function render(){
     return `<span class="est est-${cls}">${esc(cls==="pend"&&!x.estado&&!x.r["estado"]?"Pendiente":t.charAt(0).toUpperCase()+t.slice(1).toLowerCase())}</span>`; };
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${estAtr(x)}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Estado</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis">${o.programas.map(p=>kpiCard(p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
+  h+=view("programas",`<div class="kpis${o.programas.length>6?" k4":""}">${o.programas.map(p=>kpiCard(p.p==="Auditorías"?"Auditorías internas":p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
     <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
     ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="6" class="empty">Sin atrasos en el período</td></tr>`}
@@ -1098,7 +1141,7 @@ function render(){
   h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       ${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio</div></div>
+      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">${d.foto?`Foto al cierre de ${mlabel(d.foto).toLowerCase()}`:d.sinFoto?`Sin foto de ${mlabel(STATE.mes).toLowerCase()} · estado al <span style="white-space:nowrap">${fdate(new Date())}</span>`:`Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio`}</div></div>
       <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div>
       ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
     </div>
@@ -1108,8 +1151,9 @@ function render(){
     <div class="sub-title">Por área</div>
     <div class="tbl-wrap"><table><thead><tr><th>Área</th><th class="n">Total</th><th class="n">Vigentes</th><th class="n">% vigente</th><th class="n">Por vencer</th><th class="n">Vencidos</th></tr></thead><tbody>
       ${(d.areasT||[]).length?d.areasT.map(([a,x])=>{ const v=ratio(x.vig+x.prox,x.tot); return `<tr><td class="strong">${esc(a)}</td><td class="n">${x.tot}</td><td class="n">${x.vig+x.prox}</td><td class="n">${dot(status(v))} ${pct(v)}</td><td class="n">${cnt(x.prox,"warn")}</td><td class="n">${cnt(x.venc,"bad")}</td></tr>`; }).join(""):`<tr><td colspan="6" class="empty">Sin documentos</td></tr>`}</tbody></table></div>
-    ${d.venc?`<details><summary>Ver documentos vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
-    ${d.prox?`<details><summary>Ver documentos próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.foto?`<div class="note">El listado de documentos está disponible solo para el mes en curso; la foto mensual guarda las cantidades.</div>`:""}
+    ${d.venc&&!d.foto?`<details><summary>Ver documentos vencidos (${d.venc})</summary><div class="tbl-wrap"><table>${docHead("Venció")}<tbody>${d.list.map(docRow).join("")}</tbody></table></div></details>`:""}
+    ${d.prox&&!d.foto?`<details><summary>Ver documentos próximos a vencer (${d.prox})</summary><div class="tbl-wrap"><table>${docHead("Vence")}<tbody>${(d.listP||[]).map(docRow).join("")}</tbody></table></div></details>`:""}
     ${d.excl&&d.excl.length?`<div class="note" style="margin-top:14px">No se incluyen aquí (se miden en otros indicadores): ${d.excl.map(esc).join(" · ")}</div>`:""}`);
 
   // ---------- 6 Autoinspecciones ----------
