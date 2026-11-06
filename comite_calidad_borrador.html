@@ -923,7 +923,7 @@ const VIEWS=[
   {id:"eventos",t:"Eventos de calidad",title:"2 · Eventos de calidad",d:"Indicadores oficiales del portal (mismas metas) y eventos abiertos y vencidos."},
   {id:"bodega",t:"Gestión de bodega",title:"3 · Gestión de bodega",d:"Datos mensuales enviados por Bodega."},
   {id:"capacitacion",t:"Capacitación",title:"4 · Programa de capacitación",d:"Programa Anual de Capacitación (PRG-GP-003.01): actividades realizadas / programadas hasta el mes, internas y externas."},
-  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas."},
+  {id:"documentacion",t:"Documentación",title:"5 · Documentación",d:"Vigencia de SOP, instructivos y demás documentos según el Panel de Control de Elementos Regulatorios. Equipos y validaciones se miden en Programas. <b>Esta sección muestra siempre el estado actual de la base (no cambia al elegir otro mes).</b>"},
   {id:"autoinspecciones",t:"Autoinspecciones",title:"6 · Autoinspecciones",d:"Checklist común por área basado en la N.T. 127."}
 ];
 const dot = s => (!s||s==="neutral") ? "" : `<i class="dot ${s}"></i>`;
@@ -1098,7 +1098,7 @@ function render(){
   h+=view("documentacion",`${d.base&&!d.tot?`<div class="notice err">No se encontraron documentos en la Base datos (se excluyen procesos que contienen: ${CONFIG.docExcluir.map(esc).join(", ")}). Procesos encontrados: ${(d.procesos||[]).slice(0,25).map(esc).join(" · ")}</div>`:""}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       ${kpiCard("Documentos vigentes",d.v,d.tot?`${d.vig} de ${d.tot} documentos`:"Sin datos")}
-      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Al día de hoy · igual que el Panel Regulatorio</div></div>
+      <div class="kpi"><div class="kpi-label"><span>Nº vigentes</span></div><div class="kpi-val">${d.tot?d.vig:"—"}</div><div class="kpi-sub">Estado al <span style="white-space:nowrap">${fdate(new Date())}</span> · igual que el Panel Regulatorio</div></div>
       <div class="kpi ${d.venc?"bad":""}"><div class="kpi-label">${dot(d.venc?"bad":d.tot?"ok":"")}<span>Nº vencidos</span></div><div class="kpi-val">${d.tot?d.venc:"—"}</div><div class="kpi-sub">${d.porArea.length?d.porArea.slice(0,4).map(([a,n])=>`${esc(a)} ${n}`).join(" · ")+(d.porArea.length>4?" · …":""):"Sin vencidos"}</div></div>
       ${d.base?`<div class="kpi"><div class="kpi-label">${dot(d.prox?"warn":"ok")}<span>Próximos a vencer</span></div><div class="kpi-val">${d.prox}</div><div class="kpi-sub">${d.actual?"Estado POR VENCER en la base":"En los "+CONFIG.docDiasAviso+" días siguientes"}</div></div>`:""}
     </div>
