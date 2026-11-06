@@ -214,6 +214,10 @@ a.dv:hover{color:var(--blue);border-bottom-color:var(--blue)}
 td.fecha,th.fecha{white-space:nowrap}
 .est{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
 .est-pend{background:#fbe3e3;color:#b42323}.est-curso{background:#fdf1dc;color:#9a6200}.est-fuera{background:#eef2f8;color:#4a5878}
+.kpi-click{cursor:pointer;display:flex}.kpi-click>.kpi{flex:1;transition:box-shadow .15s,transform .15s}
+.kpi-click:hover>.kpi{box-shadow:0 4px 14px rgba(11,42,91,.12);transform:translateY(-1px)}
+.kpi-click.sel>.kpi{outline:2px solid #0b2a5b;outline-offset:-2px}
+.atr-all{font-size:12px;font-weight:600;margin-left:10px;color:#2563eb}.atr-hint{font-size:11.5px;font-weight:400;color:#8a94a8;margin-left:10px}
 </style>
 </head>
 <body>
@@ -981,6 +985,10 @@ function kpiCard(label, v, sub, k, extra){
 const kSub=(x,txt)=> x&&x.d===0 ? "Sin registros abiertos" : x&&x.d!=null&&x.exact ? `${x.n} de ${x.d} ${txt}` : (x&&x.v!=null?"Según resumen CONSOLIDADO_CALIDAD":"Sin datos");
 const worst=arr=>{ const v=arr.filter(x=>x&&x!=="nodata"&&x!=="neutral"); return !v.length?"nodata":v.includes("bad")?"bad":v.includes("warn")?"warn":"ok"; };
 
+function filtroProg(p){
+  STATE.progF = (p && STATE.progF!==p) ? p : null; render();
+  const t=document.getElementById("atr-tit"); if(t && STATE.progF) t.scrollIntoView({behavior:"smooth",block:"start"});
+}
 function show(id){
   STATE.view=id;
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.dataset.v===id));
@@ -1074,12 +1082,13 @@ function render(){
     return `<span class="est est-${cls}">${esc(cls==="pend"&&!x.estado&&!x.r["estado"]?"Pendiente":t.charAt(0).toUpperCase()+t.slice(1).toLowerCase())}</span>`; };
   const atrRow=x=>`<tr><td class="strong">${esc(x.r["programa"])}</td><td>${esc(x.r["actividad / equipo"])}</td><td>${estAtr(x)}</td><td class="fecha">${fdate(x.plan)}</td><td class="n"><span class="cnt">${dot("bad")}${x.atraso}</span></td><td>${esc(x.r["responsable"]||"—")}</td></tr>`;
   const atrHead=`<thead><tr><th>Programa</th><th>Actividad / equipo</th><th>Estado</th><th>Fecha planificada</th><th class="n">Días de atraso</th><th>Responsable</th></tr></thead>`;
-  h+=view("programas",`<div class="kpis${o.programas.length>6?" k4":""}">${o.programas.map(p=>kpiCard(p.p==="Auditorías"?"Auditorías internas":p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)).join("")}</div>
-    <div class="sub-title">Detalle de atrasos${o.atrasos.length?` · ${o.atrasos.length}`:""}</div>
+  const PF=STATE.progF, atrF=PF?o.atrasos.filter(x=>norm(x.r["programa"])===norm(PF)):o.atrasos;
+  h+=view("programas",`<div class="kpis${o.programas.length>6?" k4":""}">${o.programas.map(p=>`<div class="kpi-click${PF===p.p?" sel":""}" title="Ver atrasos de ${esc(p.p)}" onclick="filtroProg('${p.p.replace(/'/g,"\\'")}')">`+kpiCard(p.p==="Auditorías"?"Auditorías internas":p.p,p.v,p.sub?p.sub:p.mensual?(p.tot?`${p.ok} de ${p.tot} en plazo · ${p.txt}`:`Sin ${p.txt}`):p.vigencia?`${p.ok.toLocaleString("es-CL")} de ${p.tot.toLocaleString("es-CL")} con ${norm(p.p).startsWith("calib")?"calibración":"registro"} vigente · ${p.delMes} en el mes`:p.plazo?(p.tot?`${p.ok} en plazo · ${p.ej} ejecutadas de ${p.tot} programadas a la fecha`:`Sin auditorías programadas a la fecha · ${p.anio} en el año`):p.acum?(p.tot?`${p.ok} de ${p.tot} programadas a la fecha · ${p.anio} en el año`:`Sin actividades programadas a la fecha · ${p.anio} en el año`):p.tot?(p.anual?`${p.ok} de ${p.tot} realizadas · avance anual`:`${p.ok} de ${p.tot} en plazo`):"Sin datos",(p.anual||p.acum)?"val":undefined)+`</div>`).join("")}</div>
+    <div class="sub-title" id="atr-tit">Detalle de atrasos${PF?` · ${esc(PF==="Auditorías"?"Auditorías internas":PF)}`:""}${atrF.length?` · ${atrF.length}`:""}${PF?` <a href="#" class="atr-all" onclick="filtroProg(null);return false">Ver todos los programas</a>`:` <span class="atr-hint">Haga clic en una tarjeta para ver sus atrasos</span>`}</div>
     <div class="tbl-wrap"><table>${atrHead}<tbody>
-    ${o.atrasos.length?o.atrasos.slice(0,TOP).map(atrRow).join(""):`<tr><td colspan="6" class="empty">Sin atrasos en el período</td></tr>`}
+    ${atrF.length?(PF?atrF:atrF.slice(0,TOP)).map(atrRow).join(""):`<tr><td colspan="6" class="empty">${PF?"Sin atrasos de este programa en el período":"Sin atrasos en el período"}</td></tr>`}
     </tbody></table></div>
-    ${o.atrasos.length>TOP?`<details><summary>Ver ${o.atrasos.length-TOP} más</summary><div class="tbl-wrap"><table>${atrHead}<tbody>${o.atrasos.slice(TOP).map(atrRow).join("")}</tbody></table></div></details>`:""}`);
+    ${!PF&&atrF.length>TOP?`<details><summary>Ver ${atrF.length-TOP} más</summary><div class="tbl-wrap"><table>${atrHead}<tbody>${atrF.slice(TOP).map(atrRow).join("")}</tbody></table></div></details>`:""}`);
 
   // ---------- 2 Eventos ----------
   const evAbT=o.eventos.reduce((a,e)=>a+e.ab,0);
