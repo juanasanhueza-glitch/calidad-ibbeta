@@ -273,7 +273,7 @@ const CONFIG = {
     ],
     /* Programa anual de mantención (Resumen_Anual_Mantenimiento_2026, Mantenimiento) · enlace CSV publicado.
        Una fila por equipo; columnas ENE..DIC: 1 = ejecutada, 0 = programada no ejecutada, vacío = sin mantención ese mes */
-    MantPrograma: "",
+    MantPrograma: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDwGK-ZjOs1D1Sy_9XjmOYATUU5ng302ni4iPYl8D4tpuekEZuiwYpwJ3OaIQKjyp3faxzMM5Xcs0/pub?gid=264693335&single=true&output=csv",
     Auditorias: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6OucyaISsFqr3RNkWh0SjXr3Abdrlc9DZ5lmVGOXi1_PgSh5kJHqddb2E-_8-wd9I4sROvf80yRI6/pub?gid=778109467&single=true&output=csv",     // Programa_Auditorias_Internas (Google Sheets) · enlace CSV publicado. Si está, reemplaza a la lectura del portal
     Validaciones: "",   // (opcional) hoja resumen; no se usa si están las hojas de detalle
     /* Seguimiento_Programa_Validaciones_2026 · una hoja por programa (Mes programado, Estado, Fecha de realización) */
@@ -465,7 +465,7 @@ async function loadSheets(){
   if(mpu){ try{ const r=await fetch(mpu,{cache:"no-store"}); if(!r.ok) throw new Error(`respuesta ${r.status}`);
       tables.MantProg=toTable(parseCSV(await r.text()),"equipo").filter(r=>(r["equipo"]||"").trim()); }
     catch(e){ errors.push(`Programa de mantención (Resumen Anual Mantenimiento): ${e.message}`); } }
-  if(!tables.MantProg){ tables.MantProg=MANT_PROG_SNAPSHOT.rows; tables.MantSnap=MANT_PROG_SNAPSHOT.fecha; }
+  if(!tables.MantProg||!tables.MantProg.length){ tables.MantProg=MANT_PROG_SNAPSHOT.rows; tables.MantSnap=MANT_PROG_SNAPSHOT.fecha; }
   tables.ValDet={};
   const vd=(CONFIG.fuentes||{}).ValDetalle||{};
   await Promise.all(Object.entries(vd).filter(([,u])=>u).map(async([prog,u])=>{
@@ -627,7 +627,7 @@ function compute(){
         totA++; if(v) okA++; if(k===mi){ tot++; if(v) ok++; }
         if(!v){ const fin=new Date(+STATE.mes.slice(0,4),k+1,0);
           atrVal.push({r:{"programa":"Mantención","actividad / equipo":[r["equipo"],r["area"],r["cod. interno"]?"N° "+String(r["cod. interno"]).replace(/\.0$/,""):""].filter(Boolean).join(" · "),"responsable":"Mantenimiento"},plan:fin,atraso:Math.max(0,Math.round((refD0-fin)/DAY))}); } } });
-      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:(tot?`${ok} de ${tot} ejecutadas este mes<br>${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes<br>${okA} de ${totA} en el año`)+(T.MantSnap?`<br>MAN-013.05 · registro al <span style="white-space:nowrap">${T.MantSnap}</span>`:`<br>Programa MAN-013.05`),txt:"mantenciones programadas en el mes"};
+      return {p,tot,ok,v:ratio(ok,tot),mensual:true,ej:ok,sub:(tot?`${ok} de ${tot} ejecutadas este mes<br>${okA} de ${totA} en el año`:`Sin mantenciones programadas en el mes<br>${okA} de ${totA} en el año`)+(T.MantSnap?`<br>MAN-013.05 · registro al <span style="white-space:nowrap">${T.MantSnap}</span>`:`<br>MAN-013.05 · en línea con Mantenimiento`),txt:"mantenciones programadas en el mes"};
     }
     if(norm(p)==="mantencion" && EQ.PROG_MANT && EQ.PROG_MANT.length){
       const MM=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
