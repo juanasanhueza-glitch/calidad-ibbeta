@@ -946,7 +946,7 @@ function abrir(id){
   const hijos = [...MODEL.eq.values()].filter(x => !x.oculto && x.padre && K(x.padre) === K(e.id)).sort((a,b) => String(a.id).localeCompare(String(b.id), 'es', {numeric:true}));
   const calPorHijos = !e.cal[0] && hijos.length > 0 && !esBaja(e.sit);
   const hijosOp = hijos.filter(h => !esBaja(h.sit)).length, hijosBaja = hijos.length - hijosOp;
-  const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijosOp} operativo${hijosOp===1?'':'s'}${hijosBaja ? `, ${hijosBaja} de baja` : ''}).</i>` : '';
+  const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijosOp} operativo${hijosOp===1?'':'s'}${hijosBaja ? `, ${hijosBaja} de baja` : ''}).</i>` : (e.naCal && !e.cal[0] ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}.</i>` : '');
   try { const u = new URL(location); u.searchParams.set('id', e.id); history.replaceState(null,'',u); } catch(_){}
   const tile = (lbl, est, x, extra='', nota='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
      <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · <span class="nw">${esc(x.cert)}</span>`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
