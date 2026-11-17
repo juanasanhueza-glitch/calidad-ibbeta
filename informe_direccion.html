@@ -72,10 +72,70 @@
   #tip { position:fixed; pointer-events:none; z-index:50; background:#16202e; color:#fff; font-size:12px; padding:7px 10px; border-radius:6px; max-width:320px; line-height:1.4; display:none; box-shadow:0 4px 14px rgba(0,0,0,.2); }
   .estado-carga { padding:30px; text-align:center; color: var(--text-secondary); }
   @media (max-width: 760px) { .tema-fila { grid-template-columns: 1fr 40px; } .tema-fila .barra { grid-column: 1 / 3; } .tema-fila .areas { grid-column: 1 / 3; } .resp-fila { grid-template-columns: 1fr 60px; } .resp-fila .barra { grid-column: 1/3; } }
+  /* ---------- Documento: membrete, portada y firmas ---------- */
+  .marco, .marco > tbody, .marco > tbody > tr, .marco > tbody > tr > td { display:block; }
+  .marco > thead { display:none; }
+  .membrete { width:100%; border-collapse:collapse; table-layout:fixed; border:1.5px solid #000; background:#fff; }
+  .membrete td { border:1px solid #000; vertical-align:middle; padding:6px 10px; font-size:10.5px; color:#000; }
+  .membrete .m-logo { width:24%; text-align:center; }
+  .membrete .m-logo img { max-width:100%; height:auto; max-height:56px; }
+  .membrete .m-centro { width:50%; text-align:center; }
+  .membrete .m-conf { font-weight:700; letter-spacing:2px; font-size:11px; }
+  .membrete .m-der { width:26%; line-height:1.6; }
+  .portada { background:#fff; border:1px solid var(--border); border-radius:10px; padding:22px 26px; margin-top:4px; }
+  .portada h1 { font-size:22px; color:var(--navy); margin:4px 0 2px; text-align:center; }
+  .portada .p-sub { text-align:center; color:var(--text-secondary); font-size:13px; margin-bottom:16px; }
+  .portada h3 { font-size:13px; color:var(--navy); margin:16px 0 6px; text-transform:uppercase; letter-spacing:.4px; }
+  .portada p { font-size:13px; line-height:1.5; margin:0; color:var(--text-primary); }
+  table.firmas, table.dist { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
+  table.firmas th, table.firmas td, table.dist th, table.dist td { border:1px solid #9aa1ab; padding:7px 8px; text-align:left; vertical-align:middle; }
+  table.firmas th, table.dist th { background:#eef1f5; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
+  table.firmas td { height:46px; }
+  .indice { columns:2; font-size:12.5px; margin:0; padding-left:18px; }
+  .indice li { margin:3px 0; }
+  .sec-titulo { break-after:avoid; }
   @media print {
-    body { background:#fff; } header.top .acciones { display:none; }
-    .card { break-inside: avoid; } h2 { break-after: avoid; }
+    @page { size: letter; margin: 12mm 11mm 14mm 11mm;
+      @bottom-left { content: "Informe de Auditorías Internas a la Dirección · Documento confidencial"; font: 8pt 'Segoe UI', Arial, sans-serif; color:#7c8592; }
+      @bottom-right { content: "Pág. " counter(page) " de " counter(pages); font: 8pt 'Segoe UI', Arial, sans-serif; color:#4f5866; } }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body, .viz-root { background:#fff; }
+    header.top { display:none; }
     #tip { display:none !important; }
+    .marco { display:table; width:100%; border-collapse:collapse; }
+    .marco > thead { display:table-header-group; }
+    .marco > tbody { display:table-row-group; }
+    .marco > tbody > tr, .marco > thead > tr { display:table-row; }
+    .marco > tbody > tr > td, .marco > thead > tr > td { display:table-cell; padding:0; }
+    .marco > thead td { padding-bottom:10px; }
+    .wrap { max-width:none; padding:0; }
+    .portada { border:0; padding:6px 2px 0; break-after:page; }
+    h2 { font-size:14px; margin:16px 0 3px; }
+    .h2sub { font-size:11px; margin-bottom:8px; }
+    .card { padding:10px 12px; border-radius:6px; }
+    .sec { break-inside:auto; }
+    .sec-nueva { break-before:page; }
+    .sec-titulo, .sec-titulo + .h2sub { break-after:avoid; }
+    .no-romper, .kpi, .prog .it, .tema-fila, .resp-fila { break-inside:avoid; }
+    table.t tr { break-inside:avoid; }
+    table.t thead { display:table-header-group; }
+    table.t { font-size:10.5px; }
+    table.t th { font-size:9px; padding:5px 6px; }
+    table.t td { padding:5px 6px; }
+    .mensajes li { font-size:12px; }
+    .kpi .v { font-size:24px; }
+    .grid-kpi { grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .prog { grid-template-columns: repeat(3, 1fr); gap:6px; }
+    .prog .it { padding:6px 8px; font-size:11px; }
+    .tema-fila { grid-template-columns: 190px 1fr 36px; padding:6px 0; }
+    .chip { font-size:9.5px; padding:1px 6px; }
+    .no-print { display:none !important; }
+    .card { overflow:visible !important; }
+    .estado { white-space:normal; }
+    .tema-fila { padding:4px 0; }
+    .tema-fila .barra { height:16px; }
+    .criterios { font-size:9.5px !important; line-height:1.35 !important; }
+    .tema-fila .areas { margin-top:-4px; }
   }
 </style>
 </head>
@@ -92,7 +152,18 @@
     </div>
   </div>
 </header>
-<div class="wrap" id="contenido"><div class="estado-carga">Cargando datos de auditoría…</div></div>
+<table class="marco">
+  <thead><tr><td>
+    <table class="membrete"><tr>
+      <td class="m-logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAABNCAIAAAAEtD6aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABA8SURBVHhe7Z0JVFVVF8fFCQfUxIGyUnEIHDBtQMsRzRRRKsdcoiHSAJg55gCpOKXiPBQSlmZa6jK1rByaFIdEwkycSmOlOYTiCA6g3e/33r6+9bqfij6G5+qe3zrLde4Z9jn33f/ZZx/efVVIUyhMgBK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRL6/c65c+fmzZt3+vRp/VrhEPcg9A8+0Pz88izFxmppabplxR2YOnVqcHDwpUuX9GuFQ9yt0OPitEKF8jh5e2v79un2HWPv3r1jxoz5559/Zs+e/fXXX1OSmZkZFRV16NChGzduUEjtO++8k5qaunv3bvJURUZGktmwYUNcXNw333wTHx8/evRoCmk2ceLEHTt2jBs37uLFi5j6/vvv58+fv2nTJukIZLZs2ULVokWLBg8eTJc1a9ZY5nGTrVu3in149913r1+//vfff48aNYp/qd2+fTv5YcOGnTx5Utrjrd9++20sMwqXjEv+yJEj5A8cOMDEsDBjxozNmzfj0ani0tpPO3PmDKauXLmyePHiZcuWSeH48ePpQgn3zuXhw4eHDx8+cuTIX3/9VRoItJd7gYULF/LpJScn26bNcDt37iTD3Umh2N+1a9eUKVPEgkDH7777jhFps3TpUhnUBtNYtWqVfnEfcFdCnzPHqNG8Sj4++hCO8cknnxQqVIiPuH79+mSQ77Vr18igDFReuXJlnvGQIUMeeOCBv/76i+fXokWLhx9+mMyff/5ZpUqV8PDwffv2rV+/ni6TJ0/mWX7++efkjx8/jnFUUr58+aNHj9K+Zs2avr6+ZKjCcr169TDLY/b29mYOMhlAVa6urgwKdevWHTRo0B9//IFBtPvTTz899thjK1asmDBhwtNPP41Z1M98hg4d+tVXX9WuXZtpoHsas/wwhUrIZ2VlMcTAgQP37NnD5bfffisDvf/++1zSvmnTph07dkTxvXv37ty587Zt2xiFiaFyHx8fpvrRRx/VqVOHW5OOwOjP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" alt="Instituto Bioquímico Beta S.A."></td>
+      <td class="m-centro"><div class="m-conf">C O N F I D E N C I A L</div><div style="margin-top:5px;"><b>Sección:</b> Aseguramiento de Calidad</div><div style="margin-top:5px;"><b>Informe de Auditorías Internas a la Dirección</b></div></td>
+      <td class="m-der"><div><b>Periodo:</b> <span class="m-periodo">—</span></div><div><b>Datos al:</b> <span class="m-fecha">—</span></div></td>
+    </tr></table>
+  </td></tr></thead>
+  <tbody><tr><td>
+    <div class="wrap" id="contenido"><div class="estado-carga">Cargando datos de auditoría…</div></div>
+  </td></tr></tbody>
+</table>
 <div id="tip"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -116,6 +187,14 @@ const CARGOS_SANITARIOS = [
   {cargo:'Jefe de Control de Calidad', nombre:'Christian Espinoza'},
   {cargo:'Jefe de Producción', nombre:'Cristian Moreno'}
 ];
+
+// Control del documento (portada). Ajustar aquí si cambian las personas o cargos.
+const CONTROL_DOC = [
+  {rol:'Elaborado por', nombre:'Juana Sanhueza', cargo:'Analista de Calidad', funcion:'Elaboración del contenido'},
+  {rol:'Revisado por',  nombre:'Cecilia Villegas Varas', cargo:'Subgerente de Aseguramiento de Calidad', funcion:'Revisión del contenido'},
+  {rol:'Aprobado por',  nombre:'German Pinilla', cargo:'Gerente General', funcion:'Aprobación y toma de conocimiento'}
+];
+const DISTRIBUCION = [{cargo:'Gerente General', nombre:'German Pinilla'}].concat(CARGOS_SANITARIOS);
 
 // Área auditada → nombre corto, gerencia y cargo sanitario que responde
 const AREAS = [
@@ -249,6 +328,7 @@ function render(anio){
   const tot = hal.length;
   const nSev = k => hal.filter(f=>f._sev===k).length;
   const nRein = hal.filter(f=>f._rein).length;
+  const fechaHoy = (d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear())(new Date());
   const nPlan = hal.filter(f=>['cerrado','aceptado','respondido','devuelto'].includes(f._plan.k)).length;
 
   // Áreas (con hallazgos), ordenadas por gravedad
@@ -276,11 +356,11 @@ function render(anio){
   });
 
   // Mensajes clave (se generan con los datos)
-  const temaTop = temas[0];
+  const temaTop = temas.find(t=>t.t!=='Otros');
   const areaTop = areas[0];
   const mensajes = [];
   if(tot) mensajes.push(`Se levantaron <b>${tot} hallazgos</b> en ${new Set(hal.map(f=>f._aud.id)).size} auditorías: <b>${nSev('NC Crítico')} críticos</b> y <b>${nSev('NC Mayor')} mayores</b>, que requieren gestión de las jefaturas sanitarias.`);
-  if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.toLowerCase())}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
+  if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.charAt(0).toLowerCase()+temaTop.t.slice(1))}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
   if(areaTop) mensajes.push(`El área con mayor riesgo es <b>${esc(areaTop)}</b>, con ${hal.filter(f=>f._area===areaTop).length} hallazgos (${(n=>n===1?'1 crítico':n+' críticos')(hal.filter(f=>f._area===areaTop && f._sev==='NC Crítico').length)}).`);
   if(tot) mensajes.push(`<b>${pct(nRein,tot)}%</b> de los hallazgos son <b>reincidencias</b> de auditorías anteriores (${nRein}): las acciones comprometidas no se implementaron o no fueron eficaces.`);
   if(tot) mensajes.push(`Solo <b>${pct(nPlan,tot)}%</b> de los hallazgos tiene plan de acción registrado (${nPlan} de ${tot}); ${tot-nPlan} están pendientes de respuesta de las áreas.`);
@@ -289,14 +369,29 @@ function render(anio){
   const maxCelda = Math.max(1, ...areas.flatMap(a => SEV.map(s => hal.filter(f=>f._area===a && f._sev===s.k).length)));
   const colorCelda = n => { if(!n) return {bg:'#f3f5f8', fg:'var(--text-muted)'}; const r = n/maxCelda; const steps=['--seq-1','--seq-2','--seq-3','--seq-4','--seq-5']; const i = Math.min(4, Math.floor(r*4.999)); return {bg:`var(${steps[i]})`, fg: i>=2 ? '#fff' : 'var(--text-primary)'}; };
 
-  document.getElementById('sub').textContent = `Aseguramiento de Calidad · Programa ${anio} · Datos al ${(d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear())(new Date())} · Dirigido a: ${CARGOS_SANITARIOS.map(c=>c.cargo).join(', ')}`;
+  document.getElementById('sub').textContent = `Aseguramiento de Calidad · Programa ${anio} · Datos al ${(d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear())(new Date())} · Dirigido a: ${DISTRIBUCION.map(c=>c.cargo).join(', ')}`;
 
-  document.getElementById('contenido').innerHTML = `
-    <h2>1. Mensajes clave</h2>
+  document.querySelectorAll('.m-periodo').forEach(e=>e.textContent=anio);
+  document.querySelectorAll('.m-fecha').forEach(e=>e.textContent=fechaHoy);
+  const portada = `<section class="portada">
+      <h1>Informe de Auditorías Internas a la Dirección</h1>
+      <div class="p-sub">Programa de auditorías internas ${anio} · Datos al ${fechaHoy}</div>
+      <h3>Objetivo</h3>
+      <p>Informar a la Dirección el resultado del programa de auditorías internas ${anio}, las debilidades del sistema de calidad identificadas, los hallazgos de mayor impacto sanitario y el estado de los planes de acción, para apoyar la toma de decisiones y la asignación de recursos.</p>
+      <h3>Dirigido a</h3>
+      <table class="dist"><thead><tr><th style="width:45%">Cargo</th><th>Nombre</th></tr></thead><tbody>${DISTRIBUCION.map(d=>`<tr><td>${esc(d.cargo)}</td><td>${esc(d.nombre)}</td></tr>`).join('')}</tbody></table>
+      <h3>Control del documento</h3>
+      <table class="firmas"><thead><tr><th style="width:16%"></th><th style="width:32%">Nombre / Cargo</th><th style="width:24%">Rol</th><th style="width:16%">Firma</th><th style="width:12%">Fecha</th></tr></thead>
+        <tbody>${CONTROL_DOC.map(c=>`<tr><td><b>${esc(c.rol)}</b></td><td>${esc(c.nombre)}<br><span style="color:var(--text-secondary)">${esc(c.cargo)}</span></td><td>${esc(c.funcion)}</td><td></td><td></td></tr>`).join('')}</tbody></table>
+      <h3>Contenido</h3>
+      <ol class="indice"><li>Mensajes clave</li><li>Resultados del programa</li><li>Mapa de riesgo por área</li><li>Debilidades del sistema de calidad</li><li>Hallazgos prioritarios e impacto sanitario</li><li>Compromiso por cargo sanitario</li><li>Requerimientos a la Dirección</li></ol>
+    </section>`;
+  document.getElementById('contenido').innerHTML = portada + `
+    <h2 class="sec-titulo">1. Mensajes clave</h2>
     <p class="h2sub">Lo que la Dirección debe saber, en cinco puntos.</p>
     <div class="card"><ul class="mensajes" style="margin:0; padding-left:20px;">${mensajes.map(m=>`<li>${m}</li>`).join('') || '<li>Sin hallazgos registrados para este año.</li>'}</ul></div>
 
-    <h2>2. Resultados del programa</h2>
+    <h2 class="sec-titulo">2. Resultados del programa</h2>
     <p class="h2sub">Indicadores principales de las auditorías internas ${anio}.</p>
     <div class="grid-kpi">
       <div class="card kpi"><div class="v">${nEjec} / ${nProg}</div><div class="l">Auditorías ejecutadas</div><div class="d">del programa anual ${anio}</div></div>
@@ -311,11 +406,11 @@ function render(anio){
       <div class="prog">${filasProg.map(p=>`<div class="it"><div class="n">${esc(p.t)}</div><div class="e" style="color:${p.color}">● ${esc(p.estado)}</div></div>`).join('')}</div>
     </div>
 
-    <h2>3. Mapa de riesgo por área</h2>
+    <h2 class="sec-titulo sec-nueva">3. Mapa de riesgo por área</h2>
     <p class="h2sub">Cantidad de hallazgos por área y criticidad. Las áreas están ordenadas de mayor a menor riesgo.</p>
     <div class="card" style="overflow-x:auto;">
       ${areas.length ? `<table class="t heat">
-        <thead><tr><th>Área</th>${SEV.map(s=>`<th class="num"><span class="sev"><i style="background:${s.c}"></i>${s.k}</span></th>`).join('')}<th class="num">Total</th><th>Jefatura del área / cargo sanitario</th></tr></thead>
+        <thead><tr><th>Área</th>${SEV.map(s=>`<th class="num"><span class="sev"><i style="background:${s.c}"></i>${s.k}</span></th>`).join('')}<th class="num">Total</th><th style="width:30%">Jefatura del área / cargo sanitario</th></tr></thead>
         <tbody>${areas.map(a => {
           const fs = hal.filter(f=>f._area===a);
           return `<tr><td><b>${esc(a)}</b><div class="c" style="font-size:11.5px; color:var(--text-muted)">${esc(fs[0]._aud.codigoReporte||'')}</div></td>
@@ -325,7 +420,7 @@ function render(anio){
         }).join('')}</tbody></table>` : '<div class="vacio">Sin hallazgos registrados.</div>'}
     </div>
 
-    <h2>4. Debilidades del sistema de calidad</h2>
+    <h2 class="sec-titulo sec-nueva">4. Debilidades del sistema de calidad</h2>
     <p class="h2sub">Hallazgos agrupados por tema. Un tema que aparece en varias áreas indica una falla del sistema, que debe abordarse de forma transversal y no área por área.</p>
     <div class="card">
       ${sevLegend}
@@ -337,21 +432,21 @@ function render(anio){
       </div>`).join('') || '<div class="vacio">Sin hallazgos registrados.</div>'}
     </div>
 
-    <h2>5. Hallazgos prioritarios e impacto sanitario</h2>
+    <h2 class="sec-titulo sec-nueva">5. Hallazgos prioritarios e impacto sanitario</h2>
     <p class="h2sub">Hallazgos críticos y hallazgos mayores reincidentes: son los que observaría con mayor probabilidad una inspección del ISP (N.T. 127 / D.S. N° 3/2010) y los que requieren seguimiento directo de la jefatura sanitaria.</p>
     <div class="card" style="overflow-x:auto;">
-      ${prioritarios.length ? `<table class="t"><thead><tr><th>Criticidad</th><th>Área</th><th>Hallazgo</th><th>Requisito</th><th>Responde</th><th>Plan de acción</th></tr></thead><tbody>
+      ${prioritarios.length ? `<table class="t" style="table-layout:fixed;"><colgroup><col style="width:11%"><col style="width:13%"><col style="width:40%"><col style="width:14%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr><th>Criticidad</th><th>Área</th><th>Hallazgo</th><th>Requisito</th><th>Responde</th><th>Plan de acción</th></tr></thead><tbody>
         ${prioritarios.map(f => `<tr>
           <td><span class="sev"><i style="background:${sevColor(f._sev)}"></i>${esc(f._sev)}</span>${f._rein?'<div class="chip" style="margin-top:4px;">Reincidente</div>':''}</td>
           <td>${esc(f._area)}<div style="font-size:11.5px; color:var(--text-muted)">${esc(f._aud.codigoReporte||'')}</div></td>
-          <td>${esc(corto(f.descripcionHallazgo||f.requerimiento, 220))}</td>
+          <td>${esc(corto(f.descripcionHallazgo||f.requerimiento, 260))}</td>
           <td style="font-size:12px; color:var(--text-secondary)">${esc(corto(f.ref, 120))}</td>
           <td style="font-size:12px;">${esc(f._san)}</td>
           <td><span class="estado" style="color:${f._plan.c}">● ${f._plan.txt}</span>${f.fechaCompromiso?`<div style="font-size:11.5px; color:var(--text-muted)">Compromiso: ${fFecha(f.fechaCompromiso)}</div>`:''}</td>
         </tr>`).join('')}</tbody></table>` : '<div class="vacio">No hay hallazgos críticos ni mayores reincidentes.</div>'}
     </div>
 
-    <h2>6. Compromiso por cargo sanitario</h2>
+    <h2 class="sec-titulo">6. Compromiso por cargo sanitario</h2>
     <p class="h2sub">Estado de los planes de acción de los hallazgos que corresponde gestionar a cada cargo sanitario.</p>
     <div class="card">
       <div class="leyenda"><span><i style="background:var(--st-good)"></i>Cerrado</span><span><i style="background:var(--teal)"></i>Plan aceptado por QA</span><span><i style="background:var(--seq-4)"></i>Plan recibido (por revisar)</span><span><i style="background:var(--st-serious)"></i>Devuelto con observaciones</span><span><i style="background:var(--st-critical)"></i>Sin plan de acción</span></div>
@@ -362,7 +457,7 @@ function render(anio){
       </div>`).join('')}
     </div>
 
-    <h2>7. Requerimientos a la Dirección</h2>
+    <h2 class="sec-titulo">7. Requerimientos a la Dirección</h2>
     <p class="h2sub">Propuesta de Aseguramiento de Calidad para las debilidades transversales: decisiones y recursos que no puede resolver un área por sí sola.</p>
     <div class="card">
       <ol style="margin:0; padding-left:20px;">
@@ -371,8 +466,8 @@ function render(anio){
       <div class="nota">Propuesta generada a partir de los temas que se repiten en dos o más áreas; debe ser validada por Aseguramiento de Calidad antes de presentarse.</div>
     </div>
 
-    <h2>Criterios del informe</h2>
-    <div class="card" style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+    <h2 class="sec-titulo">Criterios del informe</h2>
+    <div class="card no-romper criterios" style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
       <b>Fuente:</b> registros de la app de auditorías internas (F-QA-009.03), actualizados en línea. <b>Criticidad:</b> NC Crítico, puede generar un producto perjudicial para el paciente o impedir controlar la liberación; NC Mayor, puede afectar la calidad, la trazabilidad o la integridad de los registros (incluye reincidencia de un hallazgo menor); NC Menor, desviación puntual sin impacto directo en la calidad. <b>Tema:</b> se asigna según el requisito normativo citado en cada hallazgo. <b>Plan de acción:</b> se considera recibido cuando el área registró causa raíz y acción en el portal del auditado; luego Aseguramiento de Calidad lo acepta o lo devuelve con observaciones. <b>Plazo de respuesta:</b> 45 días hábiles desde la recepción del reporte (SOP QA-009).
     </div>
   `;
