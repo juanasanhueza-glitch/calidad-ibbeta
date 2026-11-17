@@ -163,6 +163,26 @@ const normalizarCodigo = s => (s || '').trim().toLowerCase();
 const todayStr = () => new Date().toISOString().slice(0,10);
 const esc = s => (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+// Observaciones de Calidad sobre la respuesta (las notas internas no se muestran al área)
+function observacionesCalidadHtml(f){
+  const revs = (f.revisionesQA||[]).filter(r => r.decision !== 'Nota interna');
+  if(!revs.length) return '';
+  const ult = revs[revs.length-1];
+  const respDespues = f.respondioTs ? (f.respondioTs > ult.ts) : ((f.respondioFecha||'') > (ult.fecha||''));
+  const caja = (r, destacada) => {
+    const dev = r.decision !== 'Aceptado';
+    return `<div style="border-left:4px solid ${dev?'#ec835a':'#2f7a72'}; background:${dev?'#fdf1ec':'#eaf5f2'}; border-radius:6px; padding:8px 12px; margin-bottom:6px; ${destacada?'':'opacity:.75;'}">
+      <div style="font-size:12.5px; font-weight:700; color:${dev?'#8a3b1c':'#2d6a3a'};">${dev?'↩ Respuesta devuelta con observaciones':'✅ Plan de acción aceptado'} · ${esc(fmtFechaDMY(r.fecha))}</div>
+      ${r.texto ? `<div style="font-size:13px; margin-top:3px; white-space:pre-wrap;">${esc(r.texto)}</div>` : ''}
+    </div>`;
+  };
+  return `<div class="field">
+    <div class="evidencia-section-label">💬 Observaciones de Calidad sobre su respuesta</div>
+    ${caja(ult, true)}
+    ${ult.decision !== 'Aceptado' ? `<div style="font-size:12px; color:#4f5866; margin:2px 0 6px;">${respDespues ? '✓ Ya envió una nueva respuesta; Calidad la revisará.' : 'Por favor corrija su respuesta según la observación y presione «Guardar respuesta».'}</div>` : ''}
+    ${revs.length > 1 ? `<details><summary style="font-size:12px; cursor:pointer; color:#4f5866;">Ver observaciones anteriores (${revs.length-1})</summary>${revs.slice(0,-1).reverse().map(r=>caja(r,false)).join('')}</details>` : ''}
+  </div>`;
+}
 function critClass(crit){
   const c = (crit||'').toLowerCase();
   if(c.includes('crít') || c.includes('crit')) return 'crit-critico';
@@ -329,7 +349,11 @@ function renderFindings(audit, findings){
         <span class="progress-chip">📅 Llevas <b>&nbsp;${dias}&nbsp;</b> día${dias===1?'':'s'} respondiendo esta auditoría</span>
         <span class="progress-chip ${completo?'complete':''}">${completo?'✅':'📝'} Has respondido <b>&nbsp;${respondidos} de ${findings.length}&nbsp;</b> hallazgo${findings.length===1?'':'s'}</span>
       </div>
-      ${completo ? `<div class="complete-note">✅ Has respondido todos tus hallazgos. En la fecha de compromiso se solicitará la evidencia objetiva para el cierre correspondiente.</div>` : ''}
+      ${(() => {
+        const devueltos = findings.filter(f => { const revs=(f.revisionesQA||[]).filter(r=>r.decision!=='Nota interna'); const u=revs[revs.length-1]; if(!u || u.decision==='Aceptado') return false; return !(f.respondioTs ? f.respondioTs > u.ts : (f.respondioFecha||'') > (u.fecha||'')); }).length;
+        if(devueltos) return `<div class="complete-note" style="background:#fdf1ec; border-color:#ec835a; color:#8a3b1c;">↩ Calidad devolvió <b>${devueltos}</b> respuesta${devueltos===1?'':'s'} con observaciones. Revise el recuadro «💬 Observaciones de Calidad» en cada hallazgo, corrija y guarde nuevamente.</div>`;
+        return completo ? `<div class="complete-note">✅ Has respondido todos tus hallazgos. En la fecha de compromiso se solicitará la evidencia objetiva para el cierre correspondiente.</div>` : '';
+      })()}
       ` : ''}
       <div class="responder-badge">Respondiendo como: <b>${esc(respondiente.nombre)}</b> (${esc(respondiente.cargo)}) · <a href="#" id="cambiar-respondiente">Cambiar</a></div>
     </div>
@@ -374,6 +398,7 @@ function renderFindings(audit, findings){
         <div class="finding-desc">${esc(f.evidenciaObjetiva) || '(sin evidencia objetiva registrada)'}</div>
         <div class="fotos-readonly-note">Este campo lo registró Calidad al levantar el hallazgo y no puede modificarse desde este formulario.</div>
       </div>
+      ${observacionesCalidadHtml(f)}
       <div class="field">
         <label>Causa raíz</label>
         <textarea class="f-causaRaiz" placeholder="¿Cuál fue la causa que originó este hallazgo?">${esc(f.causaRaiz)}</textarea>
@@ -502,7 +527,8 @@ function renderFindings(audit, findings){
         // 'fotos' y 'evidenciaObjetiva' (registrados por Calidad) nunca se envían desde este portal: quedan intactos.
         respondioNombre: respondiente.nombre,
         respondioCargo: respondiente.cargo,
-        respondioFecha: todayStr()
+        respondioFecha: todayStr(),
+        respondioTs: new Date().toISOString()
       };
       try{
         await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').doc(id).set(payload, {merge:true});

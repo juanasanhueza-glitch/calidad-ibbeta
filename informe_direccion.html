@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe a la Dirección – Auditorías Internas</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-0: #f4f5f7;
+    --surface-1: #ffffff;
+    --border: #e1e4e9;
+    --text-primary: #16202e;
+    --text-secondary: #4f5866;
+    --text-muted: #7c8592;
+    --navy: #1b2a4a;
+    --teal: #2f7a72;
+    --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #5598e7; --seq-4: #256abf; --seq-5: #104281;
+    --st-critical: #d03b3b;
+    --st-serious: #ec835a;
+    --st-warning: #fab219;
+    --st-good: #0ca30c;
+    --st-neutral: #9aa1ab;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background: var(--surface-0); color: var(--text-primary); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
+  header.top { background: var(--navy); color:#fff; }
+  header.top .wrap { padding-top:18px; padding-bottom:18px; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
+  header.top h1 { margin:0; font-size:22px; letter-spacing:.2px; }
+  header.top .sub { color:#c9d3e4; font-size:13px; margin-top:4px; }
+  header.top .acciones { display:flex; gap:8px; align-items:center; }
+  header.top select, header.top button { font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff; cursor:pointer; }
+  header.top select option { color:#000; }
+  h2 { font-size:16px; margin: 30px 0 4px; color: var(--navy); }
+  .h2sub { font-size:12.5px; color: var(--text-secondary); margin: 0 0 12px; }
+  .card { background: var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
+  .grid-kpi { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; }
+  .kpi .v { font-size:30px; font-weight:700; line-height:1.1; color: var(--text-primary); }
+  .kpi .l { font-size:12.5px; color: var(--text-secondary); margin-top:4px; }
+  .kpi .d { font-size:11.5px; color: var(--text-muted); margin-top:6px; }
+  .kpi .marca { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .mensajes li { margin: 6px 0; font-size:14px; line-height:1.45; }
+  table.t { width:100%; border-collapse:collapse; font-size:13px; }
+  table.t th { text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; color: var(--text-secondary); border-bottom:1px solid var(--border); padding:8px 8px; font-weight:600; }
+  table.t td { border-bottom:1px solid var(--border); padding:8px 8px; vertical-align:top; }
+  table.t td.num, table.t th.num { text-align:center; }
+  .heat td.c { text-align:center; font-weight:700; border:2px solid var(--surface-1); border-radius:4px; min-width:56px; }
+  .chip { display:inline-block; font-size:11.5px; padding:2px 8px; border-radius:10px; background:#eef1f5; color: var(--text-secondary); margin:2px 4px 2px 0; }
+  .sev { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color: var(--text-primary); white-space:nowrap; }
+  .sev i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .estado { font-size:12px; font-weight:600; white-space:nowrap; }
+  .barra { display:flex; height:22px; border-radius:4px; overflow:hidden; background:#eef1f5; }
+  .barra span { height:100%; border-right:2px solid var(--surface-1); }
+  .barra span:last-child { border-right:0; }
+  .tema-fila { display:grid; grid-template-columns: 230px 1fr 46px; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+  .tema-fila .nom { font-size:13.5px; font-weight:600; }
+  .tema-fila .areas { grid-column: 2 / 4; margin-top:-2px; }
+  .tema-fila .tot { font-weight:700; text-align:right; }
+  .leyenda { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color: var(--text-secondary); margin-bottom:8px; }
+  .leyenda span { display:inline-flex; align-items:center; gap:5px; }
+  .leyenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .prog { display:grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap:8px; }
+  .prog .it { border:1px solid var(--border); border-radius:8px; padding:10px 12px; background: var(--surface-1); font-size:13px; }
+  .prog .it .n { font-weight:600; }
+  .prog .it .e { font-size:12px; margin-top:4px; }
+  .nota { font-size:12px; color: var(--text-muted); margin-top:10px; }
+  .vacio { color: var(--text-muted); font-size:13px; padding:10px 0; }
+  .resp-fila { display:grid; grid-template-columns: 1.4fr 70px 2fr; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .resp-fila .q { font-weight:600; font-size:13.5px; }
+  .resp-fila .c { font-size:12px; color: var(--text-secondary); }
+  #tip { position:fixed; pointer-events:none; z-index:50; background:#16202e; color:#fff; font-size:12px; padding:7px 10px; border-radius:6px; max-width:320px; line-height:1.4; display:none; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+  .estado-carga { padding:30px; text-align:center; color: var(--text-secondary); }
+  @media (max-width: 760px) { .tema-fila { grid-template-columns: 1fr 40px; } .tema-fila .barra { grid-column: 1 / 3; } .tema-fila .areas { grid-column: 1 / 3; } .resp-fila { grid-template-columns: 1fr 60px; } .resp-fila .barra { grid-column: 1/3; } }
+  @media print {
+    body { background:#fff; } header.top .acciones { display:none; }
+    .card { break-inside: avoid; } h2 { break-after: avoid; }
+    #tip { display:none !important; }
+  }
+</style>
+</head>
+<body class="viz-root">
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Informe de Auditorías Internas a la Dirección</h1>
+      <div class="sub" id="sub">Aseguramiento de Calidad · IBBeta</div>
+    </div>
+    <div class="acciones">
+      <select id="anio"></select>
+      <button type="button" onclick="window.print()">🖨️ Imprimir / PDF</button>
+    </div>
+  </div>
+</header>
+<div class="wrap" id="contenido"><div class="estado-carga">Cargando datos de auditoría…</div></div>
+<div id="tip"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+// ======================= CONFIGURACIÓN =======================
+// Página de solo lectura: lee las auditorías y hallazgos de la app del auditor (no escribe nada).
+firebase.initializeApp({
+  apiKey: "AIzaSyBsSPz1E1m-PAyO3dUmHXEVZ4cLtiMxpVI",
+  authDomain: "ibbeta-kpi.firebaseapp.com",
+  projectId: "ibbeta-kpi",
+  storageBucket: "ibbeta-kpi.firebasestorage.app",
+  messagingSenderId: "706859690232",
+  appId: "1:706859690232:web:bd73c952c93b8213ffb30d"
+});
+const db = firebase.firestore();
+
+const CARGOS_SANITARIOS = [
+  {cargo:'Director Técnico', nombre:'Esteban Centella'},
+  {cargo:'Jefe de Aseguramiento de Calidad', nombre:'Cecilia Villegas'},
+  {cargo:'Jefe de Control de Calidad', nombre:'Christian Espinoza'},
+  {cargo:'Jefe de Producción', nombre:'Cristian Moreno'}
+];
+
+// Área auditada → nombre corto, gerencia y cargo sanitario que responde
+const AREAS = [
+  {m:/fraccion/i,               corto:'Fraccionamiento',      jefatura:'Cristian Moreno, Jefe de Producción',            gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/bodega/i,                 corto:'Bodega',               jefatura:'Ana María Alegría, Jefa de Bodega',              gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/producci.n i\b|producci.n i \(/i, corto:'Producción I', jefatura:'Cristian Moreno, Jefe de Producción',        gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/producci.n ii/i,          corto:'Producción II',        jefatura:'Cristian Moreno, Jefe de Producción',            gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/aseo|higiene/i,           corto:'Aseo e Higiene',       jefatura:'Cristian Moreno (aseo planta) · Héctor Guerrero (aseo exterior)', gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/mantenimiento/i,          corto:'Mantenimiento',        jefatura:'Rubén Montenegro, Jefe de Mantención',           gerencia:'Producción (R. Sambuceti)', sanitario:'Jefe de Producción'},
+  {m:/microbiolog/i,            corto:'CC – Microbiología',   jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
+  {m:/envase/i,                 corto:'CC – Envase-Empaque',  jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
+  {m:/control de calidad/i,     corto:'CC – Fco-Química y Metodología', jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
+  {m:/personas|rrhh/i,          corto:'Gestión de Personas',  jefatura:'Mauricio Miranda, Gerente de Gestión de Personas', gerencia:'Gestión de Personas (M. Miranda)', sanitario:'Director Técnico'},
+  {m:/prevenci/i,               corto:'Prevención de Riesgos',jefatura:'Ignacio Fuentes, Jefe de Prevención de Riesgos', gerencia:'Prevención de Riesgos (I. Fuentes)', sanitario:'Director Técnico'},
+  {m:/aseguramiento/i,          corto:'Aseguramiento de Calidad', jefatura:'Cecilia Villegas, Subgerente de Aseguramiento de Calidad', gerencia:'Aseguramiento de Calidad (C. Villegas)', sanitario:'Jefe de Aseguramiento de Calidad'}
+];
+function areaInfo(nombre){
+  const a = AREAS.find(x => x.m.test(nombre||''));
+  return a || {corto: nombre || 'Sin área', jefatura:'—', gerencia:'—', sanitario:'Director Técnico'};
+}
+
+// Programa anual (mismo orden que la app). Aseguramiento de Calidad se reprograma para el año siguiente.
+const PROGRAMA = {
+  '2026': [
+    {t:'Prevención de Riesgos', m:/prevenci/i},
+    {t:'Gestión de Personas / RRHH', m:/personas|rrhh/i},
+    {t:'Fraccionamiento', m:/fraccion/i},
+    {t:'Bodega', m:/^bodega(?!.*fraccion)/i},
+    {t:'Producción I', m:/producci.n i\b|producci.n i \(/i},
+    {t:'Producción II', m:/producci.n ii/i},
+    {t:'Aseo e Higiene', m:/aseo|higiene/i},
+    {t:'Mantenimiento', m:/mantenimiento/i},
+    {t:'CC – Microbiología', m:/microbiolog/i},
+    {t:'CC – Fco-Química y Metodología', m:/fco-qu|metodolog/i},
+    {t:'CC – Envase-Empaque', m:/envase/i},
+    {t:'Aseguramiento de Calidad', m:/aseguramiento/i, nota:'Reprogramada para 2027'}
+  ]
+};
+
+// Temas transversales: se asignan por el requisito citado y, si no basta, por la descripción.
+const TEMAS = [
+  {t:'Integridad de datos (ALCOA+)', r:/ALCOA|QA-030|integridad de datos|punto 15\.7\b|punto 15\.8\b|enmienda|tachad/i,
+   pedido:'Programa de capacitación en buenas prácticas de registro (ALCOA+) para todas las áreas y supervisión periódica de registros.'},
+  {t:'Calibración y metrología', r:/13\.5|calibra|masa patr|BB-021|verificaci.n previa|vacu.metro|termohigr/i,
+   pedido:'Programa corporativo de calibración y verificación de instrumentos, con presupuesto para patrones de referencia y control de vencimientos.'},
+  {t:'Calificación y validación', r:/Cap\. 4 |calificaci|recalificaci|validaci.n de m/i,
+   pedido:'Plan maestro de calificación y validación aprobado, con frecuencias de recalificación definidas.'},
+  {t:'Control documental', r:/punto 15\.(3|5|14|15|17)\b|puntos 15\.(14|15|17)|documentaci.n no vigente|vencid|desactualiz|sin c.digo|CC-013|QA-012/i,
+   pedido:'Plan de actualización de SOPs vencidos o desactualizados (incluida la migración BPCS → SAP) con plazos por área.'},
+  {t:'Infraestructura y mantención', r:/12\.6|Instalaciones|infraestructura|pintura|z.calo|filtraci|esclusa|puerta/i,
+   pedido:'Plan de mantención de infraestructura de áreas productivas y laboratorio, priorizado por riesgo sanitario.'},
+  {t:'Higiene y sanitización', r:/Cap\. 3 |Higiene y Sanitizaci|sanitiz|HIG-/i,
+   pedido:'Revisión del programa de limpieza y sanitización y de la identificación de agentes de limpieza.'},
+  {t:'Materiales y rotulación', r:/Cap\. 14|rotul|reactivo|etiqueta|doble verificaci|14\.1[67]/i,
+   pedido:'Refuerzo de controles de rotulación y doble verificación en manejo de materiales.'},
+  {t:'Personal y capacitación', r:/Cap\. 9 |Cap\. 10 |capacitaci|descripci.n de cargo|organigrama/i,
+   pedido:'Cumplimiento del programa anual de capacitación aprobado y actualización de descripciones de cargo.'},
+  {t:'Procesos productivos', r:/Cap\. 16|Buenas Pr.cticas en Producci/i,
+   pedido:'Revisión de controles de proceso en producción.'}
+];
+function temaDe(f){
+  const ref = (f.ref||'') + ' ';
+  const txt = (f.descripcionHallazgo || f.requerimiento || '');
+  for(const t of TEMAS){ if(t.r.test(ref)) return t.t; }
+  for(const t of TEMAS){ if(t.r.test(txt)) return t.t; }
+  return 'Otros';
+}
+
+const SEV = [
+  {k:'NC Crítico', c:'var(--st-critical)'},
+  {k:'NC Mayor',   c:'var(--st-serious)'},
+  {k:'NC Menor',   c:'var(--st-warning)'},
+  {k:'Observación',c:'var(--st-neutral)'}
+];
+function sevDe(f){ const c = (f.criticidad||'').trim(); return SEV.find(s=>s.k===c) ? c : (/obs|mejora/i.test(c) ? 'Observación' : (c || 'Observación')); }
+function sevColor(k){ const s = SEV.find(x=>x.k===k); return s ? s.c : 'var(--st-neutral)'; }
+
+function esReincidente(f){ return !!(f.esReincidente || f.vinculoTipo==='Reincidente' || /^\s*\[Reincidente/i.test(f.descripcionHallazgo||'')); }
+function estadoPlan(f){
+  if(f.estado === 'Cerrada') return {k:'cerrado', txt:'Cerrado', c:'var(--st-good)'};
+  const revs = (f.revisionesQA||[]).filter(r => r.decision !== 'Nota interna');
+  const u = revs[revs.length-1];
+  const respondido = !!((f.causaRaiz||'').trim() && (f.accion||'').trim());
+  if(u){
+    const respDespues = f.respondioTs ? (f.respondioTs > u.ts) : ((f.respondioFecha||'') > (u.fecha||''));
+    if(!respDespues && u.decision === 'Aceptado') return {k:'aceptado', txt:'Plan aceptado por QA', c:'var(--teal)'};
+    if(!respDespues) return {k:'devuelto', txt:'Devuelto con observaciones', c:'var(--st-serious)'};
+  }
+  if(respondido) return {k:'respondido', txt:'Plan recibido (por revisar)', c:'var(--seq-4)'};
+  return {k:'pendiente', txt:'Sin plan de acción', c:'var(--st-critical)'};
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fFecha(iso){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso||''); }
+function corto(t, n){ t = String(t||'').replace(/^\s*\[[^\]]*\]\s*/,'').replace(/\s+/g,' ').trim(); return t.length>n ? t.slice(0,n-1)+'…' : t; }
+function pct(a,b){ return b ? Math.round(a*100/b) : 0; }
+
+// ======================= DATOS =======================
+let AUD = [], HAL = [];
+async function cargar(){
+  const [sa, sh] = await Promise.all([
+    db.collection('kpi_ibbeta').doc('nt127_auditorias').collection('items').get(),
+    db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').get()
+  ]);
+  AUD = sa.docs.map(d=>d.data());
+  HAL = sh.docs.map(d=>d.data());
+}
+
+// ======================= RENDER =======================
+function render(anio){
+  const auds = AUD.filter(a => (a.fecha||'').slice(0,4) === anio);
+  const audById = Object.fromEntries(auds.map(a=>[a.id, a]));
+  const hal = HAL.filter(f => audById[f.auditId]).map(f => {
+    const a = audById[f.auditId];
+    const ai = areaInfo(a.areaManual || '');
+    return {...f, _aud:a, _area:ai.corto, _jef:ai.jefatura, _ger:ai.gerencia, _san:ai.sanitario, _tema:temaDe(f), _sev:sevDe(f), _rein:esReincidente(f), _plan:estadoPlan(f)};
+  });
+
+  const prog = PROGRAMA[anio] || [];
+  const filasProg = prog.map(p => {
+    const a = auds.find(x => p.m.test(x.areaManual||''));
+    let estado, color;
+    if(p.nota && !a){ estado = p.nota; color = 'var(--text-muted)'; }
+    else if(!a){ estado = 'Pendiente'; color = 'var(--st-warning)'; }
+    else if(a.estado === 'finalizada'){ estado = 'Ejecutada · ' + (a.codigoReporte||''); color = 'var(--st-good)'; }
+    else { estado = 'En curso · ' + (a.codigoReporte||'') + (a.fecha ? ' · ' + fFecha(a.fecha) : ''); color = 'var(--seq-4)'; }
+    return {t:p.t, estado, color, ejecutada: !!a && a.estado==='finalizada', reprog: !!p.nota && !a};
+  });
+  const nProg = filasProg.filter(x=>!x.reprog).length;
+  const nEjec = filasProg.filter(x=>x.ejecutada).length;
+
+  const tot = hal.length;
+  const nSev = k => hal.filter(f=>f._sev===k).length;
+  const nRein = hal.filter(f=>f._rein).length;
+  const nPlan = hal.filter(f=>['cerrado','aceptado','respondido','devuelto'].includes(f._plan.k)).length;
+
+  // Áreas (con hallazgos), ordenadas por gravedad
+  const areas = [...new Set(hal.map(f=>f._area))];
+  const peso = a => hal.filter(f=>f._area===a).reduce((s,f)=> s + ({'NC Crítico':100,'NC Mayor':10,'NC Menor':1}[f._sev]||0), 0);
+  areas.sort((a,b)=>peso(b)-peso(a));
+
+  // Temas
+  const temas = TEMAS.map(t=>t.t).concat(['Otros']).map(t => {
+    const fs = hal.filter(f=>f._tema===t);
+    return {t, fs, areas:[...new Set(fs.map(f=>f._area))], pedido:(TEMAS.find(x=>x.t===t)||{}).pedido};
+  }).filter(x=>x.fs.length).sort((a,b)=> b.areas.length - a.areas.length || b.fs.length - a.fs.length);
+  const maxTema = Math.max(1, ...temas.map(x=>x.fs.length));
+
+  // Prioritarios: críticos + mayores reincidentes
+  const prioritarios = hal.filter(f => f._sev==='NC Crítico' || (f._sev==='NC Mayor' && f._rein))
+    .sort((a,b)=> (a._sev==='NC Crítico'?0:1) - (b._sev==='NC Crítico'?0:1));
+
+  // Por cargo sanitario
+  const porSan = CARGOS_SANITARIOS.map(c => {
+    const fs = hal.filter(f=>f._san===c.cargo);
+    return {...c, fs, areas:[...new Set(fs.map(f=>f._area))],
+      cer: fs.filter(f=>f._plan.k==='cerrado').length, acp: fs.filter(f=>f._plan.k==='aceptado').length, res: fs.filter(f=>f._plan.k==='respondido').length, dev: fs.filter(f=>f._plan.k==='devuelto').length, pen: fs.filter(f=>f._plan.k==='pendiente').length,
+      crit: fs.filter(f=>f._sev==='NC Crítico').length};
+  });
+
+  // Mensajes clave (se generan con los datos)
+  const temaTop = temas[0];
+  const areaTop = areas[0];
+  const mensajes = [];
+  if(tot) mensajes.push(`Se levantaron <b>${tot} hallazgos</b> en ${new Set(hal.map(f=>f._aud.id)).size} auditorías: <b>${nSev('NC Crítico')} críticos</b> y <b>${nSev('NC Mayor')} mayores</b>, que requieren gestión de las jefaturas sanitarias.`);
+  if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.toLowerCase())}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
+  if(areaTop) mensajes.push(`El área con mayor riesgo es <b>${esc(areaTop)}</b>, con ${hal.filter(f=>f._area===areaTop).length} hallazgos (${(n=>n===1?'1 crítico':n+' críticos')(hal.filter(f=>f._area===areaTop && f._sev==='NC Crítico').length)}).`);
+  if(tot) mensajes.push(`<b>${pct(nRein,tot)}%</b> de los hallazgos son <b>reincidencias</b> de auditorías anteriores (${nRein}): las acciones comprometidas no se implementaron o no fueron eficaces.`);
+  if(tot) mensajes.push(`Solo <b>${pct(nPlan,tot)}%</b> de los hallazgos tiene plan de acción registrado (${nPlan} de ${tot}); ${tot-nPlan} están pendientes de respuesta de las áreas.`);
+
+  const sevLegend = `<div class="leyenda">${SEV.slice(0,3).map(s=>`<span><i style="background:${s.c}"></i>${s.k}</span>`).join('')}<span><i style="background:${SEV[3].c}"></i>Observación</span></div>`;
+  const maxCelda = Math.max(1, ...areas.flatMap(a => SEV.map(s => hal.filter(f=>f._area===a && f._sev===s.k).length)));
+  const colorCelda = n => { if(!n) return {bg:'#f3f5f8', fg:'var(--text-muted)'}; const r = n/maxCelda; const steps=['--seq-1','--seq-2','--seq-3','--seq-4','--seq-5']; const i = Math.min(4, Math.floor(r*4.999)); return {bg:`var(${steps[i]})`, fg: i>=2 ? '#fff' : 'var(--text-primary)'}; };
+
+  document.getElementById('sub').textContent = `Aseguramiento de Calidad · Programa ${anio} · Datos al ${(d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear())(new Date())} · Dirigido a: ${CARGOS_SANITARIOS.map(c=>c.cargo).join(', ')}`;
+
+  document.getElementById('contenido').innerHTML = `
+    <h2>1. Mensajes clave</h2>
+    <p class="h2sub">Lo que la Dirección debe saber, en cinco puntos.</p>
+    <div class="card"><ul class="mensajes" style="margin:0; padding-left:20px;">${mensajes.map(m=>`<li>${m}</li>`).join('') || '<li>Sin hallazgos registrados para este año.</li>'}</ul></div>
+
+    <h2>2. Resultados del programa</h2>
+    <p class="h2sub">Indicadores principales de las auditorías internas ${anio}.</p>
+    <div class="grid-kpi">
+      <div class="card kpi"><div class="v">${nEjec} / ${nProg}</div><div class="l">Auditorías ejecutadas</div><div class="d">del programa anual ${anio}</div></div>
+      <div class="card kpi"><div class="v">${tot}</div><div class="l">Hallazgos totales</div><div class="d">en auditorías ${anio}</div></div>
+      <div class="card kpi"><div class="v">${nSev('NC Crítico')}</div><div class="l"><span class="marca" style="background:var(--st-critical)"></span>NC Críticos</div><div class="d">riesgo directo para el paciente o la liberación</div></div>
+      <div class="card kpi"><div class="v">${nSev('NC Mayor')}</div><div class="l"><span class="marca" style="background:var(--st-serious)"></span>NC Mayores</div><div class="d">afectan calidad, trazabilidad o registros</div></div>
+      <div class="card kpi"><div class="v">${pct(nRein,tot)}%</div><div class="l">Reincidencia</div><div class="d">${nRein} hallazgos repetidos de auditorías anteriores</div></div>
+      <div class="card kpi"><div class="v">${pct(nPlan,tot)}%</div><div class="l">Con plan de acción</div><div class="d">${nPlan} de ${tot} hallazgos respondidos</div></div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Avance del programa anual</div>
+      <div class="prog">${filasProg.map(p=>`<div class="it"><div class="n">${esc(p.t)}</div><div class="e" style="color:${p.color}">● ${esc(p.estado)}</div></div>`).join('')}</div>
+    </div>
+
+    <h2>3. Mapa de riesgo por área</h2>
+    <p class="h2sub">Cantidad de hallazgos por área y criticidad. Las áreas están ordenadas de mayor a menor riesgo.</p>
+    <div class="card" style="overflow-x:auto;">
+      ${areas.length ? `<table class="t heat">
+        <thead><tr><th>Área</th>${SEV.map(s=>`<th class="num"><span class="sev"><i style="background:${s.c}"></i>${s.k}</span></th>`).join('')}<th class="num">Total</th><th>Jefatura del área / cargo sanitario</th></tr></thead>
+        <tbody>${areas.map(a => {
+          const fs = hal.filter(f=>f._area===a);
+          return `<tr><td><b>${esc(a)}</b><div class="c" style="font-size:11.5px; color:var(--text-muted)">${esc(fs[0]._aud.codigoReporte||'')}</div></td>
+            ${SEV.map(s => { const n = fs.filter(f=>f._sev===s.k).length; const col = colorCelda(n);
+              return `<td class="c" style="background:${col.bg}; color:${col.fg}" data-tip="${esc(a)} · ${s.k}: ${n} hallazgo(s)">${n||'–'}</td>`; }).join('')}
+            <td class="num"><b>${fs.length}</b></td><td style="font-size:12px;">${esc(fs[0]._jef)}<div style="color:var(--text-muted)">${esc(fs[0]._san)}</div></td></tr>`;
+        }).join('')}</tbody></table>` : '<div class="vacio">Sin hallazgos registrados.</div>'}
+    </div>
+
+    <h2>4. Debilidades del sistema de calidad</h2>
+    <p class="h2sub">Hallazgos agrupados por tema. Un tema que aparece en varias áreas indica una falla del sistema, que debe abordarse de forma transversal y no área por área.</p>
+    <div class="card">
+      ${sevLegend}
+      ${temas.map(t => `<div class="tema-fila">
+        <div class="nom">${esc(t.t)}<div style="font-size:11.5px; font-weight:400; color:var(--text-muted)">${t.areas.length} área(s)</div></div>
+        <div class="barra" style="width:${Math.max(8, t.fs.length*100/maxTema)}%">${SEV.map(s => { const n = t.fs.filter(f=>f._sev===s.k).length; return n ? `<span style="flex:${n}; background:${s.c}" data-tip="${esc(t.t)} · ${s.k}: ${n}"></span>` : ''; }).join('')}</div>
+        <div class="tot">${t.fs.length}</div>
+        <div class="areas">${t.areas.map(a=>`<span class="chip">${esc(a)}</span>`).join('')}</div>
+      </div>`).join('') || '<div class="vacio">Sin hallazgos registrados.</div>'}
+    </div>
+
+    <h2>5. Hallazgos prioritarios e impacto sanitario</h2>
+    <p class="h2sub">Hallazgos críticos y hallazgos mayores reincidentes: son los que observaría con mayor probabilidad una inspección del ISP (N.T. 127 / D.S. N° 3/2010) y los que requieren seguimiento directo de la jefatura sanitaria.</p>
+    <div class="card" style="overflow-x:auto;">
+      ${prioritarios.length ? `<table class="t"><thead><tr><th>Criticidad</th><th>Área</th><th>Hallazgo</th><th>Requisito</th><th>Responde</th><th>Plan de acción</th></tr></thead><tbody>
+        ${prioritarios.map(f => `<tr>
+          <td><span class="sev"><i style="background:${sevColor(f._sev)}"></i>${esc(f._sev)}</span>${f._rein?'<div class="chip" style="margin-top:4px;">Reincidente</div>':''}</td>
+          <td>${esc(f._area)}<div style="font-size:11.5px; color:var(--text-muted)">${esc(f._aud.codigoReporte||'')}</div></td>
+          <td>${esc(corto(f.descripcionHallazgo||f.requerimiento, 220))}</td>
+          <td style="font-size:12px; color:var(--text-secondary)">${esc(corto(f.ref, 120))}</td>
+          <td style="font-size:12px;">${esc(f._san)}</td>
+          <td><span class="estado" style="color:${f._plan.c}">● ${f._plan.txt}</span>${f.fechaCompromiso?`<div style="font-size:11.5px; color:var(--text-muted)">Compromiso: ${fFecha(f.fechaCompromiso)}</div>`:''}</td>
+        </tr>`).join('')}</tbody></table>` : '<div class="vacio">No hay hallazgos críticos ni mayores reincidentes.</div>'}
+    </div>
+
+    <h2>6. Compromiso por cargo sanitario</h2>
+    <p class="h2sub">Estado de los planes de acción de los hallazgos que corresponde gestionar a cada cargo sanitario.</p>
+    <div class="card">
+      <div class="leyenda"><span><i style="background:var(--st-good)"></i>Cerrado</span><span><i style="background:var(--teal)"></i>Plan aceptado por QA</span><span><i style="background:var(--seq-4)"></i>Plan recibido (por revisar)</span><span><i style="background:var(--st-serious)"></i>Devuelto con observaciones</span><span><i style="background:var(--st-critical)"></i>Sin plan de acción</span></div>
+      ${porSan.map(c => `<div class="resp-fila">
+        <div><div class="q">${esc(c.cargo)}</div><div class="c">${esc(c.nombre)}${c.areas.length?' · '+c.areas.map(esc).join(', '):''}</div></div>
+        <div style="font-weight:700; text-align:center;">${c.fs.length}<div class="c" style="font-weight:400;">hallazgos</div></div>
+        ${c.fs.length ? `<div class="barra">${c.cer?`<span style="flex:${c.cer}; background:var(--st-good)" data-tip="${esc(c.cargo)} · Cerrados: ${c.cer}"></span>`:''}${c.acp?`<span style="flex:${c.acp}; background:var(--teal)" data-tip="${esc(c.cargo)} · Plan aceptado: ${c.acp}"></span>`:''}${c.res?`<span style="flex:${c.res}; background:var(--seq-4)" data-tip="${esc(c.cargo)} · Plan recibido: ${c.res}"></span>`:''}${c.dev?`<span style="flex:${c.dev}; background:var(--st-serious)" data-tip="${esc(c.cargo)} · Devuelto: ${c.dev}"></span>`:''}${c.pen?`<span style="flex:${c.pen}; background:var(--st-critical)" data-tip="${esc(c.cargo)} · Sin plan de acción: ${c.pen}"></span>`:''}</div>` : '<div class="c">Sin hallazgos asignados en este período.</div>'}
+      </div>`).join('')}
+    </div>
+
+    <h2>7. Requerimientos a la Dirección</h2>
+    <p class="h2sub">Propuesta de Aseguramiento de Calidad para las debilidades transversales: decisiones y recursos que no puede resolver un área por sí sola.</p>
+    <div class="card">
+      <ol style="margin:0; padding-left:20px;">
+        ${temas.filter(t=>t.areas.length>=2 && t.pedido).slice(0,5).map(t => `<li style="margin:8px 0; font-size:14px;"><b>${esc(t.t)}</b> (${t.areas.length} áreas, ${t.fs.length} hallazgos): ${esc(t.pedido)}</li>`).join('') || '<li>Sin temas transversales en este período.</li>'}
+      </ol>
+      <div class="nota">Propuesta generada a partir de los temas que se repiten en dos o más áreas; debe ser validada por Aseguramiento de Calidad antes de presentarse.</div>
+    </div>
+
+    <h2>Criterios del informe</h2>
+    <div class="card" style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+      <b>Fuente:</b> registros de la app de auditorías internas (F-QA-009.03), actualizados en línea. <b>Criticidad:</b> NC Crítico, puede generar un producto perjudicial para el paciente o impedir controlar la liberación; NC Mayor, puede afectar la calidad, la trazabilidad o la integridad de los registros (incluye reincidencia de un hallazgo menor); NC Menor, desviación puntual sin impacto directo en la calidad. <b>Tema:</b> se asigna según el requisito normativo citado en cada hallazgo. <b>Plan de acción:</b> se considera recibido cuando el área registró causa raíz y acción en el portal del auditado; luego Aseguramiento de Calidad lo acepta o lo devuelve con observaciones. <b>Plazo de respuesta:</b> 45 días hábiles desde la recepción del reporte (SOP QA-009).
+    </div>
+  `;
+}
+
+// Tooltip de las marcas
+const tip = document.getElementById('tip');
+document.addEventListener('mousemove', e => {
+  const t = e.target.closest && e.target.closest('[data-tip]');
+  if(!t){ tip.style.display='none'; return; }
+  tip.textContent = t.getAttribute('data-tip');
+  tip.style.display = 'block';
+  tip.style.left = Math.min(window.innerWidth - 330, e.clientX + 14) + 'px';
+  tip.style.top = (e.clientY + 14) + 'px';
+});
+
+(async function(){
+  try{
+    await cargar();
+    const anios = [...new Set(AUD.map(a=>(a.fecha||'').slice(0,4)).filter(Boolean))].sort().reverse();
+    const actual = String(new Date().getFullYear());
+    const sel = document.getElementById('anio');
+    const lista = anios.includes(actual) ? anios : [actual, ...anios];
+    sel.innerHTML = lista.map(a=>`<option ${a===actual?'selected':''}>${a}</option>`).join('');
+    sel.onchange = () => render(sel.value);
+    render(sel.value);
+  }catch(e){
+    console.error(e);
+    document.getElementById('contenido').innerHTML = '<div class="estado-carga">No se pudieron cargar los datos. Revisa tu conexión y vuelve a intentar.</div>';
+  }
+})();
+</script>
+</body>
+</html>
