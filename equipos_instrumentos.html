@@ -108,6 +108,10 @@
   .c-Sin-reporte,.c-Vencido,.c-ROJO,.c-Rojo,.c-Pendiente-rojo{background:var(--bad-bg);color:#991B1B}
   .c-NA,.c-Dado-de-baja,.c-Baja-definitiva,.c-No-aplica{background:var(--na-bg);color:#334155}
   .c-De-baja{background:#F1F5F9;color:#94A3B8}
+  .c-Cerrado{background:var(--ok-bg);color:#166534}
+  .c-En-proceso{background:#E0F2FE;color:#075985}
+  .c-En-firma{background:#EDE9FE;color:#5B21B6}
+  .c-No-programado{background:var(--bad-bg);color:#991B1B}
   .c-Sin-registro,.c-Pendiente,.c-Por-confirmar{background:var(--none-bg);color:#475569;border:1px solid var(--border)}
   .days{font-size:10.5px;color:var(--slate);margin-left:.25rem;white-space:nowrap;display:block}
   /* toolbar */
@@ -309,6 +313,7 @@
   <button data-t="progmant" title="Mantenimientos y programa"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8 7.2 20l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.4 2.4-2.6-.6-.6-2.6z"/></svg></span><span class="nt"><span class="nl">Mantenimiento</span><span class="ns" id="ns-progmant"></span></span></button>
   <div class="grp">Planificación</div>
   <button data-t="progcal" title="Programa anual PL-VAL-140-14"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h3M13 14h3M8 17h3"/></svg></span><span class="nt"><span class="nl">Programa de calificación</span><span class="ns" id="ns-progcal"></span></span></button>
+  <button data-t="edoc" title="Estado documental de calibraciones, calificaciones y SOP en trámite"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 12h5M9.5 15h5M9.5 18h3"/></svg></span><span class="nt"><span class="nl">Estado documental</span><span class="ns" id="ns-edoc"></span></span></button>
   <div class="grp">Trazabilidad</div>
   <button data-t="bajas" title="Bajas y su evidencia"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.2"/><path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/></svg></span><span class="nt"><span class="nl">Equipos dados de baja</span><span class="ns" id="ns-bajas"></span></span></button>
   <button data-t="verif" title="Lista de verificación"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4L2.8 19.5h18.4z"/><path d="M12 10v4.2"/><circle cx="12" cy="17" r=".6"/></svg></span><span class="nt"><span class="nl">Pendientes por revisar</span><span class="ns" id="ns-verif"></span></span></button>
@@ -464,6 +469,11 @@ const esBaja = s => s === 'Dado de baja' || s === 'Baja temporal';
 const CORTE_BAJAS = new Date(2025, 0, 1);
 const verifBaja = r => { let t = v(r['Verificar']); if (!empty(r['Ruta / archivo de baja'])) t = t.split(/\s*·\s*/).filter(x => !/^Baja sin formulario/i.test(x)).join(' · '); return t; };
 const bajasVis = () => (DB.BAJAS || []).filter(r => { const e = MODEL.eq.get(K(r['ID'])); return !e || !e.oculto; });
+const EDOC = ['No programado','Programado','En proceso','En revisión','En firma','Cerrado'];
+const EDOC_DESC = {'No programado':'Actividad no incorporada al programa','Programado':'Planificada y aún no iniciada','En proceso':'Protocolo aprobado y ejecución iniciada',
+  'En revisión':'Ejecución terminada, resultados bajo revisión técnica','En firma':'Informe en circuito de aprobación','Cerrado':'Informe aprobado y actividad concluida'};
+function edocNorm(x){ const t = nk(x).trim(); if (!t) return 'Cerrado';
+  return EDOC.find(s => nk(s) === t) || (t.startsWith('cerrad') ? 'Cerrado' : t.startsWith('no prog') ? 'No programado' : t.startsWith('program') ? 'Programado' : t.includes('proceso') ? 'En proceso' : t.includes('revis') ? 'En revisión' : t.includes('firma') ? 'En firma' : v(x)); }
 let MODEL;
 function construir(){
   const eq = new Map();
@@ -472,18 +482,20 @@ function construir(){
     eq.set(K(id), {id, padre:v(r['Equipo padre (ID base)']), tipo:v(r['Tipo de equipo / instrumento']), cat:v(r['Categoría']), area:v(r['Área']),
       ubic:v(r['Ubicación']), func:v(r['Función']), marca:v(r['Marca']), modelo:v(r['Modelo']), serie:v(r['N° de serie']), sit:sitNorm(r['Situación']) || 'Por confirmar',
       resp:v(r['Responsable (portal)']), naCal: /^N\/A/.test(v(r['Vence calibración'])) || /^N\/A/.test(v(r['Estado calibración'])), naQ: /^no/i.test(v(r['¿Requiere calificación?'])), fuentes:v(r['Fuentes']),
-      cal:[], q:[], m:[], sop:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
+      cal:[], q:[], m:[], sop:[], calA:[], qA:[], baja:null, alerts:[], ficha:null, prog:[], ing:null});
   }
   const listaTxt = x => v(x).split(/\s*(?:\n|\|)\s*/).filter(t => t && t !== '—' && t !== '-');
   const ev = (sheet, key) => {
     for (const r of DB[sheet] || []) {
       const e = eq.get(K(r['ID'])); if (!e) continue;
-      e[key].push({fecha:pd(r['Fecha de ejecución']), tipo:v(r['Tipo']), cert:v(r['N° certificado / reporte']), ente:v(r['Ente / ejecutor']),
+      /* Estado documental (5.6.2): solo "Cerrado" (o vacío, registros antiguos) cuenta para la vigencia; el resto queda "en trámite" */
+      const edoc = edocNorm(r['Estado documental']);
+      (edoc === 'Cerrado' || !e[key+'A'] ? e[key] : e[key+'A']).push({edoc, fecha:pd(r['Fecha de ejecución']), tipo:v(r['Tipo']), cert:v(r['N° certificado / reporte']), ente:v(r['Ente / ejecutor']),
         frec:v(r['Frecuencia (meses)']), vence:pd(r['Vence']), fuente:v(r['Fuente(s)']), archivo:v(r['Archivo / ruta de evidencia']),
         verif:v(r['Verificar']), regla:v(r['Regla de vigencia']), link:v(r['Enlace documento (Google Drive)']),
         dictamen:v(r['Dictamen']), detalle:v(r['Resumen del informe']), obs:listaTxt(r['Observaciones al informe']), difs:listaTxt(r['Datos a corregir en el listado'])});
     }
-    for (const e of eq.values()) e[key].sort((a,b) => (b.fecha||0) - (a.fecha||0));
+    for (const e of eq.values()) { e[key].sort((a,b) => (b.fecha||0) - (a.fecha||0)); if (e[key+'A']) e[key+'A'].sort((a,b) => (b.fecha||0) - (a.fecha||0)); }
   };
   ev('CALIBRACIONES','cal'); ev('CALIFICACIONES','q'); ev('MANTENIMIENTOS','m');
   /* SOP con N° interno en el título: "(código 1940)" */
@@ -498,7 +510,7 @@ function construir(){
     const ids = new Set([...txt.matchAll(/(?:c[oó]d(?:igo)?\.?\s*(?:interno\s*)?(?:n[°º]\s*)?:?\s*#?\s*|\(\s*n[°º]\.?\s*)([0-9]{1,4}[A-Za-z]?[0-9]?)/gi)].map(m => m[1].toUpperCase()));
     for (const x of mapa.get(nCod(gt(r,'Código/N°'))) || []) ids.add(x);
     for (const id of ids) { const e = eq.get(K(id)); if (!e) continue;
-      e.sop.push({cod:gt(r,'Código/N°'), ed:gt(r,'Edición'), tit:gt(r,'Descripción Detallada') || gt(r,'Equipo/Instrumento/Producto'), area:gt(r,'Área de Impacto'), firma:pd(gt(r,'Fecha firma')), vence:pd(gt(r,'Fecha vence')), link:gt(r,'Enlace documento (Google Drive)')}); }
+      e.sop.push({cod:gt(r,'Código/N°'), ed:gt(r,'Edición'), tit:gt(r,'Descripción Detallada') || gt(r,'Equipo/Instrumento/Producto'), area:gt(r,'Área de Impacto'), firma:pd(gt(r,'Fecha firma')), vence:pd(gt(r,'Fecha vence')), edoc:edocNorm(gt(r,'Estado documental')), link:gt(r,'Enlace documento (Google Drive)')}); }
   }
   for (const r of DB.BAJAS || []) { r['Tipo de baja'] = sitNorm(r['Tipo de baja']) || v(r['Tipo de baja']); const e = eq.get(K(r['ID'])); if (e) e.baja = r; }
   for (const r of DB.FICHA_TECNICA || []) { const e = eq.get(K(r['ID'])); if (e) e.ficha = r; }
@@ -546,6 +558,8 @@ function construir(){
   sub('cal', cv ? `${f(cv)} vencidas` : 'Todas al día', cv ? 'bad' : 'ok');
   sub('calif', qv ? `${f(qv)} vencidas` : 'Todas al día', qv ? 'bad' : 'ok');
   sub('progmant', mv ? `${f(mv)} vencidos` : 'Al día', mv ? 'bad' : 'ok');
+  const tram = lista.reduce((n,e) => n + e.calA.length + e.qA.length, 0) + (DB.SOP||[]).filter(r => /^SOP/i.test(String(r['Proceso']||r['Proceso ']||'').trim()) && edocNorm(r['Estado documental']) !== 'Cerrado').length;
+  sub('edoc', tram ? `${f(tram)} en trámite` : 'Sin trámites abiertos', tram ? 'warn' : 'ok');
   sub('progcal', pa ? `${f(pa)} atrasadas` : 'Al día', pa ? 'bad' : 'ok');
   sub('bajas', bs ? `${f(bs)} sin formulario` : 'Con evidencia', bs ? 'warn' : 'ok');
   sub('verif', ar ? `${f(ar)} críticos` : 'Sin críticos', ar ? 'bad' : 'ok');
@@ -554,7 +568,7 @@ function idSort(a,b){ const ma = String(a).match(/^(\d+)(.*)/), mb = String(b).m
   if (ma && mb) return (+ma[1]-+mb[1]) || ma[2].localeCompare(mb[2]); if (ma) return -1; if (mb) return 1; return String(a).localeCompare(String(b)); }
 
 /* ════════════════ navegación ════════════════ */
-const VIEWS = {resumen:vResumen, maestro:vMaestro, cal:()=>vModulo('cal'), calif:()=>vModulo('q'), progcal:vProgCal, progmant:vProgMant, bajas:vBajas, ficha:vFicha, verif:vVerif};
+const VIEWS = {resumen:vResumen, maestro:vMaestro, cal:()=>vModulo('cal'), calif:()=>vModulo('q'), progcal:vProgCal, progmant:vProgMant, bajas:vBajas, ficha:vFicha, verif:vVerif, edoc:vEdoc};
 let TAB = 'resumen';
 function go(t, push=true){
   TAB = VIEWS[t] ? t : 'resumen';
@@ -905,6 +919,54 @@ function vFicha(){
   draw();
 }
 
+/* ════════════════ ESTADO DOCUMENTAL (5.6.2) ════════════════ */
+let FE = {q:'', tipo:'', st:''};
+function vEdoc(){
+  const gk = (r, c) => { const k = Object.keys(r).find(x => x.trim() === c); return k ? v(r[k]) : ''; };
+  const A = [];
+  MODEL.lista.forEach(e => { if (esBaja(e.sit)) return;
+    [['Calibración', e.calA], ['Calificación', e.qA]].forEach(([tipo, lst]) => lst.forEach(x => A.push({tipo, id:e.id, nombre:e.tipo, area:e.area, ubic:e.ubic, st:x.edoc, fecha:x.fecha, doc:x.cert, ente:x.ente}))); });
+  (DB.SOP || []).forEach(r => { if (!/^SOP/i.test(gk(r,'Proceso'))) return; const st = edocNorm(gk(r,'Estado documental')); if (st === 'Cerrado') return;
+    A.push({tipo:'SOP', id:'', cod:gk(r,'Código/N°'), nombre:gk(r,'Descripción Detallada') || gk(r,'Equipo/Instrumento/Producto'), area:gk(r,'Área de Impacto'), ubic:'', st, fecha:pd(gk(r,'Fecha vence')), doc:gk(r,'Edición') ? 'Ed. '+gk(r,'Edición') : '', ente:''}); });
+  const ABIERTOS = EDOC.filter(x => x !== 'Cerrado');
+  A.sort((a,b) => ABIERTOS.indexOf(a.st) - ABIERTOS.indexOf(b.st) || (a.fecha||0) - (b.fecha||0));
+  const atrasado = x => (x.st === 'No programado' || x.st === 'Programado') && x.fecha && x.tipo !== 'SOP' && dias(x.fecha) < 0;
+  const f = n => n.toLocaleString('es-CL');
+  $('#view').innerHTML = `
+    <div class="section-label"><span>Estado documental · actividades en trámite</span></div>
+    <div class="note">Calibraciones, calificaciones y SOP cuyo estado documental aún no es <b>Cerrado</b>. Los indicadores de vigencia no cambian hasta que el registro queda Cerrado; esta vista muestra en qué etapa está cada actividad, para que el Comité de Calidad vea dónde está detenida y qué hay que destrabar. Se actualiza desde la columna <b>Estado documental</b> de CALIBRACIONES, CALIFICACIONES y SOP_EQUIPOS.</div>
+    <div class="kpis" style="margin-bottom:1rem">${ABIERTOS.map(st => { const R = A.filter(x => x.st === st), c = t => R.filter(x => x.tipo === t).length;
+      return `<div class="kpi" style="cursor:pointer" data-st="${esc(st)}" title="${esc(EDOC_DESC[st])}"><div class="l">${chip(st)}</div><div class="v" style="font-size:22px">${f(R.length)}</div><div class="s">Calib. ${c('Calibración')} · Calif. ${c('Calificación')} · SOP ${c('SOP')}</div></div>`; }).join('')}</div>
+    <div class="toolbar">
+      <input id="eq" type="search" placeholder="Filtrar por N°, código o texto…" value="${esc(FE.q)}">
+      ${sel('et','Todo tipo',['Calibración','Calificación','SOP'],FE.tipo)}
+      ${sel('es','Todo estado',ABIERTOS,FE.st)}
+      <span class="count" id="ec"></span>
+      <button class="btn" id="ex">Descargar</button>
+    </div><div id="t"></div>`;
+  const cols = [
+    {h:'Tipo', f:x=>esc(x.tipo), x:x=>x.tipo},
+    {h:'N° / código', cl:'id', f:x=>esc(x.id || x.cod), x:x=>x.id || x.cod},
+    {h:'Equipo / documento', f:x=>esc(x.nombre) + (x.ubic ? `<div class="muted" style="font-size:10.5px">${esc(x.ubic)}</div>` : ''), x:x=>x.nombre},
+    {h:'Área', cl:'muted', f:x=>esc(x.area), x:x=>x.area},
+    {h:'Estado documental', f:x=>chip(x.st) + (atrasado(x) ? ' ' + '<span class="chip c-Vencido">Atrasada</span>' : ''), x:x=>x.st + (atrasado(x) ? ' (atrasada)' : '')},
+    {h:'Fecha', f:x=>x.fecha ? `<span class="nw">${fd(x.fecha)}</span>` + (x.tipo !== 'SOP' ? `<span class="days">${dias(x.fecha) < 0 ? 'hace ' + (-dias(x.fecha)) + ' d' : 'en ' + dias(x.fecha) + ' d'}</span>` : '<span class="days">vence ed. vigente</span>') : '—', x:x=>x.fecha},
+    {h:'Documento / ente', cl:'muted', f:x=>esc([x.doc, x.ente].filter(Boolean).join(' · ')), x:x=>[x.doc, x.ente].filter(Boolean).join(' · ')}];
+  let R = [];
+  const draw = () => {
+    const q = nk(FE.q);
+    R = A.filter(x => (!FE.tipo || x.tipo === FE.tipo) && (!FE.st || x.st === FE.st) && (!q || nk([x.id, x.cod, x.nombre, x.area, x.doc, x.ente].join(' ')).includes(q)));
+    $('#ec').textContent = `${f(R.length)} de ${f(A.length)} en trámite`;
+    if (!A.length) { $('#t').innerHTML = `<div class="tbl-wrap"><div class="empty">No hay actividades en trámite. Cuando una calibración, calificación o SOP se registre con un estado distinto de <b>Cerrado</b>, aparecerá aquí.</div></div>`; return; }
+    tabla($('#t'), cols, R, {id:x=>x.id, rowClass:x=>`${x.id ? 'click' : ''} ${atrasado(x) || x.st === 'No programado' ? 'r-ROJO' : ''}`});
+  };
+  document.querySelectorAll('.kpi[data-st]').forEach(k => k.onclick = () => { FE.st = FE.st === k.dataset.st ? '' : k.dataset.st; $('#es').value = FE.st; draw(); });
+  const bind = (id,k) => $(id).addEventListener('input', ev => { FE[k] = ev.target.value; draw(); });
+  bind('#eq','q'); bind('#et','tipo'); bind('#es','st');
+  $('#ex').onclick = () => exportar('Estado_documental', cols, R);
+  draw();
+}
+
 /* ════════════════ VERIFICAR ════════════════ */
 let FV = {q:'', niv:'', mod:''};
 function vVerif(){
@@ -939,6 +1001,7 @@ function vVerif(){
 }
 
 /* ════════════════ FICHA DEL EQUIPO (panel lateral) ════════════════ */
+const actTxt = lst => lst && lst.length ? `<div class="d" style="margin-top:.5rem;padding-top:.45rem;border-top:1px dashed var(--border)">En trámite: ${chip(lst[0].edoc)}${lst[0].fecha ? ` <span class="muted nw">${fd(lst[0].fecha)}</span>` : ''}${lst[0].cert ? ` · <span class="nw">${esc(lst[0].cert)}</span>` : ''}<br><span class="muted" style="font-size:10.5px">${esc(EDOC_DESC[lst[0].edoc]||'')} · la vigencia cambia al quedar Cerrado</span></div>` : '';
 function abrir(id){
   const e = MODEL.eq.get(K(id));
   if (!e) { alertaNoEncontrado(id); return; }
@@ -948,8 +1011,8 @@ function abrir(id){
   const hijosOp = hijos.filter(h => !esBaja(h.sit)).length, hijosBaja = hijos.length - hijosOp;
   const notaCal = calPorHijos ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}; ver calibración de instrumentos asociados (${hijosOp} operativo${hijosOp===1?'':'s'}${hijosBaja ? `, ${hijosBaja} de baja` : ''}).</i>` : (e.naCal && !e.cal[0] ? `<i>No aplica calibración para el equipo ${esc(e.tipo)}.</i>` : '');
   try { const u = new URL(location); u.searchParams.set('id', e.id); history.replaceState(null,'',u); } catch(_){}
-  const tile = (lbl, est, x, extra='', nota='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
-     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · <span class="nw">${esc(x.cert)}</span>`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div></div>`;
+  const tile = (lbl, est, x, extra='', nota='', act='') => `<div class="tile t-${est.replace(/\s/g,'-')}"><div class="l">${lbl}</div>${chip(est)}
+     <div class="d">${est==='De baja' && x ? '<i>Equipo dado de baja · último registro histórico:</i><br>' : ''}${x ? `Último: <b>${fd(x.fecha)}</b>${x.cert?` · <span class="nw">${esc(x.cert)}</span>`:''}<br>Vence: <b>${fd(x.vence)}</b>${x.vence?` <span class="days">(${dias(x.vence)<0?'hace '+(-dias(x.vence)):'en '+dias(x.vence)} d)</span>`:''}${extra}` : (nota ? nota : est==='N/A (no aplica)'?'Sin frecuencia de calibración definida en el registro.':est==='De baja'?'Equipo dado de baja.':'Sin registros cargados.')}</div>${act}</div>`;
   const fila = (x, i) => `<tr class="${i?'old':'last'}"><td class="nw">${fd(x.fecha)}</td><td>${esc(x.tipo)}${x.regla && /Por confirmar/.test(x.regla)?' '+chip('Por confirmar'):''}</td><td class="nw">${esc(x.cert)}</td><td>${esc(x.ente)}</td><td class="nw">${fd(x.vence)}${i===0 && x.vence && !esBaja(e.sit) ? `<div style="margin-top:.2rem">${chip(estado(x.vence))}</div>` : ''}</td><td>${docLink(x.link,'Ver PDF') || (DEMO && DEMO[e.id] && titulo==='Calificaciones' && i===0 ? `<a class="doc" href="${esc(DEMO[e.id].informe)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '<span class="muted">—</span>')}</td><td class="muted" style="font-size:10.5px">${esc(x.fuente)}${x.archivo?`<div>${esc(String(x.archivo).split('/').pop())}</div>`:''}</td></tr>`;
   const thead = '<thead><tr><th>Fecha</th><th>Tipo</th><th>N° doc.</th><th>Ente</th><th>Vence</th><th>Documento</th><th>Fuente</th></tr></thead>';
   const hist = (lst, titulo) => { if (!lst.length) return '';
@@ -980,7 +1043,7 @@ function abrir(id){
           ${dm.obs.length ? `<div class="rep-o"><b>Observaciones al documento</b><ul>${dm.obs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
           ${dm.difs.length ? `<div class="rep-o"><b>Datos a corregir en el listado maestro</b><ul>${dm.difs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}</div>`; })()}
       <div class="section-label"><span>Estado actual</span></div>
-      <div class="tiles">${tile('Calibración', calPorHijos ? 'N/A (no aplica)' : e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''), notaCal)}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'', e.naQ && !e.q[0] ? '<i>No aplica calificación: es un instrumento que solo requiere calibración.</i>' : '')}${tile('Mantenimiento', e.estM, e.m[0])}</div>
+      <div class="tiles">${tile('Calibración', calPorHijos ? 'N/A (no aplica)' : e.estCal, e.cal[0], (e.cal[0]?.frec?`<br>Frecuencia: <b>${e.cal[0].frec/12} año(s)</b>`:'') + (e.cal[0]?.link?'<div style="margin-top:.45rem">'+docLink(e.cal[0].link,'Ver certificado')+'</div>':''), notaCal, actTxt(e.calA))}${tile('Calificación', e.estQ, e.q[0], e.q[0]?`<br>Regla: <b>${esc(e.q[0].regla||'—')}</b>${e.q[0].link?'<div style="margin-top:.45rem">'+docLink(e.q[0].link,'Ver informe de calificación')+'</div>':''}`:'', e.naQ && !e.q[0] ? '<i>No aplica calificación: es un instrumento que solo requiere calibración.</i>' : '', actTxt(e.qA))}${tile('Mantenimiento', e.estM, e.m[0])}</div>
       ${(() => { if (!e.padre) return ''; const pa = MODEL.eq.get(K(e.padre));
         if (!pa) return `<div class="section-label"><span>Pertenece al equipo</span></div><div class="note">N° ${esc(e.padre)} (no está en el listado maestro: verificar)</div>`;
         const herm = [...MODEL.eq.values()].filter(x => x.padre && K(x.padre) === K(pa.id) && x.id !== e.id && !esBaja(x.sit)).map(x => x.id);
