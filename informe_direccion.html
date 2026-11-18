@@ -92,7 +92,7 @@
   .p-caja .p-t2 { font-size:19px; font-weight:700; margin-top:14px; }
   .p-caja .p-t3 { font-size:17px; margin-top:12px; }
   .pag2 { margin-top:14px; }
-  .indice-v { font-size:13.5px; line-height:1.9; margin:0 0 6px; padding-left:22px; }
+  .indice-v { font-size:13.5px; line-height:1.9; margin:0 0 6px; padding-left:0; list-style:none; }
   table.firmas, table.dist { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
   table.firmas th, table.firmas td, table.dist th, table.dist td { border:1px solid #9aa1ab; padding:7px 8px; text-align:left; vertical-align:middle; }
   table.firmas th, table.dist th { background:#eef1f5; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
@@ -101,48 +101,49 @@
   .indice li { margin:3px 0; }
   .sec-titulo { break-after:avoid; }
   body.es-borrador::before { content:'BORRADOR'; position:fixed; top:45%; left:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:110px; font-weight:800; letter-spacing:12px; color:rgba(200,40,40,.08); pointer-events:none; z-index:50; }
+  /* ---------- Impresión paginada (hojas armadas por script) ---------- */
+  #impresion { display:none; }
+  #impresion.midiendo { display:block; position:absolute; left:-99999px; top:0; }
+  .hoja { width:215.9mm; height:279.4mm; padding:10mm 11mm 0; box-sizing:border-box; position:relative; overflow:hidden; background:#fff; }
+  .hoja .cuerpo { overflow:hidden; }
+  .hoja .pie { position:absolute; left:11mm; right:11mm; bottom:6mm; display:flex; justify-content:space-between; font-size:8pt; color:#7c8592; }
+  .hoja .membrete { margin-bottom:9px; }
+  body.es-borrador .hoja::before { content:'BORRADOR'; position:absolute; top:48%; left:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:110px; font-weight:800; letter-spacing:12px; color:rgba(200,40,40,.08); pointer-events:none; z-index:5; }
+  .pg { font-size:13px; }
+  .pg .portada { border:0; padding:0; margin:0; }
+  .pg h2 { font-size:14px; margin:12px 0 3px; }
+  .pg .h2sub { font-size:11px; margin-bottom:8px; }
+  .pg .card { padding:10px 12px; border-radius:6px; overflow:visible !important; margin-bottom:10px; }
+  .pg table.t { font-size:10.5px; }
+  .pg table.t th { font-size:9px; padding:5px 6px; }
+  .pg table.t td { padding:5px 6px; }
+  .pg .mensajes li { font-size:12px; }
+  .pg .kpi .v { font-size:24px; }
+  .pg .grid-kpi { grid-template-columns: repeat(3, 1fr); gap:8px; }
+  .pg .prog { grid-template-columns: repeat(3, 1fr); gap:6px; }
+  .pg .prog .it { padding:6px 8px; font-size:11px; }
+  .pg .tema-fila { grid-template-columns: 190px 1fr 36px; padding:4px 0; }
+  .pg .tema-fila .barra { height:16px; }
+  .pg .tema-fila .areas { margin-top:-4px; }
+  .pg .chip { font-size:9.5px; padding:1px 6px; }
+  .pg .estado { white-space:normal; }
+  .pg .criterios { font-size:9.5px !important; line-height:1.35 !important; }
+  .pg .no-print { display:none !important; }
+  .pg .p-caja { margin:60px 30px 30px; }
+  .indice-v .pn { display:none; }
+  .pg .indice-v { list-style:none; padding-left:0; }
+  .pg .indice-v li { display:flex; align-items:baseline; gap:6px; }
+  .pg .indice-v .lead { flex:1; border-bottom:1px dotted #9aa1ab; transform:translateY(-4px); }
+  .pg .indice-v .pn { display:inline; min-width:18px; text-align:right; font-weight:600; }
   @media print {
-    @page { size: letter; margin: 12mm 11mm 14mm 11mm;
-      @bottom-left { content: "Informe de Auditorías Internas a la Dirección · Documento confidencial"; font: 8pt 'Segoe UI', Arial, sans-serif; color:#7c8592; }
-      @bottom-right { content: "Pág. " counter(page) " de " counter(pages); font: 8pt 'Segoe UI', Arial, sans-serif; color:#4f5866; } }
+    @page { size: letter; margin: 0; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body, .viz-root { background:#fff; }
-    header.top { display:none; }
-    #tip { display:none !important; }
-    .marco { display:table; width:100%; border-collapse:collapse; }
-    .marco > thead { display:table-header-group; }
-    .marco > tbody { display:table-row-group; }
-    .marco > tbody > tr, .marco > thead > tr { display:table-row; }
-    .marco > tbody > tr > td, .marco > thead > tr > td { display:table-cell; padding:0; }
-    .marco > thead td { padding-bottom:10px; }
-    .wrap { max-width:none; padding:0; }
-    .portada { border:0; padding:6px 2px 0; break-after:page; }
-    h2 { font-size:14px; margin:16px 0 3px; }
-    .h2sub { font-size:11px; margin-bottom:8px; }
-    .card { padding:10px 12px; border-radius:6px; }
-    .sec { break-inside:auto; }
-    .sec-nueva { break-before:page; }
-    .sec-titulo, .sec-titulo + .h2sub { break-after:avoid; }
-    .no-romper, .kpi, .prog .it, .tema-fila, .resp-fila { break-inside:avoid; }
-    table.t tr { break-inside:avoid; }
-    table.t thead { display:table-header-group; }
-    table.t { font-size:10.5px; }
-    table.t th { font-size:9px; padding:5px 6px; }
-    table.t td { padding:5px 6px; }
-    .mensajes li { font-size:12px; }
-    .kpi .v { font-size:24px; }
-    .grid-kpi { grid-template-columns: repeat(3, 1fr); gap:8px; }
-    .prog { grid-template-columns: repeat(3, 1fr); gap:6px; }
-    .prog .it { padding:6px 8px; font-size:11px; }
-    .tema-fila { grid-template-columns: 190px 1fr 36px; padding:6px 0; }
-    .chip { font-size:9.5px; padding:1px 6px; }
-    .no-print { display:none !important; }
-    .card { overflow:visible !important; }
-    .estado { white-space:normal; }
-    .tema-fila { padding:4px 0; }
-    .tema-fila .barra { height:16px; }
-    .criterios { font-size:9.5px !important; line-height:1.35 !important; }
-    .tema-fila .areas { margin-top:-4px; }
+    body.es-borrador::before { display:none; }
+    header.top, .marco, #tip { display:none !important; }
+    #impresion { display:block !important; position:static !important; }
+    .hoja { break-after:page; }
+    .hoja:last-child { break-after:auto; }
   }
 </style>
 </head>
@@ -155,10 +156,11 @@
     </div>
     <div class="acciones">
       <select id="anio"></select>
-      <button type="button" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      <button type="button" onclick="imprimirInforme()">🖨️ Imprimir / PDF</button>
     </div>
   </div>
 </header>
+<div id="impresion"></div>
 <table class="marco">
   <thead><tr><td>
     <table class="membrete"><tr>
@@ -197,6 +199,8 @@ const CARGOS_SANITARIOS = [
 
 // Estado del informe. Mientras esté en 'BORRADOR', la página pide clave de acceso
 // (solo elaboradora y revisora). Cuando Cecilia lo apruebe, cambiar a 'APROBADO'.
+const EDICION_INFORME = '01';
+let ANIO_ACTUAL = String(new Date().getFullYear());
 const ESTADO_INFORME = 'BORRADOR';
 const CLAVE_SHA256 = 'b064c8dba78c9c059545e6c8ad27f42b739ae7c40d092126c57729a6cab2cff2';
 
@@ -324,6 +328,12 @@ async function cargar(){
 }
 
 // ======================= RENDER =======================
+// Ordena el texto libre de los reportes: separa los ítems que vienen pegados ("...:Oportunidad:") y quita espacios sobrantes.
+function limpiarTexto(t){
+  return String(t||'').replace(/\r/g,'')
+    .replace(/[.:]?\s*([^.:\n]{3,90}):\s*Oportunidad:\s*/g, (m,tit)=>'\n\n• '+tit.trim()+': ')
+    .replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+}
 function render(anio){
   const auds = AUD.filter(a => (a.fecha||'').slice(0,4) === anio);
   const audById = Object.fromEntries(auds.map(a=>[a.id, a]));
@@ -353,6 +363,7 @@ function render(anio){
   const nPlan = hal.filter(f=>['cerrado','aceptado','respondido','devuelto'].includes(f._plan.k)).length;
 
   // Áreas (con hallazgos), ordenadas por gravedad
+  const mejoras = auds.filter(a => (a.notasAdicionales||'').trim()).map(a => ({area: areaInfo(a.areaManual||'').corto, codigo: a.codigoReporte||'', texto: limpiarTexto(a.notasAdicionales)}));
   const areas = [...new Set(hal.map(f=>f._area))];
   const peso = a => hal.filter(f=>f._area===a).reduce((s,f)=> s + ({'NC Crítico':100,'NC Mayor':10,'NC Menor':1}[f._sev]||0), 0);
   areas.sort((a,b)=>peso(b)-peso(a));
@@ -377,6 +388,8 @@ function render(anio){
   });
 
   // Mensajes clave (se generan con los datos)
+  // Columnas del mapa: Observación solo si existen observaciones en el periodo
+  const SEV_MAPA = SEV.filter(x => x.k!=='Observación' || hal.some(f=>f._sev===x.k));
   const temaTop = temas.find(t=>t.t!=='Otros');
   const areaTop = areas[0];
   const mensajes = [];
@@ -392,6 +405,7 @@ function render(anio){
 
   document.getElementById('sub').textContent = `Aseguramiento de Calidad · Programa ${anio} · Datos al ${(d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear())(new Date())} · Dirigido a: ${DISTRIBUCION.map(c=>c.cargo).join(', ')}`;
 
+  ANIO_ACTUAL = anio;
   document.querySelectorAll('.m-periodo').forEach(e=>e.textContent=anio);
   document.querySelectorAll('.m-fecha').forEach(e=>e.textContent=fechaHoy);
   const portada = `<section class="portada">
@@ -401,6 +415,7 @@ function render(anio){
         <div class="p-t3">Programa de auditorías internas</div>
         <div class="p-t3"><b>Periodo:</b> ${anio}</div>
       </div>
+      <div style="text-align:center; font-size:12.5px; color:var(--text-secondary); margin:-18px 0 18px;">Estado: <b>${ESTADO_INFORME==='APROBADO'?'Aprobado':'Borrador'}</b> · Datos al ${fechaHoy}</div>
       <h3>Dirigido a</h3>
       <table class="dist"><thead><tr><th style="width:45%">Cargo</th><th>Nombre</th></tr></thead><tbody>${DISTRIBUCION.map(d=>`<tr><td>${esc(d.cargo)}</td><td>${esc(d.nombre)}</td></tr>`).join('')}</tbody></table>
       <h3>Control del documento</h3>
@@ -409,18 +424,18 @@ function render(anio){
     </section>
     <section class="portada pag2">
       <h3>Contenido</h3>
-      <ol class="indice-v"><li>Mensajes clave</li><li>Resultados del programa</li><li>Mapa de riesgo por área</li><li>Debilidades del sistema de calidad</li><li>Hallazgos prioritarios e impacto sanitario</li><li>Compromiso por cargo responsable</li><li>Requerimientos a la Dirección</li><li>Criterios del informe</li></ol>
+      <ol class="indice-v"><li data-sec="1"><span>1. Mensajes clave</span><span class="lead"></span><span class="pn"></span></li><li data-sec="2"><span>2. Resultados del programa</span><span class="lead"></span><span class="pn"></span></li><li data-sec="3"><span>3. Mapa de riesgo por área</span><span class="lead"></span><span class="pn"></span></li><li data-sec="4"><span>4. Debilidades del sistema de calidad</span><span class="lead"></span><span class="pn"></span></li><li data-sec="5"><span>5. Hallazgos prioritarios e impacto sanitario</span><span class="lead"></span><span class="pn"></span></li><li data-sec="6"><span>6. Compromiso por cargo responsable</span><span class="lead"></span><span class="pn"></span></li><li data-sec="7"><span>7. Requerimientos a la Dirección</span><span class="lead"></span><span class="pn"></span></li><li data-sec="8"><span>8. Oportunidades de mejora y observaciones por área</span><span class="lead"></span><span class="pn"></span></li><li data-sec="9"><span>9. Criterios del informe</span><span class="lead"></span><span class="pn"></span></li></ol>
       <h3>Objetivo</h3>
       <p>Informar a la Dirección el resultado del programa de auditorías internas ${anio}, las debilidades del sistema de calidad identificadas, los hallazgos de mayor impacto sanitario y el estado de los planes de acción, como antecedente para la Revisión por la Dirección y para apoyar la toma de decisiones y la asignación de recursos.</p>
       <h3>Alcance</h3>
       <p>Considera las auditorías internas del programa ${anio} registradas en el sistema de auditorías de Aseguramiento de Calidad, con los datos disponibles al ${fechaHoy}. Las auditorías en curso se informan con los hallazgos registrados a esa fecha.</p>
     </section>`;
   document.getElementById('contenido').innerHTML = portada + `
-    <h2 class="sec-titulo">1. Mensajes clave</h2>
+    <h2 class="sec-titulo" data-sec="1">1. Mensajes clave</h2>
     <p class="h2sub">Lo que la Dirección debe saber, en cinco puntos.</p>
     <div class="card"><ul class="mensajes" style="margin:0; padding-left:20px;">${mensajes.map(m=>`<li>${m}</li>`).join('') || '<li>Sin hallazgos registrados para este año.</li>'}</ul></div>
 
-    <h2 class="sec-titulo">2. Resultados del programa</h2>
+    <h2 class="sec-titulo" data-sec="2">2. Resultados del programa</h2>
     <p class="h2sub">Indicadores principales de las auditorías internas ${anio}.</p>
     <div class="grid-kpi">
       <div class="card kpi"><div class="v">${nEjec} / ${nProg}</div><div class="l">Auditorías ejecutadas</div><div class="d">del programa anual ${anio}</div></div>
@@ -435,21 +450,21 @@ function render(anio){
       <div class="prog">${filasProg.map(p=>`<div class="it"><div class="n">${esc(p.t)}</div><div class="e" style="color:${p.color}">● ${esc(p.estado)}</div></div>`).join('')}</div>
     </div>
 
-    <h2 class="sec-titulo sec-nueva">3. Mapa de riesgo por área</h2>
+    <h2 class="sec-titulo sec-nueva" data-sec="3">3. Mapa de riesgo por área</h2>
     <p class="h2sub">Cantidad de hallazgos por área y criticidad. Las áreas están ordenadas de mayor a menor riesgo.</p>
     <div class="card" style="overflow-x:auto;">
       ${areas.length ? `<table class="t heat">
-        <thead><tr><th>Área</th>${SEV.map(s=>`<th class="num"><span class="sev"><i style="background:${s.c}"></i>${s.k}</span></th>`).join('')}<th class="num">Total</th><th style="width:30%">Jefatura del área / cargo sanitario</th></tr></thead>
+        <thead><tr><th>Área</th>${SEV_MAPA.map(s=>`<th class="num"><span class="sev"><i style="background:${s.c}"></i>${s.k}</span></th>`).join('')}<th class="num">Total</th><th style="width:30%">Jefatura del área / cargo sanitario</th></tr></thead>
         <tbody>${areas.map(a => {
           const fs = hal.filter(f=>f._area===a);
           return `<tr><td><b>${esc(a)}</b><div class="c" style="font-size:11.5px; color:var(--text-muted)">${esc(fs[0]._aud.codigoReporte||'')}</div></td>
-            ${SEV.map(s => { const n = fs.filter(f=>f._sev===s.k).length; const col = colorCelda(n);
+            ${SEV_MAPA.map(s => { const n = fs.filter(f=>f._sev===s.k).length; const col = colorCelda(n);
               return `<td class="c" style="background:${col.bg}; color:${col.fg}" data-tip="${esc(a)} · ${s.k}: ${n} hallazgo(s)">${n||'–'}</td>`; }).join('')}
             <td class="num"><b>${fs.length}</b></td><td style="font-size:12px;">${esc(fs[0]._jef)}<div style="color:var(--text-muted)">${esc(fs[0]._san)}</div></td></tr>`;
         }).join('')}</tbody></table>` : '<div class="vacio">Sin hallazgos registrados.</div>'}
     </div>
 
-    <h2 class="sec-titulo sec-nueva">4. Debilidades del sistema de calidad</h2>
+    <h2 class="sec-titulo sec-nueva" data-sec="4">4. Debilidades del sistema de calidad</h2>
     <p class="h2sub">Hallazgos agrupados por tema. Un tema que aparece en varias áreas indica una falla del sistema, que debe abordarse de forma transversal y no área por área.</p>
     <div class="card">
       ${sevLegend}
@@ -461,7 +476,7 @@ function render(anio){
       </div>`).join('') || '<div class="vacio">Sin hallazgos registrados.</div>'}
     </div>
 
-    <h2 class="sec-titulo sec-nueva">5. Hallazgos prioritarios e impacto sanitario</h2>
+    <h2 class="sec-titulo sec-nueva" data-sec="5">5. Hallazgos prioritarios e impacto sanitario</h2>
     <p class="h2sub">Hallazgos críticos y hallazgos mayores reincidentes: son los que observaría con mayor probabilidad una inspección del ISP (N.T. 127 / D.S. N° 3/2010) y los que requieren seguimiento directo de la jefatura sanitaria.</p>
     <div class="card" style="overflow-x:auto;">
       ${prioritarios.length ? `<table class="t" style="table-layout:fixed;"><colgroup><col style="width:11%"><col style="width:13%"><col style="width:40%"><col style="width:14%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr><th>Criticidad</th><th>Área</th><th>Hallazgo</th><th>Requisito</th><th>Responde</th><th>Plan de acción</th></tr></thead><tbody>
@@ -475,9 +490,9 @@ function render(anio){
         </tr>`).join('')}</tbody></table>` : '<div class="vacio">No hay hallazgos críticos ni mayores reincidentes.</div>'}
     </div>
 
-    <h2 class="sec-titulo">6. Compromiso por cargo responsable</h2>
+    <h2 class="sec-titulo" data-sec="6">6. Compromiso por cargo responsable</h2>
     <p class="h2sub">Estado de los planes de acción de los hallazgos que corresponde gestionar a cada cargo sanitario y, en las áreas que dependen directamente de la Gerencia General, al Gerente General.</p>
-    <div class="card">
+    <div class="card no-romper">
       <div class="leyenda"><span><i style="background:var(--st-good)"></i>Cerrado</span><span><i style="background:var(--teal)"></i>Plan aceptado por QA</span><span><i style="background:var(--seq-4)"></i>Plan recibido (por revisar)</span><span><i style="background:var(--st-serious)"></i>Devuelto con observaciones</span><span><i style="background:var(--st-critical)"></i>Sin plan de acción</span></div>
       ${porSan.map(c => `<div class="resp-fila">
         <div><div class="q">${esc(c.cargo)}</div><div class="c">${esc(c.nombre)}${c.areas.length?' · '+c.areas.map(esc).join(', '):''}</div></div>
@@ -486,7 +501,7 @@ function render(anio){
       </div>`).join('')}
     </div>
 
-    <h2 class="sec-titulo">7. Requerimientos a la Dirección</h2>
+    <h2 class="sec-titulo" data-sec="7">7. Requerimientos a la Dirección</h2>
     <p class="h2sub">Propuesta de Aseguramiento de Calidad para las debilidades transversales: decisiones y recursos que no puede resolver un área por sí sola.</p>
     <div class="card">
       <ol style="margin:0; padding-left:20px;">
@@ -495,7 +510,13 @@ function render(anio){
       <div class="nota">Propuesta generada a partir de los temas que se repiten en dos o más áreas; debe ser validada por Aseguramiento de Calidad antes de presentarse.</div>
     </div>
 
-    <h2 class="sec-titulo">Criterios del informe</h2>
+    <h2 class="sec-titulo sec-nueva" data-sec="8">8. Oportunidades de mejora y observaciones por área</h2>
+    <p class="h2sub">Resumen de lo informado en la sección «Observaciones adicionales / Puntos de mejora» de cada reporte de auditoría. No constituyen No Conformidades, pero orientan la mejora del sistema.</p>
+    <div class="card">
+      ${mejoras.length ? `<table class="t" style="table-layout:fixed;"><colgroup><col style="width:22%"><col></colgroup><thead><tr><th>Área / reporte</th><th>Oportunidades de mejora y observaciones</th></tr></thead><tbody>${mejoras.map(m=>`<tr><td><b>${esc(m.area)}</b><div style="color:var(--text-muted); font-size:11.5px;">${esc(m.codigo)}</div></td><td style="white-space:pre-wrap; line-height:1.45;">${esc(m.texto)}</td></tr>`).join('')}</tbody></table>` : '<div class="vacio">Los reportes del periodo no registran observaciones adicionales ni puntos de mejora.</div>'}
+    </div>
+
+    <h2 class="sec-titulo" data-sec="9">9. Criterios del informe</h2>
     <div class="card no-romper criterios" style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
       <b>Fuente:</b> registros de la app de auditorías internas (F-QA-009.03), actualizados en línea. <b>Criticidad:</b> NC Crítico, puede generar un producto perjudicial para el paciente o impedir controlar la liberación; NC Mayor, puede afectar la calidad, la trazabilidad o la integridad de los registros (incluye reincidencia de un hallazgo menor); NC Menor, desviación puntual sin impacto directo en la calidad. <b>Tema:</b> se asigna según el requisito normativo citado en cada hallazgo. <b>Plan de acción:</b> se considera recibido cuando el área registró causa raíz y acción en el portal del auditado; luego Aseguramiento de Calidad lo acepta o lo devuelve con observaciones. <b>Plazo de respuesta:</b> 45 días hábiles desde la recepción del reporte (SOP QA-009).
     </div>
@@ -512,6 +533,98 @@ document.addEventListener('mousemove', e => {
   tip.style.left = Math.min(window.innerWidth - 330, e.clientX + 14) + 'px';
   tip.style.top = (e.clientY + 14) + 'px';
 });
+
+
+// ---------- Armado de hojas para imprimir (membrete con Pág. X de Y e índice con páginas) ----------
+const LOGO_SRC = (document.querySelector('.membrete .m-logo img')||{}).src || '';
+function membreteHtml(i, n){
+  return `<table class="membrete"><tr>
+    <td class="m-logo"><img src="${LOGO_SRC}" alt="Instituto Bioquímico Beta S.A."></td>
+    <td class="m-centro"><div class="m-conf">C O N F I D E N C I A L</div><div style="margin-top:5px;"><b>Sección:</b> Aseguramiento de Calidad</div><div style="margin-top:5px;"><b>Informe de Auditorías Internas a la Dirección</b></div></td>
+    <td class="m-der"><div><b>Periodo:</b> ${esc(ANIO_ACTUAL)}</div><div><b>Edición:</b> ${esc(EDICION_INFORME)}</div><div><b>Pág.:</b> ${i} de ${n}</div></td>
+  </tr></table>`;
+}
+function armarHojas(){
+  const host = document.getElementById('impresion');
+  const fuente = document.getElementById('contenido');
+  if(!fuente || !fuente.querySelector('.portada')) return;
+  host.innerHTML = ''; host.classList.add('midiendo');
+  const hojas = []; let cuerpo, maxH;
+  const nueva = () => {
+    const h = document.createElement('div'); h.className = 'hoja';
+    h.innerHTML = membreteHtml(0,0) + '<div class="cuerpo pg"></div><div class="pie"><span>Informe de Auditorías Internas a la Dirección · Documento confidencial</span><span class="pie-pag"></span></div>';
+    host.appendChild(h); hojas.push(h); cuerpo = h.querySelector('.cuerpo');
+    const alto = h.clientHeight, top = cuerpo.offsetTop;
+    maxH = alto - top - 14*96/25.4;   // deja espacio para el pie
+    cuerpo.style.height = maxH + 'px';
+    return h;
+  };
+  const vacia = () => cuerpo.children.length === 0;
+  // salta de hoja llevándose los títulos que quedarían solos al pie
+  const saltar = () => {
+    const colgantes = [];
+    while(cuerpo.lastElementChild && (cuerpo.lastElementChild.tagName==='H2' || cuerpo.lastElementChild.classList.contains('h2sub'))){ colgantes.unshift(cuerpo.lastElementChild); cuerpo.lastElementChild.remove(); }
+    nueva(); colgantes.forEach(c => cuerpo.appendChild(c));
+  };
+  const desborda = () => cuerpo.scrollHeight > maxH + 1;
+  const secPag = {};
+  // bloques en orden
+  const bloques = [...fuente.children].map(n => n.cloneNode(true));
+  nueva();
+  for(let k=0; k<bloques.length; k++){
+    const b = bloques[k];
+    if(b.classList.contains('portada')){ if(!vacia()) nueva(); cuerpo.appendChild(b); if(k < bloques.length-1) nueva(); continue; }
+    if(b.tagName==='H2'){
+      if(b.classList.contains('sec-nueva') && !vacia()) nueva();
+      // mantiene el título con su subtítulo y el inicio del contenido
+      const sub = (bloques[k+1] && bloques[k+1].classList.contains('h2sub')) ? bloques[k+1] : null;
+      cuerpo.appendChild(b); if(sub) cuerpo.appendChild(sub);
+      const sig = bloques[k + (sub?2:1)];
+      const divisible = sig && !sig.classList.contains('no-romper') && ((sig.querySelector('table.t') && sig.querySelector('table.t').tBodies[0] && sig.querySelector('table.t').tBodies[0].rows.length > 1) || sig.children.length > 1);
+      const prueba = (sig && !divisible) ? sig.cloneNode(true) : Object.assign(document.createElement('div'), {style:'height:90px'});
+      cuerpo.appendChild(prueba);
+      const no = desborda(); prueba.remove();
+      if(no && cuerpo.children.length > (sub?2:1)){ b.remove(); if(sub) sub.remove(); nueva(); cuerpo.appendChild(b); if(sub) cuerpo.appendChild(sub); }
+      if(b.dataset.sec) secPag[b.dataset.sec] = hojas.length;
+      if(sub) k++;
+      continue;
+    }
+    cuerpo.appendChild(b);
+    if(!desborda()) continue;
+    // no cabe: dividir tablas por filas o tarjetas por elementos internos
+    b.remove();
+    const tabla = b.querySelector('table.t');
+    let partes, armar;
+    if(tabla && tabla.tBodies[0] && tabla.tBodies[0].rows.length > 1){
+      partes = [...tabla.tBodies[0].rows];
+      armar = () => { const c = b.cloneNode(true); c.querySelector('table.t').tBodies[0].innerHTML=''; return [c, c.querySelector('table.t').tBodies[0]]; };
+    } else if(b.children.length > 1 && !b.classList.contains('no-romper')){
+      partes = [...b.children];
+      // la leyenda viaja pegada al primer elemento, para que no quede sola al pie de una hoja
+      if(partes.length > 1 && partes[0].classList.contains('leyenda')){ const w = document.createElement('div'); w.append(partes[0], partes[1]); partes.splice(0, 2, w); }
+      armar = () => { const c = b.cloneNode(false); return [c, c]; };
+    } else {
+      if(!vacia()) saltar(); cuerpo.appendChild(b); continue;
+    }
+    let [tarjeta, destino] = armar(); cuerpo.appendChild(tarjeta);
+    for(const pz of partes){
+      destino.appendChild(pz);
+      if(desborda()){
+        pz.remove();
+        if(destino.children.length === 0){ tarjeta.remove(); saltar(); }
+        else nueva();
+        [tarjeta, destino] = armar(); cuerpo.appendChild(tarjeta); destino.appendChild(pz);
+      }
+    }
+  }
+  const n = hojas.length;
+  hojas.forEach((h,i) => h.querySelectorAll('h2[data-sec]').forEach(t => { secPag[t.dataset.sec] = i+1; }));
+  hojas.forEach((h,i) => { h.querySelector('.membrete').outerHTML = membreteHtml(i+1, n); });
+  host.querySelectorAll('.indice-v li[data-sec]').forEach(li => { const pn = li.querySelector('.pn'); if(pn) pn.textContent = secPag[li.dataset.sec] || ''; });
+  host.classList.remove('midiendo');
+}
+function imprimirInforme(){ armarHojas(); window.print(); }
+window.addEventListener('beforeprint', armarHojas);
 
 async function sha256(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function accesoGuardado(){ try { return sessionStorage.getItem('informeDirAcceso') === CLAVE_SHA256; } catch(e){ return false; } }
