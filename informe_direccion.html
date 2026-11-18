@@ -87,6 +87,12 @@
   .portada .p-sub { text-align:center; color:var(--text-secondary); font-size:13px; margin-bottom:16px; }
   .portada h3 { font-size:13px; color:var(--navy); margin:16px 0 6px; text-transform:uppercase; letter-spacing:.4px; }
   .portada p { font-size:13px; line-height:1.5; margin:0; color:var(--text-primary); }
+  .p-caja { border:4px double #000; background:#eef4f9; text-align:center; padding:26px 20px; margin:70px 30px 34px; color:#14245c; }
+  .p-caja .p-t1 { font-size:24px; font-weight:700; }
+  .p-caja .p-t2 { font-size:19px; font-weight:700; margin-top:14px; }
+  .p-caja .p-t3 { font-size:17px; margin-top:12px; }
+  .pag2 { margin-top:14px; }
+  .indice-v { font-size:13.5px; line-height:1.9; margin:0 0 6px; padding-left:22px; }
   table.firmas, table.dist { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
   table.firmas th, table.firmas td, table.dist th, table.dist td { border:1px solid #9aa1ab; padding:7px 8px; text-align:left; vertical-align:middle; }
   table.firmas th, table.dist th { background:#eef1f5; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
@@ -94,6 +100,7 @@
   .indice { columns:2; font-size:12.5px; margin:0; padding-left:18px; }
   .indice li { margin:3px 0; }
   .sec-titulo { break-after:avoid; }
+  body.es-borrador::before { content:'BORRADOR'; position:fixed; top:45%; left:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:110px; font-weight:800; letter-spacing:12px; color:rgba(200,40,40,.08); pointer-events:none; z-index:50; }
   @media print {
     @page { size: letter; margin: 12mm 11mm 14mm 11mm;
       @bottom-left { content: "Informe de Auditorías Internas a la Dirección · Documento confidencial"; font: 8pt 'Segoe UI', Arial, sans-serif; color:#7c8592; }
@@ -157,7 +164,7 @@
     <table class="membrete"><tr>
       <td class="m-logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAABNCAIAAAAEtD6aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABA8SURBVHhe7Z0JVFVVF8fFCQfUxIGyUnEIHDBtQMsRzRRRKsdcoiHSAJg55gCpOKXiPBQSlmZa6jK1rByaFIdEwkycSmOlOYTiCA6g3e/33r6+9bqfij6G5+qe3zrLde4Z9jn33f/ZZx/efVVIUyhMgBK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRL6/c65c+fmzZt3+vRp/VrhEPcg9A8+0Pz88izFxmppabplxR2YOnVqcHDwpUuX9GuFQ9yt0OPitEKF8jh5e2v79un2HWPv3r1jxoz5559/Zs+e/fXXX1OSmZkZFRV16NChGzduUEjtO++8k5qaunv3bvJURUZGktmwYUNcXNw333wTHx8/evRoCmk2ceLEHTt2jBs37uLFi5j6/vvv58+fv2nTJukIZLZs2ULVokWLBg8eTJc1a9ZY5nGTrVu3in149913r1+//vfff48aNYp/qd2+fTv5YcOGnTx5Utrjrd9++20sMwqXjEv+yJEj5A8cOMDEsDBjxozNmzfj0ani0tpPO3PmDKauXLmyePHiZcuWSeH48ePpQgn3zuXhw4eHDx8+cuTIX3/9VRoItJd7gYULF/LpJScn26bNcDt37iTD3Umh2N+1a9eUKVPEgkDH7777jhFps3TpUhnUBtNYtWqVfnEfcFdCnzPHqNG8Sj4++hCO8cknnxQqVIiPuH79+mSQ77Vr18igDFReuXJlnvGQIUMeeOCBv/76i+fXokWLhx9+mMyff/5ZpUqV8PDwffv2rV+/ni6TJ0/mWX7++efkjx8/jnFUUr58+aNHj9K+Zs2avr6+ZKjCcr169TDLY/b29mYOMhlAVa6urgwKdevWHTRo0B9//IFBtPvTTz899thjK1asmDBhwtNPP41Z1M98hg4d+tVXX9WuXZtpoHsas/wwhUrIZ2VlMcTAgQP37NnD5bfffisDvf/++1zSvmnTph07dkTxvXv37ty587Zt2xiFiaFyHx8fpvrRRx/VqVOHW5OOwOjP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" alt="Instituto Bioquímico Beta S.A."></td>
       <td class="m-centro"><div class="m-conf">C O N F I D E N C I A L</div><div style="margin-top:5px;"><b>Sección:</b> Aseguramiento de Calidad</div><div style="margin-top:5px;"><b>Informe de Auditorías Internas a la Dirección</b></div></td>
-      <td class="m-der"><div><b>Periodo:</b> <span class="m-periodo">—</span></div><div><b>Datos al:</b> <span class="m-fecha">—</span></div></td>
+      <td class="m-der"><div><b>Periodo:</b> <span class="m-periodo">—</span></div><div><b>Datos al:</b> <span class="m-fecha">—</span></div><div><b>Estado:</b> <span class="m-estado">—</span></div></td>
     </tr></table>
   </td></tr></thead>
   <tbody><tr><td>
@@ -188,6 +195,11 @@ const CARGOS_SANITARIOS = [
   {cargo:'Jefe de Producción', nombre:'Cristian Moreno'}
 ];
 
+// Estado del informe. Mientras esté en 'BORRADOR', la página pide clave de acceso
+// (solo elaboradora y revisora). Cuando Cecilia lo apruebe, cambiar a 'APROBADO'.
+const ESTADO_INFORME = 'BORRADOR';
+const CLAVE_SHA256 = 'b064c8dba78c9c059545e6c8ad27f42b739ae7c40d092126c57729a6cab2cff2';
+
 // Control del documento (portada). Ajustar aquí si cambian las personas o cargos.
 const CONTROL_DOC = [
   {rol:'Elaborado por', nombre:'Juana Sanhueza', cargo:'Analista de Calidad', funcion:'Elaboración del contenido'},
@@ -207,8 +219,8 @@ const AREAS = [
   {m:/microbiolog/i,            corto:'CC – Microbiología',   jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
   {m:/envase/i,                 corto:'CC – Envase-Empaque',  jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
   {m:/control de calidad/i,     corto:'CC – Fco-Química y Metodología', jefatura:'Christian Espinoza, Gerente de Control de Calidad', gerencia:'Control de Calidad (C. Espinoza)', sanitario:'Jefe de Control de Calidad'},
-  {m:/personas|rrhh/i,          corto:'Gestión de Personas',  jefatura:'Mauricio Miranda, Gerente de Gestión de Personas', gerencia:'Gestión de Personas (M. Miranda)', sanitario:'Director Técnico'},
-  {m:/prevenci/i,               corto:'Prevención de Riesgos',jefatura:'Ignacio Fuentes, Jefe de Prevención de Riesgos', gerencia:'Prevención de Riesgos (I. Fuentes)', sanitario:'Director Técnico'},
+  {m:/personas|rrhh/i,          corto:'Gestión de Personas',  jefatura:'Mauricio Miranda, Gerente de Gestión de Personas', gerencia:'Gerencia General (G. Pinilla)', sanitario:'Gerente General'},
+  {m:/prevenci/i,               corto:'Prevención de Riesgos',jefatura:'Ignacio Fuentes, Jefe de Prevención de Riesgos', gerencia:'Gerencia General (G. Pinilla)', sanitario:'Gerente General'},
   {m:/aseguramiento/i,          corto:'Aseguramiento de Calidad', jefatura:'Cecilia Villegas, Subgerente de Aseguramiento de Calidad', gerencia:'Aseguramiento de Calidad (C. Villegas)', sanitario:'Jefe de Aseguramiento de Calidad'}
 ];
 function areaInfo(nombre){
@@ -246,14 +258,23 @@ const TEMAS = [
    pedido:'Plan de actualización de SOPs vencidos o desactualizados (incluida la migración BPCS → SAP) con plazos por área.'},
   {t:'Infraestructura y mantención', r:/12\.6|Instalaciones|infraestructura|pintura|z.calo|filtraci|esclusa|puerta/i,
    pedido:'Plan de mantención de infraestructura de áreas productivas y laboratorio, priorizado por riesgo sanitario.'},
-  {t:'Higiene y sanitización', r:/Cap\. 3 |Higiene y Sanitizaci|sanitiz|HIG-/i,
+  {t:'Higiene y sanitización', r:/Cap\. (3|11) |Higiene y Sanitizaci|Higiene personal|sanitiz|HIG-|limpieza/i,
    pedido:'Revisión del programa de limpieza y sanitización y de la identificación de agentes de limpieza.'},
   {t:'Materiales y rotulación', r:/Cap\. 14|rotul|reactivo|etiqueta|doble verificaci|14\.1[67]/i,
    pedido:'Refuerzo de controles de rotulación y doble verificación en manejo de materiales.'},
   {t:'Personal y capacitación', r:/Cap\. 9 |Cap\. 10 |capacitaci|descripci.n de cargo|organigrama/i,
    pedido:'Cumplimiento del programa anual de capacitación aprobado y actualización de descripciones de cargo.'},
   {t:'Procesos productivos', r:/Cap\. 16|Buenas Pr.cticas en Producci/i,
-   pedido:'Revisión de controles de proceso en producción.'}
+   pedido:'Revisión de controles de proceso en producción.'},
+  {t:'Laboratorio de control de calidad', r:/Cap\. 17|Buenas Pr.cticas en Control de Calidad|est.ndar|muestra de retenci|contramuestra|especificaci/i,
+   pedido:'Refuerzo de los controles del laboratorio (especificaciones, estándares, muestras de retención y métodos).'},
+  {t:'Equipos', r:/Cap\. 13|equipo/i,
+   pedido:'Programa de mantención preventiva y registro de uso de equipos críticos.'},
+  {t:'Seguridad y salud ocupacional', r:/D\.S\.? ?(594|44|40)|Ley 16\.?744|SI-0|SI-50|extintor|evacuaci|EPP/i,
+   pedido:'Actualización del sistema de gestión de seguridad (procedimientos, controles de terreno y capacitación D.S. 44), con seguimiento de la Gerencia General.'},
+  {t:'Sistema de gestión de calidad', r:/Cap\. [125678] |Garant.a de Calidad|autoinspecci|auditor.a|reclamo|retiro|desviaci|CAPA|control de cambio|QA-0/i,
+   pedido:'Fortalecer el seguimiento de CAPA y la eficacia de las acciones comprometidas, con revisión periódica de la Dirección.'},
+  {t:'Control documental', r:/Cap\. 15|Documentaci/i, pedido:''}
 ];
 function temaDe(f){
   const ref = (f.ref||'') + ' ';
@@ -337,9 +358,9 @@ function render(anio){
   areas.sort((a,b)=>peso(b)-peso(a));
 
   // Temas
-  const temas = TEMAS.map(t=>t.t).concat(['Otros']).map(t => {
+  const temas = [...new Set(TEMAS.map(t=>t.t))].concat(['Otros']).map(t => {
     const fs = hal.filter(f=>f._tema===t);
-    return {t, fs, areas:[...new Set(fs.map(f=>f._area))], pedido:(TEMAS.find(x=>x.t===t)||{}).pedido};
+    return {t, fs, areas:[...new Set(fs.map(f=>f._area))], pedido:(TEMAS.find(x=>x.t===t && x.pedido)||{}).pedido};
   }).filter(x=>x.fs.length).sort((a,b)=> b.areas.length - a.areas.length || b.fs.length - a.fs.length);
   const maxTema = Math.max(1, ...temas.map(x=>x.fs.length));
 
@@ -348,7 +369,7 @@ function render(anio){
     .sort((a,b)=> (a._sev==='NC Crítico'?0:1) - (b._sev==='NC Crítico'?0:1));
 
   // Por cargo sanitario
-  const porSan = CARGOS_SANITARIOS.map(c => {
+  const porSan = CARGOS_SANITARIOS.concat([{cargo:'Gerente General', nombre:'German Pinilla'}]).map(c => {
     const fs = hal.filter(f=>f._san===c.cargo);
     return {...c, fs, areas:[...new Set(fs.map(f=>f._area))],
       cer: fs.filter(f=>f._plan.k==='cerrado').length, acp: fs.filter(f=>f._plan.k==='aceptado').length, res: fs.filter(f=>f._plan.k==='respondido').length, dev: fs.filter(f=>f._plan.k==='devuelto').length, pen: fs.filter(f=>f._plan.k==='pendiente').length,
@@ -374,17 +395,25 @@ function render(anio){
   document.querySelectorAll('.m-periodo').forEach(e=>e.textContent=anio);
   document.querySelectorAll('.m-fecha').forEach(e=>e.textContent=fechaHoy);
   const portada = `<section class="portada">
-      <h1>Informe de Auditorías Internas a la Dirección</h1>
-      <div class="p-sub">Programa de auditorías internas ${anio} · Datos al ${fechaHoy}</div>
-      <h3>Objetivo</h3>
-      <p>Informar a la Dirección el resultado del programa de auditorías internas ${anio}, las debilidades del sistema de calidad identificadas, los hallazgos de mayor impacto sanitario y el estado de los planes de acción, para apoyar la toma de decisiones y la asignación de recursos.</p>
+      <div class="p-caja">
+        <div class="p-t1">Informe de Auditorías Internas</div>
+        <div class="p-t2">Revisión por la Dirección</div>
+        <div class="p-t3">Programa de auditorías internas</div>
+        <div class="p-t3"><b>Periodo:</b> ${anio}</div>
+      </div>
       <h3>Dirigido a</h3>
       <table class="dist"><thead><tr><th style="width:45%">Cargo</th><th>Nombre</th></tr></thead><tbody>${DISTRIBUCION.map(d=>`<tr><td>${esc(d.cargo)}</td><td>${esc(d.nombre)}</td></tr>`).join('')}</tbody></table>
       <h3>Control del documento</h3>
       <table class="firmas"><thead><tr><th style="width:16%"></th><th style="width:32%">Nombre / Cargo</th><th style="width:24%">Rol</th><th style="width:16%">Firma</th><th style="width:12%">Fecha</th></tr></thead>
         <tbody>${CONTROL_DOC.map(c=>`<tr><td><b>${esc(c.rol)}</b></td><td>${esc(c.nombre)}<br><span style="color:var(--text-secondary)">${esc(c.cargo)}</span></td><td>${esc(c.funcion)}</td><td></td><td></td></tr>`).join('')}</tbody></table>
+    </section>
+    <section class="portada pag2">
       <h3>Contenido</h3>
-      <ol class="indice"><li>Mensajes clave</li><li>Resultados del programa</li><li>Mapa de riesgo por área</li><li>Debilidades del sistema de calidad</li><li>Hallazgos prioritarios e impacto sanitario</li><li>Compromiso por cargo sanitario</li><li>Requerimientos a la Dirección</li></ol>
+      <ol class="indice-v"><li>Mensajes clave</li><li>Resultados del programa</li><li>Mapa de riesgo por área</li><li>Debilidades del sistema de calidad</li><li>Hallazgos prioritarios e impacto sanitario</li><li>Compromiso por cargo responsable</li><li>Requerimientos a la Dirección</li><li>Criterios del informe</li></ol>
+      <h3>Objetivo</h3>
+      <p>Informar a la Dirección el resultado del programa de auditorías internas ${anio}, las debilidades del sistema de calidad identificadas, los hallazgos de mayor impacto sanitario y el estado de los planes de acción, como antecedente para la Revisión por la Dirección y para apoyar la toma de decisiones y la asignación de recursos.</p>
+      <h3>Alcance</h3>
+      <p>Considera las auditorías internas del programa ${anio} registradas en el sistema de auditorías de Aseguramiento de Calidad, con los datos disponibles al ${fechaHoy}. Las auditorías en curso se informan con los hallazgos registrados a esa fecha.</p>
     </section>`;
   document.getElementById('contenido').innerHTML = portada + `
     <h2 class="sec-titulo">1. Mensajes clave</h2>
@@ -446,14 +475,14 @@ function render(anio){
         </tr>`).join('')}</tbody></table>` : '<div class="vacio">No hay hallazgos críticos ni mayores reincidentes.</div>'}
     </div>
 
-    <h2 class="sec-titulo">6. Compromiso por cargo sanitario</h2>
-    <p class="h2sub">Estado de los planes de acción de los hallazgos que corresponde gestionar a cada cargo sanitario.</p>
+    <h2 class="sec-titulo">6. Compromiso por cargo responsable</h2>
+    <p class="h2sub">Estado de los planes de acción de los hallazgos que corresponde gestionar a cada cargo sanitario y, en las áreas que dependen directamente de la Gerencia General, al Gerente General.</p>
     <div class="card">
       <div class="leyenda"><span><i style="background:var(--st-good)"></i>Cerrado</span><span><i style="background:var(--teal)"></i>Plan aceptado por QA</span><span><i style="background:var(--seq-4)"></i>Plan recibido (por revisar)</span><span><i style="background:var(--st-serious)"></i>Devuelto con observaciones</span><span><i style="background:var(--st-critical)"></i>Sin plan de acción</span></div>
       ${porSan.map(c => `<div class="resp-fila">
         <div><div class="q">${esc(c.cargo)}</div><div class="c">${esc(c.nombre)}${c.areas.length?' · '+c.areas.map(esc).join(', '):''}</div></div>
         <div style="font-weight:700; text-align:center;">${c.fs.length}<div class="c" style="font-weight:400;">hallazgos</div></div>
-        ${c.fs.length ? `<div class="barra">${c.cer?`<span style="flex:${c.cer}; background:var(--st-good)" data-tip="${esc(c.cargo)} · Cerrados: ${c.cer}"></span>`:''}${c.acp?`<span style="flex:${c.acp}; background:var(--teal)" data-tip="${esc(c.cargo)} · Plan aceptado: ${c.acp}"></span>`:''}${c.res?`<span style="flex:${c.res}; background:var(--seq-4)" data-tip="${esc(c.cargo)} · Plan recibido: ${c.res}"></span>`:''}${c.dev?`<span style="flex:${c.dev}; background:var(--st-serious)" data-tip="${esc(c.cargo)} · Devuelto: ${c.dev}"></span>`:''}${c.pen?`<span style="flex:${c.pen}; background:var(--st-critical)" data-tip="${esc(c.cargo)} · Sin plan de acción: ${c.pen}"></span>`:''}</div>` : '<div class="c">Sin hallazgos asignados en este período.</div>'}
+        ${c.fs.length ? `<div class="barra">${c.cer?`<span style="flex:${c.cer}; background:var(--st-good)" data-tip="${esc(c.cargo)} · Cerrados: ${c.cer}"></span>`:''}${c.acp?`<span style="flex:${c.acp}; background:var(--teal)" data-tip="${esc(c.cargo)} · Plan aceptado: ${c.acp}"></span>`:''}${c.res?`<span style="flex:${c.res}; background:var(--seq-4)" data-tip="${esc(c.cargo)} · Plan recibido: ${c.res}"></span>`:''}${c.dev?`<span style="flex:${c.dev}; background:var(--st-serious)" data-tip="${esc(c.cargo)} · Devuelto: ${c.dev}"></span>`:''}${c.pen?`<span style="flex:${c.pen}; background:var(--st-critical)" data-tip="${esc(c.cargo)} · Sin plan de acción: ${c.pen}"></span>`:''}</div>` : '<div class="c">Supervisión técnica transversal; sin áreas asignadas directamente en este período.</div>'}
       </div>`).join('')}
     </div>
 
@@ -484,8 +513,35 @@ document.addEventListener('mousemove', e => {
   tip.style.top = (e.clientY + 14) + 'px';
 });
 
+async function sha256(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function accesoGuardado(){ try { return sessionStorage.getItem('informeDirAcceso') === CLAVE_SHA256; } catch(e){ return false; } }
+function pedirClave(){
+  return new Promise(resolve => {
+    const c = document.getElementById('contenido');
+    c.innerHTML = `<div class="card" style="max-width:420px; margin:40px auto; text-align:center;">
+      <div style="font-size:15px; font-weight:600; color:var(--navy); margin-bottom:6px;">Informe en borrador</div>
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 14px;">Este informe aún no ha sido aprobado. El acceso está restringido a Aseguramiento de Calidad hasta su aprobación.</p>
+      <input id="clave" type="password" placeholder="Clave de acceso" style="width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font:inherit;">
+      <button id="btn-clave" style="margin-top:10px; width:100%; padding:9px; border:0; border-radius:6px; background:var(--navy); color:#fff; font:inherit; cursor:pointer;">Ingresar</button>
+      <div id="clave-err" style="color:var(--st-critical); font-size:12.5px; margin-top:8px; min-height:16px;"></div></div>`;
+    const probar = async () => {
+      const v = document.getElementById('clave').value.trim();
+      if(await sha256(v) === CLAVE_SHA256){ try{ sessionStorage.setItem('informeDirAcceso', CLAVE_SHA256); }catch(e){} resolve(); }
+      else document.getElementById('clave-err').textContent = 'Clave incorrecta.';
+    };
+    document.getElementById('btn-clave').onclick = probar;
+    document.getElementById('clave').addEventListener('keydown', e => { if(e.key==='Enter') probar(); });
+  });
+}
+
 (async function(){
   try{
+    document.querySelectorAll('.m-estado').forEach(e=>{ e.textContent = ESTADO_INFORME==='APROBADO' ? 'Aprobado' : 'Borrador'; });
+    if(ESTADO_INFORME!=='APROBADO'){
+      document.body.classList.add('es-borrador');
+      if(!accesoGuardado()) await pedirClave();
+      document.getElementById('contenido').innerHTML = '<div class="estado-carga">Cargando datos de auditoría…</div>';
+    }
     await cargar();
     const anios = [...new Set(AUD.map(a=>(a.fecha||'').slice(0,4)).filter(Boolean))].sort().reverse();
     const actual = String(new Date().getFullYear());
