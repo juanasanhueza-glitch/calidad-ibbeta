@@ -111,6 +111,7 @@
   .c-Cerrado{background:var(--ok-bg);color:#166534}
   .c-En-proceso{background:#E0F2FE;color:#075985}
   .c-En-firma{background:#EDE9FE;color:#5B21B6}
+  .c-Pendiente-de-incorporar{background:#FEF3C7;color:#92400E}
   .c-No-programado{background:var(--bad-bg);color:#991B1B}
   .c-Sin-registro,.c-Pendiente,.c-Por-confirmar{background:var(--none-bg);color:#475569;border:1px solid var(--border)}
   .days{font-size:10.5px;color:var(--slate);margin-left:.25rem;white-space:nowrap;display:block}
@@ -515,7 +516,19 @@ function construir(){
   for (const r of DB.BAJAS || []) { r['Tipo de baja'] = sitNorm(r['Tipo de baja']) || v(r['Tipo de baja']); const e = eq.get(K(r['ID'])); if (e) e.baja = r; }
   for (const r of DB.FICHA_TECNICA || []) { const e = eq.get(K(r['ID'])); if (e) e.ficha = r; }
   for (const r of DB.PROGRAMA_CALIFICACION || []) { const e = eq.get(K(r['ID'])); if (e) e.prog.push(r); }
-  for (const r of DB.INGRESOS || []) { const e = eq.get(K(String(r['ID en registro']||'').slice(0,3))); if (e && /^\d/.test(v(r['ID en registro']))) e.ing = r; }
+  /* INGRESOS: se enlaza por el N° completo (antes se cortaba a 3 dígitos y un "8000" caía en el equipo 800).
+     Si el N° no existe en el LISTADO_MAESTRO, el ingreso se muestra igual como equipo nuevo "pendiente de incorporar". */
+  const pendIng = [];
+  for (const r of DB.INGRESOS || []) {
+    const m = v(r['ID en registro']).match(/^\s*(\d+[A-Za-z]?\d?)\b/) || v(r['N° interno (formulario)']).match(/^\s*(\d+[A-Za-z]?\d?)\b/);
+    if (!m) continue;
+    const id = m[1].toUpperCase(), e = eq.get(K(id));
+    if (e) { e.ing = r; continue; }
+    const n = {id, padre:'', tipo:v(r['Tipo']), cat:'', area:'', ubic:v(r['Ubicación / área']), func:'', marca:v(r['Marca']), modelo:v(r['Modelo']), serie:v(r['N° de serie']),
+      sit:'Pendiente de incorporar', resp:'', naCal:false, naQ:false, fuentes:'INGRESOS', cal:[], q:[], m:[], sop:[], calA:[], qA:[], baja:null, alerts:[], ficha:null, prog:[], ing:r, pendiente:true};
+    n.alerts.push({nivel:'Amarillo', mod:'Listado maestro', que:'Ingreso nuevo registrado en INGRESOS que aún no está en el LISTADO_MAESTRO', acc:'Aseguramiento de Calidad lo incorpora al LISTADO_MAESTRO (fila nueva con sus fórmulas) y completa área, categoría y responsable', resp:'Aseguramiento de Calidad', st:'Pendiente', id});
+    eq.set(K(id), n); pendIng.push(n);
+  }
   const sinId = [];
   for (const r of DB.VERIFICAR || []) {
     const st = v(r['Estado de la verificación']) || 'Pendiente';
@@ -535,6 +548,7 @@ function construir(){
     e.general = !op ? e.sit : [e.estCal,e.estQ,e.estM].includes('Vencido') ? 'Con vencimientos' : [e.estCal,e.estQ,e.estM].includes('Por vencer') ? 'Por vencer' :
       [e.estCal,e.estQ,e.estM].every(s => s==='Sin registro' || s==='N/A (no aplica)') ? 'Sin registros' : 'Al día';
     e.search = nk([e.id,e.tipo,e.ubic,e.marca,e.modelo,e.serie,e.area,e.func].join(' '));
+    if (e.pendiente) e.general = 'Pendiente de incorporar';
   }
   /* Acuerdo 03-11-2026: el panel muestra solo bajas desde 2025 (las anteriores siguen en el Listado Maestro, ocultas aquí) */
   for (const e of eq.values()) {
@@ -545,7 +559,7 @@ function construir(){
     e.oculto = fb ? fb < CORTE_BAJAS : !(act && act >= CORTE_BAJAS);
   }
   const lista = [...eq.values()].filter(e => !e.oculto).sort((a,b) => idSort(a.id, b.id));
-  MODEL = {eq, lista, sinId, ocultas: [...eq.values()].filter(e => e.oculto).length};
+  MODEL = {eq, lista, sinId, pendIng, ocultas: [...eq.values()].filter(e => e.oculto).length};
   const op = lista.filter(e => e.sit === 'Operativo'), f = n => n.toLocaleString('es-CL');
   const sub = (id, txt, st) => { const el = document.getElementById('ns-'+id); if (el) { el.textContent = txt; el.className = 'ns ' + (st ? 's-'+st : ''); } };
   const nR = lista.filter(e => e.nivel==='ROJO').length;
@@ -711,6 +725,7 @@ function vMaestro(){
   const L = MODEL.lista;
   $('#view').innerHTML = `
     <div class="section-label"><span>Listado maestro de equipos e instrumentos</span></div>
+    ${MODEL.pendIng.length ? `<div class="note" style="border-left:3px solid #D97706;background:#FFFBEB"><b>${MODEL.pendIng.length} ingreso(s) nuevo(s) pendiente(s) de incorporar al LISTADO_MAESTRO:</b> ${MODEL.pendIng.map(e=>`<a href="#" class="pend-ing" data-id="${esc(e.id)}"><b>${esc(e.id)}</b></a> ${esc(e.tipo)}`).join(' · ')}. Están registrados en la hoja INGRESOS; ya se ven aquí, pero sus vencimientos y su estado no se calculan hasta que Aseguramiento de Calidad agregue la fila en el LISTADO_MAESTRO.</div>` : ''}
     <div class="note">Fila <b style="color:#991B1B">roja</b> = hay que verificar (situación no clara, ID en conflicto, dato crítico). Fila <b style="color:#92400E">amarilla</b> = falta información o evidencia. Haz clic en una fila para abrir la ficha completa.</div>
     <div class="toolbar">
       <input id="fq" type="search" placeholder="Filtrar por N°, tipo, ubicación, marca, serie…" value="${esc(FM.q)}">
@@ -725,8 +740,8 @@ function vMaestro(){
     const R = L.filter(e => (!q || e.search.includes(q)) && (!FM.area || e.area===FM.area) && (!FM.sit || e.sit===FM.sit) && (!FM.niv || e.nivel===FM.niv) && (!FM.gen || e.general===FM.gen));
     $('#fc').textContent = `${R.length.toLocaleString('es-CL')} de ${L.length.toLocaleString('es-CL')}`;
     tabla($('#t'), [
-      {h:'N°', cl:'id', f:e=>esc(e.id)}, {h:'Equipo / instrumento', f:e=>`${esc(e.tipo)}${e.cat?`<div class="muted" style="font-size:10.5px">${esc(e.cat)}</div>`:''}`},
-      {h:'Área', f:e=>esc(e.area)}, {h:'Ubicación', cl:'muted', f:e=>esc(e.ubic)}, {h:'Situación', f:e=>chip(e.sit)},
+      {h:'N°', cl:'id', f:e=>esc(e.id)}, {h:'Equipo / instrumento', f:e=>`${esc(e.tipo)}${e.cat?`<div class="muted" style="font-size:10.5px">${esc(e.cat)}</div>`:''}${e.pendiente?`<div style="font-size:10.5px;color:#B45309;font-weight:600">Nuevo · pendiente de incorporar al listado</div>`:''}`},
+      {h:'Área', f:e=>esc(e.area)}, {h:'Ubicación', cl:'muted', f:e=>esc(e.ubic)}, {h:'Situación', f:e=>chip(e.pendiente?'Pendiente de incorporar':e.sit)},
       {h:'Calibración', f:e=>chip(e.estCal)}, {h:'Calificación', f:e=>chip(e.estQ)}, {h:'Mantenimiento', f:e=>chip(e.estM)},
       {h:'Verificación', f:e=>e.nivel==='OK' ? chip('OK') : chip(e.nivel, ` · ${e.alerts.length}`)}],
       R, {id:e=>e.id, rowClass:e=>`click r-${e.nivel}`});
@@ -734,6 +749,7 @@ function vMaestro(){
   const bind = (id,k) => $(id).addEventListener('input', ev => { FM[k] = ev.target.value; draw(); });
   bind('#fq','q'); bind('#fa','area'); bind('#fs','sit'); bind('#fn','niv'); bind('#fg','gen');
   draw();
+  document.querySelectorAll('.pend-ing').forEach(a => a.onclick = ev => { ev.preventDefault(); abrir(a.dataset.id); });
 }
 
 /* ════════════════ CALIBRACIONES / CALIFICACIONES ════════════════ */
