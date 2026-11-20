@@ -208,7 +208,7 @@ function render(){
     ${F.analisisCausa && F.analisisCausa.estado==='completado' ? `<div class="msg ok no-print">✓ Análisis completado el ${esc(dmy(F.analisisCausa.fecha))} y llevado al hallazgo.${SOLO_VER?'':' Puede ajustarlo y volver a llevarlo si Calidad lo devolvió con observaciones.'}</div>` : ''}
     <div class="card">
       <h2>Hallazgo ${NUM?('N°'+esc(NUM)):''} · ${esc(CODIGO)} <span class="crit ${critClase(F.criticidad)}">${esc(F.criticidad||'Sin clasificar')}</span></h2>
-      <div class="dato"><b>Requisito:</b> ${esc(F.ref||F.requerimiento||'')}</div>
+      <div class="dato"><b>Requisito:</b> ${esc((F.requisitoCitado||'').trim()||(F.refCompleta||'').trim()||F.ref||F.requerimiento||'')}</div>
       <div class="dato"><b>Hallazgo:</b></div>
       <div class="caja-ro">${esc(F.descripcionHallazgo||'')}</div>
       ${F.evidenciaObjetiva ? `<div class="dato" style="margin-top:8px;"><b>Evidencia objetiva:</b></div><div class="caja-ro">${esc(F.evidenciaObjetiva)}</div>` : ''}
@@ -315,7 +315,7 @@ function reporteHtml(){
     <table class="cab"><tr><td style="width:58%"><b>INSTITUTO BIOQUÍMICO BETA S.A.</b><br>Análisis de Causa Raíz (6M · 5 Por qué)</td>
       <td>Reporte: <b>${esc(CODIGO)}</b><br>Hallazgo N°${esc(NUM)} · ${esc(F.criticidad||'')}<br>Fecha del análisis: ${esc(dmy(A.fecha))} · Estado: ${A.estado==='completado'?'Completado':'Borrador'}</td></tr></table>
     <h3>Hallazgo</h3>
-    <table><tr><th style="width:22%">Requisito</th><td>${esc(F.ref||F.requerimiento||'')}</td></tr>
+    <table><tr><th style="width:22%">Requisito</th><td>${esc((F.requisitoCitado||'').trim()||(F.refCompleta||'').trim()||F.ref||F.requerimiento||'')}</td></tr>
       <tr><th>Hallazgo</th><td class="txt">${esc(F.descripcionHallazgo||'')}</td></tr>
       ${F.evidenciaObjetiva?`<tr><th>Evidencia objetiva</th><td class="txt">${esc(F.evidenciaObjetiva)}</td></tr>`:''}</table>
     <h3>1. Análisis 6M</h3>

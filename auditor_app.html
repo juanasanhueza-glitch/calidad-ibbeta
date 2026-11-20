@@ -3627,6 +3627,13 @@ function attachHandlers(){
       }
     };
   }
+  if(el('btn-informe-seguimiento')){
+    el('btn-informe-seguimiento').onclick = () => {
+      const audit = STATE.audits.find(a=>a.id===STATE.reporteAuditId);
+      if(!audit || !audit.codigoReporte){ alert('Esta auditoría aún no tiene "Código" asignado (campo junto al membrete).'); return; }
+      window.open('informe_seguimiento.html?codigo=' + encodeURIComponent(audit.codigoReporte.trim()), '_blank');
+    };
+  }
   if(el('btn-ver-respuestas-auditado')){
     el('btn-ver-respuestas-auditado').onclick = () => {
       const audit = STATE.audits.find(a=>a.id===STATE.reporteAuditId);
@@ -5566,6 +5573,7 @@ function viewReporte(){
       <div style="display:flex; gap:8px;">
         <button class="secondary" id="btn-link-auditado">🔗 Copiar link auditado</button>
         <button class="secondary" id="btn-ver-respuestas-auditado">👁️ Ver respuestas</button>
+        <button class="secondary" id="btn-informe-seguimiento" title="Estado de respuestas, análisis de causa y plan de acción, descargable en PDF">📄 Informe de seguimiento</button>
         <button class="secondary" id="btn-vaciar-respuestas-auditado">🧹 Vaciar respuestas auditado</button>
         <button class="secondary" id="btn-descargar-word">⬇️ Descargar Word</button>
         <label class="small" style="display:flex; align-items:center; gap:4px;" title="Tamaño de hoja con que se calcula «Pág. N de M» en el membrete">Papel <select id="reporte-papel" onchange="guardarPapelImpresion(this.value)" style="font-size:12px;">${Object.keys(PAPELES_IMPRESION).map(k=>`<option value="${k}" ${k===papelImpresionActual()?'selected':''}>${PAPELES_IMPRESION[k].nombre}</option>`).join('')}</select></label>

@@ -360,6 +360,7 @@ function renderFindings(audit, findings){
           <div class="meta">Código: <b>${esc(codigo)}</b> ${fecha ? ' · Fecha auditoría: ' + esc(fecha) : ''}</div>
         </div>
         <button class="btn secondary" id="btn-refrescar-auditado" style="white-space:nowrap;">🔄 Actualizar</button>
+        <a class="btn secondary" href="informe_seguimiento.html?codigo=${encodeURIComponent(audit.codigoReporte||'')}" target="_blank" style="white-space:nowrap; text-decoration:none;">📄 Informe de seguimiento</a>
       </div>
       <div class="counts">
         ${critCount ? `<span class="badge-count crit-critico">${critCount} crítico(s)</span>` : ''}
