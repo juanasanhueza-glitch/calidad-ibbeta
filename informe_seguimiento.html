@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBBeta · Informe de Seguimiento de Hallazgos</title>
+<style>
+  :root { --navy:#1b2a4a; --teal:#2f7a72; --teal-light:#e6f2f0; --amber:#c98a1a; --amber-light:#fbf1de; --red:#b3413a; --red-light:#f7e8e6; --green:#3f7d4c; --green-light:#e9f4ea; --border:#c8cdd4; --soft:#5b6472; --bg:#f4f5f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:#101c33; font-size:12.5px; line-height:1.45; }
+  .barra { background:var(--navy); color:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .barra b { font-size:15px; }
+  .btn { background:#fff; color:var(--navy); border:0; border-radius:6px; padding:8px 14px; font:inherit; font-weight:600; cursor:pointer; }
+  .hoja { max-width:900px; margin:16px auto; background:#fff; border:1px solid #dfe3e8; border-radius:10px; padding:22px 26px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { border:1px solid var(--border); padding:5px 7px; text-align:left; vertical-align:top; }
+  th { background:#eef1f5; font-size:10.5px; text-transform:uppercase; letter-spacing:.2px; }
+  .membrete td { border:1.5px solid #000; vertical-align:middle; }
+  .membrete img { max-width:100%; max-height:52px; }
+  h1 { font-size:17px; text-align:center; color:var(--navy); margin:16px 0 2px; }
+  .sub { text-align:center; color:var(--soft); margin-bottom:14px; }
+  h2 { font-size:13.5px; color:var(--navy); margin:18px 0 6px; padding-bottom:3px; border-bottom:2px solid var(--navy); text-transform:uppercase; letter-spacing:.3px; }
+  h3 { font-size:13px; margin:0; color:#fff; background:var(--navy); padding:6px 9px; border-radius:4px 4px 0 0; display:flex; justify-content:space-between; gap:8px; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:6px 0 4px; }
+  .kpi { border:1px solid #dfe3e8; border-radius:6px; padding:7px 9px; }
+  .kpi .v { font-size:20px; font-weight:700; color:var(--navy); }
+  .kpi .l { font-size:11px; color:var(--soft); }
+  .tag { display:inline-block; padding:1px 7px; border-radius:10px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+  .t-crit { background:var(--red-light); color:var(--red); } .t-may { background:var(--amber-light); color:var(--amber); } .t-men { background:var(--teal-light); color:var(--teal); }
+  .t-ok { background:var(--green-light); color:var(--green); } .t-dev { background:var(--red-light); color:var(--red); } .t-rev { background:#e3ecfb; color:#2c5aa0; } .t-pen { background:#eef1f5; color:var(--soft); }
+  .hz { margin:14px 0 4px; break-inside:auto; }
+  .hz-body { border:1px solid var(--border); border-top:0; padding:8px 10px; border-radius:0 0 4px 4px; }
+  .lbl { font-weight:700; color:var(--navy); font-size:11.5px; margin:8px 0 3px; }
+  .txt { white-space:pre-wrap; }
+  .muted { color:var(--soft); }
+  .fotos img { height:70px; border:1px solid var(--border); border-radius:4px; margin-right:6px; }
+  .firmas td { height:46px; }
+  .nota { font-size:11px; color:var(--soft); margin-top:12px; }
+  @media print {
+    @page { size: letter; margin: 12mm 11mm 14mm;
+      @bottom-left { content: "Informe de Seguimiento de Hallazgos · Documento confidencial"; font: 8pt Arial, sans-serif; color:#7c8592; }
+      @bottom-right { content: "Pág. " counter(page) " de " counter(pages); font: 8pt Arial, sans-serif; color:#4f5866; } }
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body { background:#fff; }
+    .barra { display:none; }
+    .hoja { max-width:none; margin:0; border:0; padding:0; border-radius:0; }
+    tr, .kpi { break-inside:avoid; }
+    h2, h3, .lbl { break-after:avoid; }
+    .hz-head-keep { break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="barra"><b>Informe de Seguimiento de Hallazgos</b><button class="btn" onclick="window.print()">🖨️ Descargar / Imprimir PDF</button></div>
+<div class="hoja" id="doc">Cargando…</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBsSPz1E1m-PAyO3dUmHXEVZ4cLtiMxpVI",
+  authDomain: "ibbeta-kpi.firebaseapp.com",
+  projectId: "ibbeta-kpi",
+  storageBucket: "ibbeta-kpi.firebasestorage.app",
+  messagingSenderId: "706859690232"
+});
+const db = firebase.firestore();
+const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAABNCAIAAAAEtD6aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABA8SURBVHhe7Z0JVFVVF8fFCQfUxIGyUnEIHDBtQMsRzRRRKsdcoiHSAJg55gCpOKXiPBQSlmZa6jK1rByaFIdEwkycSmOlOYTiCA6g3e/33r6+9bqfij6G5+qe3zrLde4Z9jn33f/ZZx/efVVIUyhMgBK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRK6whQooStMgRL6/c65c+fmzZt3+vRp/VrhEPcg9A8+0Pz88izFxmppabplxR2YOnVqcHDwpUuX9GuFQ9yt0OPitEKF8jh5e2v79un2HWPv3r1jxoz5559/Zs+e/fXXX1OSmZkZFRV16NChGzduUEjtO++8k5qaunv3bvJURUZGktmwYUNcXNw333wTHx8/evRoCmk2ceLEHTt2jBs37uLFi5j6/vvv58+fv2nTJukIZLZs2ULVokWLBg8eTJc1a9ZY5nGTrVu3in149913r1+//vfff48aNYp/qd2+fTv5YcOGnTx5Utrjrd9++20sMwqXjEv+yJEj5A8cOMDEsDBjxozNmzfj0ani0tpPO3PmDKauXLmyePHiZcuWSeH48ePpQgn3zuXhw4eHDx8+cuTIX3/9VRoItJd7gYULF/LpJScn26bNcDt37iTD3Umh2N+1a9eUKVPEgkDH7777jhFps3TpUhnUBtNYtWqVfnEfcFdCnzPHqNG8Sj4++hCO8cknnxQqVIiPuH79+mSQ77Vr18igDFReuXJlnvGQIUMeeOCBv/76i+fXokWLhx9+mMyff/5ZpUqV8PDwffv2rV+/ni6TJ0/mWX7++efkjx8/jnFUUr58+aNHj9K+Zs2avr6+ZKjCcr169TDLY/b29mYOMhlAVa6urgwKdevWHTRo0B9//IFBtPvTTz899thjK1asmDBhwtNPP41Z1M98hg4d+tVXX9WuXZtpoHsas/wwhUrIZ2VlMcTAgQP37NnD5bfffisDvf/++1zSvmnTph07dkTxvXv37ty587Zt2xiFiaFyHx8fpvrRRx/VqVOHW5OOwOjP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";
+const norm = s => (s||'').trim().toLowerCase();
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dmy(v){ if(!v) return ''; const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3]+'/'+m[2]+'/'+m[1] : v; }
+function hoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const ORDEN = {'NC Crítico':0,'NC Mayor':1,'NC Menor':2,'Observación':3,'Mejora':4,'Informativo':5,'N/A':6};
+function ordenar(list){
+  const om = f => (f.ordenManual===undefined || f.ordenManual===null || f.ordenManual==='') ? 1e9 : Number(f.ordenManual);
+  return list.slice().sort((a,b)=>{ const oa=ORDEN[a.criticidad]??99, ob=ORDEN[b.criticidad]??99; if(oa!==ob) return oa-ob; const ma=om(a), mb=om(b); if(ma!==mb) return ma-mb; return (a.id||'').localeCompare(b.id||''); });
+}
+const requisito = f => (f.requisitoCitado||'').trim() || (f.refCompleta||'').trim() || (f.ref||'').trim() || '-';
+const subarea = f => (f.subareaHallazgo||'').trim() || (f.area||'').trim();
+const requiere = f => /cr[ií]tico|mayor/i.test(f.criticidad||'');
+function tagCrit(c){ const k=/cr[ií]t/i.test(c||'')?'t-crit':/mayor/i.test(c||'')?'t-may':'t-men'; return `<span class="tag ${k}">${esc(c||'Sin clasificar')}</span>`; }
+
+// Estado de la revisión de Calidad (misma regla que la app)
+function estadoQA(f){
+  if(f.estado === 'Cerrada') return {t:'Cerrado', c:'t-ok'};
+  const revs = (f.revisionesQA||[]).filter(r => r.decision !== 'Nota interna');
+  const u = revs[revs.length-1];
+  if(!f.respondioNombre && !u) return {t:'Sin respuesta', c:'t-pen'};
+  if(u){
+    const despues = f.respondioTs ? (f.respondioTs > u.ts) : ((f.respondioFecha||'') > (u.fecha||''));
+    if(despues) return {t:'Por revisar', c:'t-rev'};
+    if(u.decision === 'Aceptado') return {t:'Aceptado', c:'t-ok'};
+    return {t:'Devuelto', c:'t-dev'};
+  }
+  return {t:'Por revisar', c:'t-rev'};
+}
+function estadoAnalisis(f){
+  const a = f.analisisCausa;
+  if(a && a.estado==='completado') return {t:'✓ Completado', c:'t-ok'};
+  if(a) return {t:'Borrador', c:'t-rev'};
+  return requiere(f) ? {t:'Pendiente', c:'t-dev'} : {t:'No requerido', c:'t-pen'};
+}
+// Acciones: del plan del análisis; si no hay análisis, de la respuesta del portal
+function acciones(f){
+  const plan = f.analisisCausa && (f.analisisCausa.plan||[]).filter(p=>(p.que||'').trim());
+  if(plan && plan.length) return plan.map(p=>({tipo:p.tipo, que:p.que, resp:p.responsable, fecha:p.fecha, estado:p.estado||'Pendiente', evid:p.evidencia||''}));
+  if((f.accion||'').trim()) return [{tipo:'Acción', que:f.accion, resp:f.responsable||'', fecha:f.fechaCompromiso||'', estado:f.estado==='Cerrada'?'Implementada':'Pendiente', evid:''}];
+  return [];
+}
+
+async function cargar(){
+  const codigo = new URLSearchParams(location.search).get('codigo') || '';
+  const doc = document.getElementById('doc');
+  if(!codigo){ doc.innerHTML = 'Falta el código del reporte en el enlace (…informe_seguimiento.html?codigo=AUD-XX 01-26).'; return; }
+  try{
+    const sa = await db.collection('kpi_ibbeta').doc('nt127_auditorias').collection('items').get();
+    const audit = sa.docs.map(d=>d.data()).find(a => norm(a.codigoReporte) === norm(codigo));
+    if(!audit){ doc.innerHTML = 'No se encontró la auditoría ' + esc(codigo) + '.'; return; }
+    const sh = await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').get();
+    const hs = ordenar(sh.docs.map(d=>Object.assign({id:d.id}, d.data())).filter(f => f.auditId === audit.id || (audit.codigoReporte && norm(f.codigoReporte) === norm(audit.codigoReporte))));
+    hs.forEach((f,i)=>{ f._n = i+1; });
+    render(audit, hs);
+  }catch(e){ doc.innerHTML = 'No se pudo cargar la información. Verifique su conexión e intente nuevamente.'; }
+}
+
+function render(audit, hs){
+  const hoy = hoyISO();
+  const todas = hs.flatMap(f => acciones(f).map(a => Object.assign({n:f._n}, a)));
+  const impl = todas.filter(a=>a.estado==='Implementada').length;
+  const venc = todas.filter(a=>a.estado!=='Implementada' && a.fecha && a.fecha < hoy);
+  const req = hs.filter(requiere);
+  const kp = [
+    [hs.length, 'Hallazgos del reporte'],
+    [hs.filter(f=>f.respondioNombre).length + ' / ' + hs.length, 'Con respuesta del área'],
+    [req.filter(f=>f.analisisCausa && f.analisisCausa.estado==='completado').length + ' / ' + req.length, 'Análisis de causa (Crít. y Mayor)'],
+    [hs.filter(f=>['Aceptado','Cerrado'].includes(estadoQA(f).t)).length + ' / ' + hs.length, 'Planes aceptados o cerrados'],
+    [impl + ' / ' + todas.length, 'Acciones implementadas'],
+    [venc.length, 'Acciones con fecha vencida'],
+    [hs.filter(f=>estadoQA(f).t==='Devuelto').length, 'Devueltos con observaciones'],
+    [hs.filter(f=>estadoQA(f).t==='Sin respuesta').length, 'Sin respuesta']
+  ];
+  const area = audit.areaManual || audit.area || '';
+  document.getElementById('doc').innerHTML = `
+    <table class="membrete"><tr>
+      <td style="width:24%; text-align:center;"><img src="${LOGO}" alt="IBBeta"></td>
+      <td style="text-align:center;"><div style="font-weight:700; letter-spacing:2px;">C O N F I D E N C I A L</div><div style="margin-top:4px;"><b>Sección:</b> Aseguramiento de Calidad</div><div style="margin-top:4px;"><b>Informe de Seguimiento de Hallazgos</b></div></td>
+      <td style="width:28%; line-height:1.7;"><b>Reporte:</b> ${esc(audit.codigoReporte||'')}<br><b>Auditoría:</b> ${esc(dmy(audit.fecha))}<br><b>Emisión:</b> ${esc(dmy(hoy))}</td>
+    </tr></table>
+    <h1>Seguimiento del plan de acción</h1>
+    <div class="sub">${esc(area)} · Reporte ${esc(audit.codigoReporte||'')} · Estado al ${esc(dmy(hoy))}</div>
+
+    <h2>1. Resumen</h2>
+    <div class="kpis">${kp.map(k=>`<div class="kpi"><div class="v">${esc(k[0])}</div><div class="l">${esc(k[1])}</div></div>`).join('')}</div>
+
+    <h2>2. Estado por hallazgo</h2>
+    <table><thead><tr><th style="width:5%">N°</th><th style="width:12%">Criticidad</th><th>Hallazgo</th><th style="width:13%">Análisis de causa</th><th style="width:12%">Revisión Calidad</th><th style="width:11%">Acciones impl.</th><th style="width:12%">Próx. compromiso</th></tr></thead><tbody>
+      ${hs.map(f => { const ac=acciones(f); const pend=ac.filter(a=>a.estado!=='Implementada' && a.fecha).map(a=>a.fecha).sort(); const ea=estadoAnalisis(f), eq=estadoQA(f);
+        const desc=(f.descripcionHallazgo||'').split(/[:.]/)[0];
+        return `<tr><td>${f._n}</td><td>${tagCrit(f.criticidad)}</td><td>${esc(desc.length>110?desc.slice(0,110)+'…':desc)}</td><td><span class="tag ${ea.c}">${esc(ea.t)}</span></td><td><span class="tag ${eq.c}">${esc(eq.t)}</span></td><td>${ac.length? ac.filter(a=>a.estado==='Implementada').length+' / '+ac.length : '—'}</td><td>${pend.length? `${esc(dmy(pend[0]))}${pend[0]<hoy?' <span class="tag t-dev">vencida</span>':''}` : '—'}</td></tr>`; }).join('')}
+    </tbody></table>
+
+    <h2>3. Detalle por hallazgo</h2>
+    ${hs.map(f => detalle(f, hoy)).join('')}
+
+    <h2>4. Revisión</h2>
+    <table class="firmas"><thead><tr><th style="width:22%"></th><th>Nombre / Cargo</th><th style="width:22%">Firma</th><th style="width:14%">Fecha</th></tr></thead><tbody>
+      <tr><td><b>Revisado por</b><br><span class="muted">Aseguramiento de Calidad</span></td><td></td><td></td><td></td></tr>
+      <tr><td><b>Tomó conocimiento</b><br><span class="muted">Jefatura del área</span></td><td></td><td></td><td></td></tr></tbody></table>
+    <div class="nota">Fuente: sistema de auditorías internas de Aseguramiento de Calidad (respuestas del portal, análisis de causa raíz y revisiones de Calidad). Estado de la revisión: Aceptado / Devuelto con observaciones / Por revisar (respuesta nueva sin revisar) / Sin respuesta. Las notas internas de Calidad no se incluyen.</div>
+  `;
+}
+
+function detalle(f, hoy){
+  const a = f.analisisCausa, eq = estadoQA(f), ea = estadoAnalisis(f), ac = acciones(f);
+  const revs = (f.revisionesQA||[]).filter(r=>r.decision!=='Nota interna');
+  const u = revs[revs.length-1];
+  const marc = a ? Object.entries(a.seisM||{}).filter(([k,v])=>v && v.aplica) : [];
+  const cad = a ? (a.cadenas||[]).filter(c=>(c.porques||[]).some(p=>(p||'').trim())) : [];
+  return `<div class="hz">
+    <div class="hz-head-keep"><h3><span>Hallazgo N°${f._n} · ${esc(subarea(f))}</span><span>${esc(f.criticidad||'')}${f.esReincidente?' · Reincidente':''}</span></h3>
+    <div class="hz-body">
+      <table><tr><th style="width:20%">Requisito</th><td>${esc(requisito(f))}</td></tr>
+        <tr><th>Hallazgo</th><td class="txt">${esc(f.descripcionHallazgo||'')}</td></tr>
+        <tr><th>Estado</th><td>Análisis de causa: <span class="tag ${ea.c}">${esc(ea.t)}</span> &nbsp; Revisión Calidad: <span class="tag ${eq.c}">${esc(eq.t)}</span>${f.respondioNombre?` &nbsp; <span class="muted">Respondió: ${esc(f.respondioNombre)}${f.respondioFecha?' · '+esc(dmy(f.respondioFecha)):''}</span>`:''}</td></tr></table></div></div>
+    <div class="hz-body" style="border-top:0;">
+      ${a ? `
+        <div class="lbl">Análisis de causa raíz${(a.participantes||[]).length?` <span class="muted" style="font-weight:400;">· Participantes: ${esc((a.participantes||[]).filter(p=>p.nombre).map(p=>p.nombre+(p.cargo?' ('+p.cargo+')':'')).join(', '))} · ${esc(dmy(a.fecha))}</span>`:''}</div>
+        ${marc.length?`<table><thead><tr><th style="width:20%">6M</th><th>Lo observado</th></tr></thead><tbody>${marc.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="txt">${esc(v.obs||'')}</td></tr>`).join('')}</tbody></table>`:''}
+        ${cad.map((c,i)=>`<table style="margin-top:6px;"><thead><tr><th colspan="2">5 Por qué · cadena ${i+1}${c.m?' ('+esc(c.m)+')':''}</th></tr></thead><tbody>${c.porques.filter(p=>(p||'').trim()).map((p,j)=>`<tr><td style="width:20%">${j+1}° ¿Por qué?</td><td class="txt">${esc(p)}</td></tr>`).join('')}</tbody></table>`).join('')}` : ''}
+      <div class="lbl">Causa raíz${(a&&a.sixm)||f.sixm?` <span class="muted" style="font-weight:400;">· 6M: ${esc((a&&a.sixm)||f.sixm)}</span>`:''}</div>
+      <div class="txt">${esc(f.causaRaiz || (a&&a.causaRaiz) || '') || '<span class="muted">Sin causa raíz registrada.</span>'}</div>
+      <div class="lbl">Plan de acción</div>
+      ${ac.length ? `<table><thead><tr><th style="width:15%">Tipo</th><th>Acción</th><th style="width:15%">Responsable</th><th style="width:10%">Fecha</th><th style="width:19%">Estado / evidencia</th></tr></thead><tbody>
+        ${ac.map(x=>`<tr><td>${esc(x.tipo)}</td><td class="txt">${esc(x.que)}</td><td>${esc(x.resp)}</td><td>${esc(dmy(x.fecha))}${x.estado!=='Implementada' && x.fecha && x.fecha<hoy?'<br><span class="tag t-dev">vencida</span>':''}</td><td>${esc(x.estado)}${x.evid?`<br><span class="muted">${esc(x.evid)}</span>`:''}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">Sin plan de acción registrado.</div>'}
+      ${u ? `<div class="lbl">Última revisión de Calidad · ${esc(u.decision)} · ${esc(dmy(u.fecha))}${u.autor?' · '+esc(u.autor):''}</div><div class="txt">${esc(u.texto||'')}</div>` : ''}
+      ${(f.fotosMejora||[]).length ? `<div class="lbl">Evidencia fotográfica de la mejora</div><div class="fotos">${f.fotosMejora.map(src=>`<img src="${src}">`).join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+cargar();
+</script>
+</body>
+</html>
