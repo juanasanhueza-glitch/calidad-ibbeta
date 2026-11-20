@@ -30,6 +30,7 @@
   .brand { padding: 0 20px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.12); margin-bottom: 10px;}
   .brand .title { font-size: 15px; font-weight:700; letter-spacing:0.4px;}
   .brand .sub { font-size: 11px; color:#9fb0c9; margin-top:4px;}
+  .nav-grupo { font-size:10.5px; text-transform:uppercase; letter-spacing:.8px; color:rgba(255,255,255,.45); padding:14px 20px 4px; font-weight:600; }
   .nav-item {
     padding: 12px 20px; cursor:pointer; font-size:14px; color:#c7d2e4;
     border-left: 3px solid transparent; transition: all .15s;
@@ -219,13 +220,17 @@
       <div class="sub">N.T. 127 &middot; Sistema de Auditoría</div>
     </div>
     <div id="modo-indicador" class="modo-indicador"></div>
-    <div class="nav-item" data-view="ejecutar">📋 Ejecutar Auditoría</div>
-    <div class="nav-item" data-view="hallazgos">⚠️ Hallazgos y CAPA</div>
-    <div class="nav-item" data-view="dashboard">📊 Dashboard</div>
-    <div class="nav-item" data-view="historial">🗂️ Mis Auditorías</div>
-    <div class="nav-item" data-view="antecedentes">📚 Antecedentes 2022+</div>
+    <div class="nav-grupo">Planificación</div>
     <div class="nav-item" data-view="programa2026">📅 Programa Anual 2026</div>
     <a class="nav-item" href="nomina.html" target="_blank" rel="noopener" style="text-decoration:none;">👥 Nómina de Auditores ↗</a>
+    <div class="nav-item" data-view="antecedentes">📚 Antecedentes 2022+</div>
+    <div class="nav-grupo">Ejecución</div>
+    <div class="nav-item" data-view="ejecutar">📋 Ejecutar Auditoría</div>
+    <div class="nav-item" data-view="historial">🗂️ Mis Auditorías</div>
+    <div class="nav-grupo">Seguimiento</div>
+    <div class="nav-item" data-view="hallazgos">⚠️ Hallazgos y CAPA</div>
+    <div class="nav-item" data-view="dashboard">📊 Dashboard</div>
+    <div class="nav-grupo">Dirección</div>
     <a class="nav-item" href="informe_direccion.html" target="_blank" rel="noopener" style="text-decoration:none;">📊 Informe a la Dirección ↗</a>
   </div>
   <div class="main" id="main"></div>
