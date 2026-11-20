@@ -183,6 +183,29 @@ function observacionesCalidadHtml(f){
     ${revs.length > 1 ? `<details><summary style="font-size:12px; cursor:pointer; color:#4f5866;">Ver observaciones anteriores (${revs.length-1})</summary>${revs.slice(0,-1).reverse().map(r=>caja(r,false)).join('')}</details>` : ''}
   </div>`;
 }
+
+// ---------- Análisis de causa raíz (6M + 5 Por qué) ----------
+function requiereAnalisis(f){ return /cr[ií]tico|mayor/i.test(f.criticidad||''); }
+function analisisCompleto(f){ return !!(f.analisisCausa && f.analisisCausa.estado === 'completado'); }
+function analisisCausaHtml(f, audit){
+  const url = `analisis_causa.html?codigo=${encodeURIComponent(audit.codigoReporte||'')}&id=${encodeURIComponent(f.id)}&n=${encodeURIComponent(f._numero||'')}`;
+  const a = f.analisisCausa;
+  const estado = !a ? (requiereAnalisis(f) ? '<span style="color:var(--red); font-weight:600;">Pendiente · requerido para hallazgos Críticos y Mayores</span>' : '<span style="color:var(--text-soft);">Opcional para este hallazgo</span>')
+    : a.estado === 'completado' ? `<span style="color:var(--green); font-weight:600;">✓ Completado el ${esc(fmtFechaDMY(a.fecha))}</span>`
+    : `<span style="color:var(--amber); font-weight:600;">Borrador guardado el ${esc(fmtFechaDMY(a.fecha))}</span>`;
+  return `<div class="field" style="background:var(--teal-light); border:1px solid #c5e0dc; border-radius:8px; padding:10px 12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div><div style="font-weight:700; color:var(--navy); font-size:13.5px;">🔎 Análisis de causa raíz (6M + 5 Por qué)</div><div style="font-size:12.5px; margin-top:2px;">${estado}</div></div>
+      <a class="btn" href="${url}" target="_blank" rel="opener" style="text-decoration:none; white-space:nowrap;">${a ? 'Abrir análisis' : 'Analizar causa'}</a>
+    </div>
+    <div style="font-size:12px; color:var(--text-soft); margin-top:6px;">Al terminar el análisis, use «Llevar al hallazgo»: la causa raíz y el plan de acción se completan aquí automáticamente. Luego pulse 🔄 Actualizar.</div>
+  </div>`;
+}
+// Cuando el análisis se guarda en otra pestaña, se actualiza la lista
+window.addEventListener('message', e => {
+  if(e.data && e.data.tipo === 'analisis-causa-guardado'){ const b = document.getElementById('btn-refrescar-auditado'); if(b) b.click(); }
+});
+
 function critClass(crit){
   const c = (crit||'').toLowerCase();
   if(c.includes('crít') || c.includes('crit')) return 'crit-critico';
@@ -399,6 +422,7 @@ function renderFindings(audit, findings){
         <div class="fotos-readonly-note">Este campo lo registró Calidad al levantar el hallazgo y no puede modificarse desde este formulario.</div>
       </div>
       ${observacionesCalidadHtml(f)}
+      ${analisisCausaHtml(f, audit)}
       <div class="field">
         <label>Causa raíz</label>
         <textarea class="f-causaRaiz" placeholder="¿Cuál fue la causa que originó este hallazgo?">${esc(f.causaRaiz)}</textarea>
@@ -517,6 +541,12 @@ function renderFindings(audit, findings){
     card.querySelector('.guardar-btn').onclick = async () => {
       const btn = card.querySelector('.guardar-btn');
       const status = card.querySelector('[data-status]');
+      const fAct = findings.find(x => x.id === id) || {};
+      if(requiereAnalisis(fAct) && !analisisCompleto(fAct)){
+        status.textContent = 'Para hallazgos NC Crítico y NC Mayor, primero complete el Análisis de causa raíz (botón «Analizar causa»).';
+        status.classList.add('pending');
+        return;
+      }
       btn.disabled = true; btn.textContent = 'Guardando…';
       const payload = {
         causaRaiz: card.querySelector('.f-causaRaiz').value,

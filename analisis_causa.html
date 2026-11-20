@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBBeta · Análisis de Causa Raíz</title>
+<style>
+  :root {
+    --navy:#1b2a4a; --navy-dark:#101c33; --teal:#2f7a72; --teal-light:#e6f2f0;
+    --amber:#c98a1a; --amber-light:#fbf1de; --red:#b3413a; --red-light:#f7e8e6;
+    --green:#3f7d4c; --green-light:#e9f4ea; --gray-bg:#f4f5f7; --border:#dfe3e8; --text-soft:#5b6472;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:var(--gray-bg); color:var(--navy-dark); line-height:1.45; }
+  header { background:var(--navy); color:#fff; padding:16px; }
+  header h1 { font-size:17px; margin:0 0 2px; }
+  header .sub { font-size:12.5px; color:#c9d2e0; }
+  .wrap { max-width:860px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:14px; }
+  h2 { font-size:15px; margin:0 0 4px; color:var(--navy); }
+  .ayuda { font-size:12.5px; color:var(--text-soft); margin:0 0 12px; }
+  .crit { display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .crit.critico { background:var(--red-light); color:var(--red); }
+  .crit.mayor { background:var(--amber-light); color:var(--amber); }
+  .crit.menor { background:var(--teal-light); color:var(--teal); }
+  .dato { font-size:13px; margin:6px 0; }
+  .dato b { color:var(--navy); }
+  .caja-ro { background:#f8f9fb; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:13px; white-space:pre-wrap; }
+  label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin:8px 0 4px; }
+  textarea, input[type=text], input[type=date], select { width:100%; padding:8px 10px; font:inherit; font-size:13.5px; border:1px solid var(--border); border-radius:6px; background:#fff; }
+  textarea { min-height:58px; resize:vertical; }
+  .grid6 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  @media (max-width:640px){ .grid6 { grid-template-columns:1fr; } }
+  .m { border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .m.activa { border-color:var(--teal); background:var(--teal-light); }
+  .m .m-tit { display:flex; align-items:center; gap:8px; font-weight:700; font-size:13.5px; color:var(--navy); }
+  .m .m-tit input { width:auto; }
+  .m .m-preg { font-size:11.5px; color:var(--text-soft); margin:4px 0 6px; }
+  .cadena { border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:10px; }
+  .cadena-head { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .cadena-head .t { font-weight:700; color:var(--navy); font-size:13.5px; white-space:nowrap; }
+  .por { display:grid; grid-template-columns:96px 1fr; gap:8px; align-items:start; margin:6px 0; }
+  .por .n { font-size:12.5px; font-weight:700; color:var(--teal); padding-top:8px; }
+  .fila-plan { display:grid; grid-template-columns:190px 1fr 160px 140px 30px; gap:8px; align-items:start; margin-bottom:8px; }
+  @media (max-width:760px){ .fila-plan { grid-template-columns:1fr; } }
+  .fila-part { display:grid; grid-template-columns:1fr 1fr 30px; gap:8px; margin-bottom:8px; }
+  .btn { display:inline-block; background:var(--teal); color:#fff; border:none; padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; cursor:pointer; }
+  .btn.sec { background:#fff; color:var(--teal); border:1px solid var(--teal); }
+  .btn.peq { padding:5px 10px; font-size:12.5px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .quitar { background:none; border:none; color:var(--red); font-size:18px; cursor:pointer; padding-top:4px; }
+  .avisos { margin:0; padding-left:18px; font-size:13px; }
+  .avisos li { margin:3px 0; }
+  .avisos .err { color:var(--red); }
+  .avisos .ok { color:var(--green); }
+  .barra { position:sticky; bottom:0; background:#fff; border-top:1px solid var(--border); padding:10px 16px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .estado { font-size:12.5px; color:var(--text-soft); margin-right:auto; align-self:center; }
+  .msg { padding:12px 14px; border-radius:8px; font-size:13.5px; margin-bottom:14px; }
+  .msg.ok { background:var(--green-light); color:var(--green); }
+  .msg.err { background:var(--red-light); color:var(--red); }
+  .solo-print { display:none; }
+  @media print {
+    @page { size:letter; margin:12mm; }
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body { background:#fff; }
+    header, .barra, .no-print, .quitar, .btn { display:none !important; }
+    .solo-print { display:block; }
+    .wrap { max-width:none; padding:0; }
+    .card { break-inside:avoid; border-color:#bbb; }
+    textarea, input, select { border:none; padding:0; resize:none; min-height:0; background:transparent; }
+    .m:not(.activa) { display:none; }
+  }
+  .membrete { width:100%; border-collapse:collapse; margin-bottom:10px; }
+  .membrete td { border:1px solid #000; padding:6px 10px; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Análisis de Causa Raíz</h1>
+  <div class="sub">Herramientas 6M (Ishikawa) y 5 Por qué · Instituto Bioquímico Beta S.A.</div>
+</header>
+<div class="wrap" id="app"><div class="card">Cargando hallazgo…</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBsSPz1E1m-PAyO3dUmHXEVZ4cLtiMxpVI",
+  authDomain: "ibbeta-kpi.firebaseapp.com",
+  projectId: "ibbeta-kpi",
+  storageBucket: "ibbeta-kpi.firebasestorage.app",
+  messagingSenderId: "706859690232"
+});
+const db = firebase.firestore();
+const COL = () => db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items');
+
+// 6M con preguntas guía (adaptadas a BPM)
+const SEIS_M = [
+  {k:'Mano de obra', p:'¿El personal conocía el procedimiento? ¿Estaba capacitado y calificado? ¿Había personal suficiente o reemplazos sin inducción?'},
+  {k:'Método', p:'¿Existe un procedimiento (SOP)? ¿Está vigente, es claro y describe esta actividad? ¿Define responsable, frecuencia y registro?'},
+  {k:'Máquina', p:'¿Los equipos o instrumentos estaban calibrados, calificados y con mantención al día? ¿Hubo fallas?'},
+  {k:'Materiales', p:'¿Los materiales, insumos o formatos (registros) eran los correctos, estaban vigentes, identificados y disponibles?'},
+  {k:'Medio ambiente', p:'¿Las instalaciones, el orden, la iluminación, la temperatura o el espacio influyeron?'},
+  {k:'Medición', p:'¿Existe un control o indicador que hubiera detectado el problema a tiempo? ¿Se revisan los registros?'}
+];
+const TIPOS_ACCION = ['Corrección inmediata','Acción correctiva','Acción preventiva'];
+
+const params = new URLSearchParams(location.search);
+const ID = params.get('id'), CODIGO = params.get('codigo') || '', NUM = params.get('n') || '', SOLO_VER = params.get('modo') === 'ver';
+let F = null;           // hallazgo
+let A = null;           // análisis en edición
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function hoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dmy(v){ if(!v) return ''; const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3]+'/'+m[2]+'/'+m[1] : v; }
+function critClase(c){ c=(c||'').toLowerCase(); return c.includes('crít')||c.includes('crit') ? 'critico' : c.includes('mayor') ? 'mayor' : 'menor'; }
+function requiere(f){ return /cr[ií]tico|mayor/i.test(f.criticidad||''); }
+function respondiente(){ try { return JSON.parse(sessionStorage.getItem('capa_respondiente')||'null'); } catch(e){ return null; } }
+
+function analisisVacio(){
+  const r = respondiente();
+  return {
+    seisM: Object.fromEntries(SEIS_M.map(m=>[m.k,{aplica:false, obs:''}])),
+    cadenas: [{m:'', porques:['','','']}],
+    causaRaiz: '', sixm: '',
+    plan: [{tipo:'Corrección inmediata', que:'', responsable:'', fecha:''},{tipo:'Acción correctiva', que:'', responsable:'', fecha:''}],
+    participantes: [{nombre: r?r.nombre:'', cargo: r?r.cargo:''}],
+    fecha: hoy(), estado: 'borrador'
+  };
+}
+
+async function cargar(){
+  const app = document.getElementById('app');
+  if(!ID){ app.innerHTML = '<div class="msg err">Falta el identificador del hallazgo. Abra este formulario desde el portal de respuesta a hallazgos.</div>'; return; }
+  try{
+    const d = await COL().doc(ID).get();
+    if(!d.exists){ app.innerHTML = '<div class="msg err">No se encontró el hallazgo.</div>'; return; }
+    F = Object.assign({id:d.id}, d.data());
+    A = F.analisisCausa ? JSON.parse(JSON.stringify(F.analisisCausa)) : analisisVacio();
+    // completa estructura si viene incompleta
+    const base = analisisVacio();
+    for(const k of Object.keys(base)) if(A[k]==null) A[k] = base[k];
+    SEIS_M.forEach(m => { if(!A.seisM[m.k]) A.seisM[m.k] = {aplica:false, obs:''}; });
+    render();
+  }catch(e){
+    app.innerHTML = '<div class="msg err">No se pudo cargar el hallazgo. Verifique su conexión e intente nuevamente.</div>';
+  }
+}
+
+// ---------- Validación (guía de calidad del análisis) ----------
+function revisar(){
+  const av = [];
+  const marcadas = SEIS_M.filter(m=>A.seisM[m.k].aplica);
+  if(!marcadas.length) av.push({t:'err', m:'Marque al menos una «M» que haya contribuido al hallazgo.'});
+  const cad = A.cadenas.filter(c => c.porques.some(p=>p.trim()));
+  if(!cad.length) av.push({t:'err', m:'Complete al menos una cadena de «Por qué».'});
+  cad.forEach((c,i) => { const n=c.porques.filter(p=>p.trim()).length; if(n<3) av.push({t:'err', m:`Cadena ${i+1}: pregunte «¿por qué?» al menos 3 veces (lleva ${n}).`}); });
+  const ultimo = cad.length ? (cad[0].porques.filter(p=>p.trim()).slice(-1)[0]||'') : '';
+  if(/error humano|olvido|falta de capacitaci|descuido|no se capacit/i.test(ultimo)) av.push({t:'err', m:'El último «por qué» apunta a una persona (error humano, olvido, falta de capacitación). Siga preguntando por qué ocurrió eso, hasta llegar a una causa del sistema sobre la que se pueda actuar.'});
+  if(!A.causaRaiz.trim()) av.push({t:'err', m:'Escriba la causa raíz.'});
+  else if(F.descripcionHallazgo && A.causaRaiz.trim().toLowerCase().slice(0,60) === String(F.descripcionHallazgo).trim().toLowerCase().slice(0,60)) av.push({t:'err', m:'La causa raíz repite el hallazgo. Debe explicar por qué ocurrió, no qué se encontró.'});
+  if(!A.plan.some(p=>p.tipo==='Acción correctiva' && p.que.trim())) av.push({t:'err', m:'Agregue al menos una acción correctiva que ataque la causa raíz.'});
+  A.plan.filter(p=>p.que.trim()).forEach((p,i) => {
+    if(!p.responsable.trim() || !p.fecha) av.push({t:'err', m:`Acción ${i+1} («${p.tipo}»): indique responsable y fecha.`});
+    else if(p.fecha < hoy() && p.tipo!=='Corrección inmediata') av.push({t:'err', m:`Acción ${i+1}: la fecha ${dmy(p.fecha)} ya pasó; si está implementada, adjunte la evidencia en el portal.`});
+  });
+  if(!A.participantes.some(p=>p.nombre.trim())) av.push({t:'err', m:'Indique quiénes participaron en el análisis.'});
+  return av;
+}
+
+// ---------- Render ----------
+function render(){
+  const app = document.getElementById('app');
+  const ro = SOLO_VER ? 'disabled' : '';
+  const marcadas = SEIS_M.filter(m=>A.seisM[m.k].aplica).map(m=>m.k);
+  app.innerHTML = `
+    <table class="membrete solo-print"><tr><td style="width:60%"><b>INSTITUTO BIOQUÍMICO BETA S.A.</b><br>Análisis de Causa Raíz (6M · 5 Por qué)</td><td>Reporte: ${esc(CODIGO)}<br>Hallazgo N°${esc(NUM)} · ${esc(F.criticidad||'')}<br>Fecha del análisis: ${esc(dmy(A.fecha))}</td></tr></table>
+    ${F.analisisCausa && F.analisisCausa.estado==='completado' ? `<div class="msg ok no-print">✓ Análisis completado el ${esc(dmy(F.analisisCausa.fecha))} y llevado al hallazgo.${SOLO_VER?'':' Puede ajustarlo y volver a llevarlo si Calidad lo devolvió con observaciones.'}</div>` : ''}
+    <div class="card">
+      <h2>Hallazgo ${NUM?('N°'+esc(NUM)):''} · ${esc(CODIGO)} <span class="crit ${critClase(F.criticidad)}">${esc(F.criticidad||'Sin clasificar')}</span></h2>
+      <div class="dato"><b>Requisito:</b> ${esc(F.ref||F.requerimiento||'')}</div>
+      <div class="dato"><b>Hallazgo:</b></div>
+      <div class="caja-ro">${esc(F.descripcionHallazgo||'')}</div>
+      ${F.evidenciaObjetiva ? `<div class="dato" style="margin-top:8px;"><b>Evidencia objetiva:</b></div><div class="caja-ro">${esc(F.evidenciaObjetiva)}</div>` : ''}
+      ${requiere(F) ? `<p class="ayuda no-print" style="margin:10px 0 0;">Para hallazgos NC Crítico y NC Mayor, este análisis es requerido antes de responder el plan de acción en el portal.</p>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>1. Análisis 6M (Ishikawa)</h2>
+      <p class="ayuda">Revise cada factor y marque los que contribuyeron al hallazgo. Describa brevemente lo que observó en cada uno.</p>
+      <div class="grid6">
+        ${SEIS_M.map(m => `
+          <div class="m ${A.seisM[m.k].aplica?'activa':''}">
+            <div class="m-tit"><input type="checkbox" data-m="${esc(m.k)}" ${A.seisM[m.k].aplica?'checked':''} ${ro}> ${esc(m.k)}</div>
+            <div class="m-preg">${esc(m.p)}</div>
+            <textarea data-mobs="${esc(m.k)}" placeholder="¿Qué se observó?" ${ro}>${esc(A.seisM[m.k].obs)}</textarea>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Análisis 5 Por qué</h2>
+      <p class="ayuda">Parta del hallazgo y pregunte «¿por qué ocurrió?». Cada respuesta es la base de la siguiente pregunta. Deténgase cuando llegue a una causa del sistema sobre la que se pueda actuar (un procedimiento, un control, un recurso). Si la respuesta es «error humano» o «falta de capacitación», siga preguntando por qué. Puede abrir hasta 3 cadenas, una por cada «M» relevante.</p>
+      ${A.cadenas.map((c,ci) => `
+        <div class="cadena">
+          <div class="cadena-head"><span class="t">Cadena ${ci+1}</span>
+            <select data-cm="${ci}" ${ro} style="max-width:220px;"><option value="">— M relacionada —</option>${(marcadas.length?marcadas:SEIS_M.map(m=>m.k)).map(k=>`<option ${c.m===k?'selected':''}>${esc(k)}</option>`).join('')}</select>
+            ${!SOLO_VER && A.cadenas.length>1 ? `<button class="quitar" data-qcad="${ci}" title="Quitar cadena">✕</button>`:''}
+          </div>
+          ${c.porques.map((p,pi) => `
+            <div class="por"><div class="n">${pi+1}° ¿Por qué?</div>
+              <textarea data-por="${ci}-${pi}" placeholder="${pi===0?'¿Por qué ocurrió el hallazgo?':'¿Por qué ocurrió lo anterior?'}" ${ro} style="min-height:42px;">${esc(p)}</textarea></div>`).join('')}
+          ${!SOLO_VER && c.porques.length<5 ? `<button class="btn sec peq no-print" data-addpor="${ci}">+ otro por qué</button>`:''}
+        </div>`).join('')}
+      ${!SOLO_VER && A.cadenas.length<3 ? `<button class="btn sec peq no-print" id="add-cadena">+ agregar cadena</button>`:''}
+    </div>
+
+    <div class="card">
+      <h2>3. Causa raíz</h2>
+      <p class="ayuda">Normalmente corresponde al último «por qué» de la cadena principal. Debe explicar por qué ocurrió el hallazgo, no repetirlo.</p>
+      ${!SOLO_VER ? `<button class="btn sec peq no-print" id="usar-ultimo">Usar el último «por qué» de la cadena 1</button>`:''}
+      <textarea id="causa" ${ro} style="margin-top:8px; min-height:70px;">${esc(A.causaRaiz)}</textarea>
+      <label>Clasificación 6M de la causa raíz</label>
+      <select id="sixm" ${ro} style="max-width:260px;"><option value="">—</option>${SEIS_M.map(m=>`<option ${A.sixm===m.k?'selected':''}>${esc(m.k)}</option>`).join('')}</select>
+    </div>
+
+    <div class="card">
+      <h2>4. Plan de acción (CAPA)</h2>
+      <p class="ayuda"><b>Corrección inmediata:</b> resuelve lo encontrado (ej. rotular, completar el registro). <b>Acción correctiva:</b> elimina la causa raíz para que no se repita. <b>Acción preventiva:</b> evita que ocurra en otras áreas o procesos similares.</p>
+      ${A.plan.map((p,i) => `
+        <div class="fila-plan">
+          <select data-pt="${i}" ${ro}>${TIPOS_ACCION.map(t=>`<option ${p.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+          <textarea data-pq="${i}" placeholder="¿Qué se hará?" ${ro} style="min-height:42px;">${esc(p.que)}</textarea>
+          <input type="text" data-pr="${i}" placeholder="Responsable" value="${esc(p.responsable)}" ${ro}>
+          <input type="date" data-pf="${i}" value="${esc(p.fecha)}" ${ro}>
+          ${!SOLO_VER && A.plan.length>1 ? `<button class="quitar" data-qplan="${i}" title="Quitar acción">✕</button>` : '<span></span>'}
+        </div>`).join('')}
+      ${!SOLO_VER ? `<button class="btn sec peq no-print" id="add-plan">+ agregar acción</button>`:''}
+    </div>
+
+    <div class="card">
+      <h2>5. Participantes del análisis</h2>
+      <p class="ayuda">El análisis de causa se hace en equipo: incluya a quienes conocen el proceso.</p>
+      ${A.participantes.map((p,i) => `
+        <div class="fila-part">
+          <input type="text" data-nn="${i}" placeholder="Nombre" value="${esc(p.nombre)}" ${ro}>
+          <input type="text" data-nc="${i}" placeholder="Cargo" value="${esc(p.cargo)}" ${ro}>
+          ${!SOLO_VER && A.participantes.length>1 ? `<button class="quitar" data-qpart="${i}">✕</button>` : '<span></span>'}
+        </div>`).join('')}
+      ${!SOLO_VER ? `<button class="btn sec peq no-print" id="add-part">+ agregar participante</button>`:''}
+      <label>Fecha del análisis</label>
+      <input type="date" id="fecha" value="${esc(A.fecha)}" ${ro} style="max-width:200px;">
+    </div>
+
+    ${!SOLO_VER ? `<div class="card no-print"><h2>Revisión antes de llevar al hallazgo</h2><ul class="avisos" id="avisos"></ul></div>` : ''}
+    <div id="resultado"></div>
+  `;
+  let barra = document.getElementById('barra');
+  if(!barra){ barra = document.createElement('div'); barra.id='barra'; barra.className='barra no-print'; document.body.appendChild(barra); }
+  barra.innerHTML = SOLO_VER
+    ? `<span class="estado">Vista de solo lectura</span><button class="btn sec" onclick="window.print()">🖨️ Imprimir / PDF</button>`
+    : `<span class="estado" id="estado-guardado">${F.analisisCausa ? 'Último guardado: ' + esc(dmy(F.analisisCausa.fecha)) : 'Sin guardar'}</span>
+       <button class="btn sec" onclick="window.print()">🖨️ Imprimir / PDF</button>
+       <button class="btn sec" id="btn-borrador">💾 Guardar borrador</button>
+       <button class="btn" id="btn-llevar">✅ Llevar al hallazgo</button>`;
+  if(!SOLO_VER){ bind(); pintarAvisos(); }
+}
+
+function pintarAvisos(){
+  const ul = document.getElementById('avisos'); if(!ul) return;
+  const av = revisar();
+  ul.innerHTML = av.length ? av.map(a=>`<li class="${a.t}">${esc(a.m)}</li>`).join('') : '<li class="ok">✓ El análisis está completo. Puede llevarlo al hallazgo.</li>';
+  document.getElementById('btn-llevar').disabled = av.length > 0;
+}
+
+function bind(){
+  const app = document.getElementById('app');
+  app.oninput = app.onchange = e => {
+    const t = e.target, d = t.dataset;
+    if(d.m){ A.seisM[d.m].aplica = t.checked; render(); return; }
+    if(d.mobs){ A.seisM[d.mobs].obs = t.value; }
+    if(d.cm!=null){ A.cadenas[+d.cm].m = t.value; }
+    if(d.por){ const [c,p]=d.por.split('-').map(Number); A.cadenas[c].porques[p] = t.value; }
+    if(t.id==='causa') A.causaRaiz = t.value;
+    if(t.id==='sixm') A.sixm = t.value;
+    if(d.pt!=null) A.plan[+d.pt].tipo = t.value;
+    if(d.pq!=null) A.plan[+d.pq].que = t.value;
+    if(d.pr!=null) A.plan[+d.pr].responsable = t.value;
+    if(d.pf!=null) A.plan[+d.pf].fecha = t.value;
+    if(d.nn!=null) A.participantes[+d.nn].nombre = t.value;
+    if(d.nc!=null) A.participantes[+d.nc].cargo = t.value;
+    if(t.id==='fecha') A.fecha = t.value;
+    pintarAvisos();
+  };
+  app.onclick = e => {
+    const t = e.target.closest('button'); if(!t) return; const d = t.dataset;
+    if(d.addpor!=null){ A.cadenas[+d.addpor].porques.push(''); render(); }
+    else if(d.qcad!=null){ A.cadenas.splice(+d.qcad,1); render(); }
+    else if(t.id==='add-cadena'){ A.cadenas.push({m:'', porques:['','','']}); render(); }
+    else if(t.id==='usar-ultimo'){
+      const c = A.cadenas[0]; const u = (c.porques.filter(p=>p.trim()).slice(-1)[0]||'').trim();
+      if(u){ const limpio = u.replace(/^porque\s+/i,''); A.causaRaiz = limpio.charAt(0).toUpperCase() + limpio.slice(1); if(c.m && !A.sixm) A.sixm = c.m; render(); }
+    }
+    else if(t.id==='add-plan'){ A.plan.push({tipo:'Acción correctiva', que:'', responsable:'', fecha:''}); render(); }
+    else if(d.qplan!=null){ A.plan.splice(+d.qplan,1); render(); }
+    else if(t.id==='add-part'){ A.participantes.push({nombre:'', cargo:''}); render(); }
+    else if(d.qpart!=null){ A.participantes.splice(+d.qpart,1); render(); }
+  };
+  document.getElementById('btn-borrador').onclick = () => guardar(false);
+  document.getElementById('btn-llevar').onclick = () => guardar(true);
+}
+
+// Texto de la acción para el hallazgo, a partir del plan
+function accionTexto(){
+  return A.plan.filter(p=>p.que.trim()).map(p => `${p.tipo}: ${p.que.trim()}${p.responsable?` (Resp.: ${p.responsable.trim()}`:''}${p.fecha?`${p.responsable?', ':' ('}${dmy(p.fecha)})`:(p.responsable?')':'')}`).join('\n');
+}
+
+async function guardar(llevar){
+  const res = document.getElementById('resultado');
+  const btn = document.getElementById(llevar ? 'btn-llevar' : 'btn-borrador');
+  btn.disabled = true;
+  const analisis = Object.assign({}, A, { estado: llevar ? 'completado' : (F.analisisCausa && F.analisisCausa.estado==='completado' ? 'completado' : 'borrador'), ts: new Date().toISOString() });
+  const payload = { analisisCausa: analisis };
+  if(llevar){
+    const correctivas = A.plan.filter(p=>p.que.trim() && p.tipo==='Acción correctiva');
+    const fechas = A.plan.map(p=>p.fecha).filter(Boolean).sort();
+    const r = respondiente() || {};
+    const p0 = A.participantes.find(p=>p.nombre.trim()) || {};
+    Object.assign(payload, {
+      causaRaiz: A.causaRaiz.trim(),
+      accion: accionTexto(),
+      responsable: (correctivas[0] && correctivas[0].responsable) || (A.plan.find(p=>p.responsable)||{}).responsable || '',
+      fechaCompromiso: fechas.length ? fechas[fechas.length-1] : '',
+      respondioNombre: r.nombre || p0.nombre || '',
+      respondioCargo: r.cargo || p0.cargo || '',
+      respondioFecha: hoy(),
+      respondioTs: new Date().toISOString()
+    });
+    if(!F.sixm && A.sixm) payload.sixm = A.sixm;   // no reemplaza la clasificación si Calidad ya la definió
+  }
+  try{
+    await COL().doc(ID).set(payload, {merge:true});
+    F.analisisCausa = analisis;
+    document.getElementById('estado-guardado').textContent = 'Guardado ' + new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    res.innerHTML = llevar
+      ? `<div class="msg ok">✓ El análisis quedó registrado y la causa raíz, el plan de acción, el responsable y la fecha se llevaron al hallazgo. Puede cerrar esta pestaña y volver al portal.</div>`
+      : `<div class="msg ok">✓ Borrador guardado. Puede continuar más tarde desde el mismo botón del portal.</div>`;
+    try{ if(window.opener) window.opener.postMessage({tipo:'analisis-causa-guardado', id:ID}, '*'); }catch(e){}
+  }catch(e){
+    res.innerHTML = `<div class="msg err">No se pudo guardar. Verifique su conexión e intente nuevamente.</div>`;
+  }
+  btn.disabled = false; if(llevar) pintarAvisos();
+}
+
+cargar();
+</script>
+</body>
+</html>

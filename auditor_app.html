@@ -4818,7 +4818,7 @@ function hallazgosDelReporte(audit){
 // hallazgo — el portal del auditado ya no los toca nunca (son de solo lectura ahí) y por eso tampoco
 // deben borrarse aquí. Lo que el auditado sí puede aportar y lo que este "vaciado" debe limpiar es
 // causaRaiz/accion/responsable/fechaCompromiso/fotosMejora (su respuesta CAPA).
-const CAMPOS_RESPUESTA_AUDITADO = ['causaRaiz','accion','responsable','fechaCompromiso','fotosMejora','respondioNombre','respondioCargo','respondioFecha'];
+const CAMPOS_RESPUESTA_AUDITADO = ['causaRaiz','accion','responsable','fechaCompromiso','fotosMejora','respondioNombre','respondioCargo','respondioFecha','analisisCausa'];
 // Escribe directo a Firestore con merge:true y FieldValue.delete() por campo, en vez de pasar por
 // saveFinding(f) con el objeto completo en memoria. Así el "vaciado" toca EXCLUSIVAMENTE los campos de
 // CAMPOS_RESPUESTA_AUDITADO y no puede arrastrar de vuelta (ni borrar) ningún otro campo del hallazgo,
@@ -4864,6 +4864,17 @@ function badgeRevisionQA(f){
   if(e === 'devuelto') return ` <div class="small" style="margin-top:6px; background:#fde8e1; color:#8a3b1c; border:1px solid #ec835a; border-radius:6px; padding:4px 8px; display:inline-block; font-weight:700;">↩ Devuelto con observaciones el ${fch} — esperando nueva respuesta del área</div>`;
   if(e === 'aceptado') return ` <div class="small" style="margin-top:6px; background:#e7f4ea; color:#2d6a3a; border:1px solid #9fd0a8; border-radius:6px; padding:4px 8px; display:inline-block; font-weight:700;">✅ Plan aceptado por QA el ${fch} — en implementación</div>`;
   return '';
+}
+// Enlace al Análisis de causa raíz (6M + 5 Por qué) registrado por el área desde el portal
+function analisisCausaLinkHtml(f){
+  const a = f.analisisCausa;
+  const cod = (STATE.currentAudit && STATE.currentAudit.codigoReporte) || '';
+  const url = `analisis_causa.html?codigo=${encodeURIComponent(cod)}&id=${encodeURIComponent(f.id)}&modo=ver`;
+  const req = /cr[ií]tico|mayor/i.test(f.criticidad||'');
+  if(!a) return req && f.respondioNombre ? `<div class="small" style="margin:8px 0; color:var(--red);">🔎 Análisis de causa raíz: no registrado por el área (requerido para NC Crítico y Mayor).</div>` : '';
+  const est = a.estado==='completado' ? `✓ completado el ${esc(fechaFormatoChile(a.fecha))}` : `borrador del ${esc(fechaFormatoChile(a.fecha))}`;
+  const part = (a.participantes||[]).filter(p=>p.nombre).map(p=>p.nombre).join(', ');
+  return `<div class="small" style="margin:8px 0; padding:8px 10px; background:var(--teal-light, #e6f2f0); border-radius:6px;">🔎 <b>Análisis de causa raíz:</b> ${est}${part?` · Participantes: ${esc(part)}`:''} · <a href="${url}" target="_blank">Ver análisis ↗</a></div>`;
 }
 function revisionQAHtml(f){
   const revs = f.revisionesQA || [];
@@ -5128,6 +5139,7 @@ function findingCard(f, numero){
         <span class="small" id="guardado-msg-${f.id}"></span>
         <button type="button" class="finding-guardar" data-id="${f.id}">💾 Guardar hallazgo</button>
       </div>
+      ${analisisCausaLinkHtml(f)}
       ${f.respondioNombre || (f.revisionesQA||[]).length ? revisionQAHtml(f) : ''}
       <div class="row" style="margin-top:10px;">
         <div class="field" style="flex:1;">
