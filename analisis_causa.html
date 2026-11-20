@@ -41,7 +41,7 @@
   .cadena-head .t { font-weight:700; color:var(--navy); font-size:13.5px; white-space:nowrap; }
   .por { display:grid; grid-template-columns:96px 1fr; gap:8px; align-items:start; margin:6px 0; }
   .por .n { font-size:12.5px; font-weight:700; color:var(--teal); padding-top:8px; }
-  .fila-plan { display:grid; grid-template-columns:190px 1fr 160px 140px 30px; gap:8px; align-items:start; margin-bottom:8px; }
+  .fila-plan { display:grid; grid-template-columns:180px 1fr 150px 140px 30px; gap:8px; align-items:start; margin-bottom:8px; }
   @media (max-width:760px){ .fila-plan { grid-template-columns:1fr; } }
   .fila-part { display:grid; grid-template-columns:1fr 1fr 30px; gap:8px; margin-bottom:8px; }
   .btn { display:inline-block; background:var(--teal); color:#fff; border:none; padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; cursor:pointer; }
@@ -97,11 +97,11 @@ const COL = () => db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection(
 // 6M con preguntas guía (adaptadas a BPM)
 const SEIS_M = [
   {k:'Mano de obra', p:'¿El personal conocía el procedimiento? ¿Estaba capacitado y calificado? ¿Había personal suficiente o reemplazos sin inducción?'},
-  {k:'Método', p:'¿Existe un procedimiento (SOP)? ¿Está vigente, es claro y describe esta actividad? ¿Define responsable, frecuencia y registro?'},
+  {k:'Método', p:'¿Existe un procedimiento (SOP)? ¿Está vigente, es claro y describe esta actividad? ¿Define responsable, frecuencia, registro y dónde se archiva?'},
   {k:'Máquina', p:'¿Los equipos o instrumentos estaban calibrados, calificados y con mantención al día? ¿Hubo fallas?'},
   {k:'Materiales', p:'¿Los materiales, insumos o formatos (registros) eran los correctos, estaban vigentes, identificados y disponibles?'},
   {k:'Medio ambiente', p:'¿Las instalaciones, el orden, la iluminación, la temperatura o el espacio influyeron?'},
-  {k:'Medición', p:'¿Existe un control o indicador que hubiera detectado el problema a tiempo? ¿Se revisan los registros?'}
+  {k:'Medición', p:'¿Existe un control o indicador que hubiera detectado el problema a tiempo? ¿Se consultan las herramientas disponibles (Panel Elementos Regulatorios, Panel Entrenamiento, Listado Maestro)?'}
 ];
 const TIPOS_ACCION = ['Corrección inmediata','Acción correctiva','Acción preventiva'];
 
@@ -123,7 +123,7 @@ function analisisVacio(){
     seisM: Object.fromEntries(SEIS_M.map(m=>[m.k,{aplica:false, obs:''}])),
     cadenas: [{m:'', porques:['','','']}],
     causaRaiz: '', sixm: '',
-    plan: [{tipo:'Corrección inmediata', que:'', responsable:'', fecha:''},{tipo:'Acción correctiva', que:'', responsable:'', fecha:''}],
+    plan: [{tipo:'Corrección inmediata', que:'', responsable:'', fecha:'', estado:'Pendiente', evidencia:''},{tipo:'Acción correctiva', que:'', responsable:'', fecha:'', estado:'Pendiente', evidencia:''},{tipo:'Acción preventiva', que:'', responsable:'', fecha:'', estado:'Pendiente', evidencia:''}],
     participantes: [{nombre: r?r.nombre:'', cargo: r?r.cargo:''}],
     fecha: hoy(), estado: 'borrador'
   };
@@ -137,6 +137,12 @@ async function cargar(){
     if(!d.exists){ app.innerHTML = '<div class="msg err">No se encontró el hallazgo.</div>'; return; }
     F = Object.assign({id:d.id}, d.data());
     A = F.analisisCausa ? JSON.parse(JSON.stringify(F.analisisCausa)) : analisisVacio();
+    // Si el área ya había respondido sin análisis, se precarga su respuesta para no partir de cero
+    if(!F.analisisCausa){
+      if(F.causaRaiz) A.causaRaiz = F.causaRaiz;
+      if(F.sixm) A.sixm = F.sixm;
+      if(F.accion) A.plan = [{tipo:'Acción correctiva', que:F.accion, responsable:F.responsable||'', fecha:F.fechaCompromiso||'', estado:'Pendiente', evidencia:''}];
+    }
     // completa estructura si viene incompleta
     const base = analisisVacio();
     for(const k of Object.keys(base)) if(A[k]==null) A[k] = base[k];
@@ -159,10 +165,11 @@ function revisar(){
   if(/error humano|olvido|falta de capacitaci|descuido|no se capacit/i.test(ultimo)) av.push({t:'err', m:'El último «por qué» apunta a una persona (error humano, olvido, falta de capacitación). Siga preguntando por qué ocurrió eso, hasta llegar a una causa del sistema sobre la que se pueda actuar.'});
   if(!A.causaRaiz.trim()) av.push({t:'err', m:'Escriba la causa raíz.'});
   else if(F.descripcionHallazgo && A.causaRaiz.trim().toLowerCase().slice(0,60) === String(F.descripcionHallazgo).trim().toLowerCase().slice(0,60)) av.push({t:'err', m:'La causa raíz repite el hallazgo. Debe explicar por qué ocurrió, no qué se encontró.'});
-  if(!A.plan.some(p=>p.tipo==='Acción correctiva' && p.que.trim())) av.push({t:'err', m:'Agregue al menos una acción correctiva que ataque la causa raíz.'});
+  if(!A.plan.some(p=>p.tipo!=='Corrección inmediata' && p.que.trim())) av.push({t:'err', m:'Agregue al menos una acción correctiva o preventiva que ataque la causa raíz (la corrección inmediata sola no evita que se repita).'});
   A.plan.filter(p=>p.que.trim()).forEach((p,i) => {
     if(!p.responsable.trim() || !p.fecha) av.push({t:'err', m:`Acción ${i+1} («${p.tipo}»): indique responsable y fecha.`});
-    else if(p.fecha < hoy() && p.tipo!=='Corrección inmediata') av.push({t:'err', m:`Acción ${i+1}: la fecha ${dmy(p.fecha)} ya pasó; si está implementada, adjunte la evidencia en el portal.`});
+    else if(p.fecha < hoy() && (p.estado||'Pendiente')!=='Implementada') av.push({t:'err', m:`Acción ${i+1}: la fecha ${dmy(p.fecha)} ya pasó. Indique una fecha vigente o, si está cumplida, márquela «Implementada» con su evidencia.`});
+    else if((p.estado||'')==='Implementada' && !(p.evidencia||'').trim()) av.push({t:'err', m:`Acción ${i+1}: está «Implementada»; indique la evidencia de cumplimiento.`});
   });
   if(!A.participantes.some(p=>p.nombre.trim())) av.push({t:'err', m:'Indique quiénes participaron en el análisis.'});
   return av;
@@ -217,7 +224,7 @@ function render(){
 
     <div class="card">
       <h2>3. Causa raíz</h2>
-      <p class="ayuda">Normalmente corresponde al último «por qué» de la cadena principal. Debe explicar por qué ocurrió el hallazgo, no repetirlo.</p>
+      <p class="ayuda">Normalmente corresponde al último «por qué» de la cadena principal. Debe explicar la falla de proceso, rutina, coordinación o control que permitió el desvío; no repetir el hallazgo ni describir solo el síntoma (ej. «falta revisar»).</p>
       ${!SOLO_VER ? `<button class="btn sec peq no-print" id="usar-ultimo">Usar el último «por qué» de la cadena 1</button>`:''}
       <textarea id="causa" ${ro} style="margin-top:8px; min-height:70px;">${esc(A.causaRaiz)}</textarea>
       <label>Clasificación 6M de la causa raíz</label>
@@ -226,7 +233,7 @@ function render(){
 
     <div class="card">
       <h2>4. Plan de acción (CAPA)</h2>
-      <p class="ayuda"><b>Corrección inmediata:</b> resuelve lo encontrado (ej. rotular, completar el registro). <b>Acción correctiva:</b> elimina la causa raíz para que no se repita. <b>Acción preventiva:</b> evita que ocurra en otras áreas o procesos similares.</p>
+      <p class="ayuda"><b>Corrección inmediata:</b> resuelve hoy el desvío puntual detectado (ej. rotular, completar el registro, actualizar el SOP vencido). <b>Acción correctiva:</b> elimina la causa raíz (ej. definir responsable, flujo o control en el procedimiento). <b>Acción preventiva:</b> barrera permanente para que no vuelva a ocurrir, aquí o en otras áreas (ej. revisión mensual de un panel, indicador, bloqueo). Cada acción debe tener un responsable directo y una fecha realista y vigente. Al cumplirla, cambie su estado a «Implementada» y adjunte la evidencia en el portal.</p>
       ${A.plan.map((p,i) => `
         <div class="fila-plan">
           <select data-pt="${i}" ${ro}>${TIPOS_ACCION.map(t=>`<option ${p.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
@@ -234,6 +241,11 @@ function render(){
           <input type="text" data-pr="${i}" placeholder="Responsable" value="${esc(p.responsable)}" ${ro}>
           <input type="date" data-pf="${i}" value="${esc(p.fecha)}" ${ro}>
           ${!SOLO_VER && A.plan.length>1 ? `<button class="quitar" data-qplan="${i}" title="Quitar acción">✕</button>` : '<span></span>'}
+        </div>
+        <div class="fila-plan" style="margin-top:-4px; margin-bottom:14px;">
+          <select data-pe="${i}" ${ro}>${['Pendiente','En curso','Implementada'].map(e=>`<option ${(p.estado||'Pendiente')===e?'selected':''}>${e}</option>`).join('')}</select>
+          <input type="text" data-pv="${i}" placeholder="Evidencia de cumplimiento (ej. SOP SI-015 Ed.10 aprobado, fotos en el portal, informe de simulacro)" value="${esc(p.evidencia||'')}" ${ro} style="grid-column: span 3;">
+          <span></span>
         </div>`).join('')}
       ${!SOLO_VER ? `<button class="btn sec peq no-print" id="add-plan">+ agregar acción</button>`:''}
     </div>
@@ -287,6 +299,8 @@ function bind(){
     if(d.pq!=null) A.plan[+d.pq].que = t.value;
     if(d.pr!=null) A.plan[+d.pr].responsable = t.value;
     if(d.pf!=null) A.plan[+d.pf].fecha = t.value;
+    if(d.pe!=null) A.plan[+d.pe].estado = t.value;
+    if(d.pv!=null) A.plan[+d.pv].evidencia = t.value;
     if(d.nn!=null) A.participantes[+d.nn].nombre = t.value;
     if(d.nc!=null) A.participantes[+d.nc].cargo = t.value;
     if(t.id==='fecha') A.fecha = t.value;
@@ -301,7 +315,7 @@ function bind(){
       const c = A.cadenas[0]; const u = (c.porques.filter(p=>p.trim()).slice(-1)[0]||'').trim();
       if(u){ const limpio = u.replace(/^porque\s+/i,''); A.causaRaiz = limpio.charAt(0).toUpperCase() + limpio.slice(1); if(c.m && !A.sixm) A.sixm = c.m; render(); }
     }
-    else if(t.id==='add-plan'){ A.plan.push({tipo:'Acción correctiva', que:'', responsable:'', fecha:''}); render(); }
+    else if(t.id==='add-plan'){ A.plan.push({tipo:'Acción correctiva', que:'', responsable:'', fecha:'', estado:'Pendiente', evidencia:''}); render(); }
     else if(d.qplan!=null){ A.plan.splice(+d.qplan,1); render(); }
     else if(t.id==='add-part'){ A.participantes.push({nombre:'', cargo:''}); render(); }
     else if(d.qpart!=null){ A.participantes.splice(+d.qpart,1); render(); }
@@ -312,7 +326,7 @@ function bind(){
 
 // Texto de la acción para el hallazgo, a partir del plan
 function accionTexto(){
-  return A.plan.filter(p=>p.que.trim()).map(p => `${p.tipo}: ${p.que.trim()}${p.responsable?` (Resp.: ${p.responsable.trim()}`:''}${p.fecha?`${p.responsable?', ':' ('}${dmy(p.fecha)})`:(p.responsable?')':'')}`).join('\n');
+  return A.plan.filter(p=>p.que.trim()).map(p => `${p.tipo}: ${p.que.trim()}${p.responsable?` (Resp.: ${p.responsable.trim()}`:''}${p.fecha?`${p.responsable?', ':' ('}${dmy(p.fecha)})`:(p.responsable?')':'')}${p.estado==='Implementada'?` [Implementada${p.evidencia?': '+p.evidencia.trim():''}]`:''}`).join('\n');
 }
 
 async function guardar(llevar){
