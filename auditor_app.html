@@ -4873,15 +4873,20 @@ function badgeRevisionQA(f){
   return '';
 }
 // Enlace al Análisis de causa raíz (6M + 5 Por qué) registrado por el área desde el portal
-function analisisCausaLinkHtml(f){
+function analisisCausaLinkHtml(f, numero){
   const a = f.analisisCausa;
   const cod = (STATE.currentAudit && STATE.currentAudit.codigoReporte) || '';
-  const url = `analisis_causa.html?codigo=${encodeURIComponent(cod)}&id=${encodeURIComponent(f.id)}&modo=ver`;
+  const base = `analisis_causa.html?codigo=${encodeURIComponent(cod)}&id=${encodeURIComponent(f.id)}&n=${encodeURIComponent(numero||'')}`;
+  const portal = `portal_auditado_capa.html?codigo=${encodeURIComponent(cod)}`;
   const req = /cr[ií]tico|mayor/i.test(f.criticidad||'');
-  if(!a) return req && f.respondioNombre ? `<div class="small" style="margin:8px 0; color:var(--red);">🔎 Análisis de causa raíz: no registrado por el área (requerido para NC Crítico y Mayor).</div>` : '';
+  const enlaces = `<a href="${base}&modo=previa" target="_blank">Ver el formulario que ve el área ↗</a> · <a href="${portal}" target="_blank">Abrir portal del área ↗</a>`;
+  if(!a){
+    const msg = req ? '<span style="color:var(--red);">no registrado por el área (requerido para NC Crítico y Mayor)</span>' : '<span style="color:var(--text-soft);">opcional para esta criticidad</span>';
+    return `<div class="small" style="margin:8px 0; padding:8px 10px; background:#f6f7f9; border-radius:6px;">🔎 <b>Análisis de causa raíz:</b> ${msg}<br><span style="color:var(--text-soft);">El área lo completa desde el portal, con el botón «Analizar causa» de este hallazgo.</span> ${enlaces}</div>`;
+  }
   const est = a.estado==='completado' ? `✓ completado el ${esc(fechaFormatoChile(a.fecha))}` : `borrador del ${esc(fechaFormatoChile(a.fecha))}`;
   const part = (a.participantes||[]).filter(p=>p.nombre).map(p=>p.nombre).join(', ');
-  return `<div class="small" style="margin:8px 0; padding:8px 10px; background:var(--teal-light, #e6f2f0); border-radius:6px;">🔎 <b>Análisis de causa raíz:</b> ${est}${part?` · Participantes: ${esc(part)}`:''} · <a href="${url}" target="_blank">Ver análisis ↗</a></div>`;
+  return `<div class="small" style="margin:8px 0; padding:8px 10px; background:var(--teal-light, #e6f2f0); border-radius:6px;">🔎 <b>Análisis de causa raíz:</b> ${est}${part?` · Participantes: ${esc(part)}`:''} · <a href="${base}&modo=ver" target="_blank">Ver análisis ↗</a></div>`;
 }
 function revisionQAHtml(f){
   const revs = f.revisionesQA || [];
@@ -5146,7 +5151,7 @@ function findingCard(f, numero){
         <span class="small" id="guardado-msg-${f.id}"></span>
         <button type="button" class="finding-guardar" data-id="${f.id}">💾 Guardar hallazgo</button>
       </div>
-      ${analisisCausaLinkHtml(f)}
+      ${analisisCausaLinkHtml(f, numero)}
       ${f.respondioNombre || (f.revisionesQA||[]).length ? revisionQAHtml(f) : ''}
       <div class="row" style="margin-top:10px;">
         <div class="field" style="flex:1;">

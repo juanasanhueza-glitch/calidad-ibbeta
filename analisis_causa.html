@@ -129,7 +129,7 @@ const SEIS_M = [
 const TIPOS_ACCION = ['Corrección inmediata','Acción correctiva','Acción preventiva'];
 
 const params = new URLSearchParams(location.search);
-const ID = params.get('id'), CODIGO = params.get('codigo') || '', NUM = params.get('n') || '', SOLO_VER = params.get('modo') === 'ver';
+const ID = params.get('id'), CODIGO = params.get('codigo') || '', NUM = params.get('n') || '', SOLO_VER = params.get('modo') === 'ver', PREVIA = params.get('modo') === 'previa';
 let F = null;           // hallazgo
 let A = null;           // análisis en edición
 
@@ -292,7 +292,9 @@ function render(){
   `;
   let barra = document.getElementById('barra');
   if(!barra){ barra = document.createElement('div'); barra.id='barra'; barra.className='barra no-print'; document.body.appendChild(barra); }
-  barra.innerHTML = SOLO_VER
+  barra.innerHTML = PREVIA
+    ? `<span class="estado"><b>Vista previa de Calidad</b>: así ve el formulario el área. Puede probarlo, pero no se guarda nada.</span><button class="btn sec" onclick="window.print()">🖨️ Imprimir / PDF</button>`
+    : SOLO_VER
     ? `<span class="estado">Vista de solo lectura</span><button class="btn sec" onclick="window.print()">🖨️ Imprimir / PDF</button>`
     : `<span class="estado" id="estado-guardado">${F.analisisCausa ? 'Último guardado: ' + esc(dmy(F.analisisCausa.fecha)) : 'Sin guardar'}</span>
        <button class="btn sec" onclick="window.print()">🖨️ Imprimir / PDF</button>
@@ -343,7 +345,7 @@ function pintarAvisos(){
   const ul = document.getElementById('avisos'); if(!ul) return;
   const av = revisar();
   ul.innerHTML = av.length ? av.map(a=>`<li class="${a.t}">${esc(a.m)}</li>`).join('') : '<li class="ok">✓ El análisis está completo. Puede llevarlo al hallazgo.</li>';
-  document.getElementById('btn-llevar').disabled = av.length > 0;
+  const bl = document.getElementById('btn-llevar'); if(bl) bl.disabled = av.length > 0;
 }
 
 function bind(){
@@ -382,8 +384,8 @@ function bind(){
     else if(t.id==='add-part'){ A.participantes.push({nombre:'', cargo:''}); render(); }
     else if(d.qpart!=null){ A.participantes.splice(+d.qpart,1); render(); }
   };
-  document.getElementById('btn-borrador').onclick = () => guardar(false);
-  document.getElementById('btn-llevar').onclick = () => guardar(true);
+  if(!PREVIA){ document.getElementById('btn-borrador').onclick = () => guardar(false);
+  document.getElementById('btn-llevar').onclick = () => guardar(true); }
 }
 
 // Texto de la acción para el hallazgo, a partir del plan
