@@ -59,6 +59,8 @@
   .msg.ok { background:var(--green-light); color:var(--green); }
   .msg.err { background:var(--red-light); color:var(--red); }
   .solo-print { display:none; }
+  textarea:disabled, input:disabled, select:disabled { color:inherit; opacity:1; -webkit-text-fill-color:currentColor; background:#fafbfc; }
+  textarea { overflow:hidden; }
   @media print {
     @page { size:letter; margin:12mm; }
     * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
@@ -67,11 +69,31 @@
     .solo-print { display:block; }
     .wrap { max-width:none; padding:0; }
     .card { break-inside:avoid; border-color:#bbb; }
-    textarea, input, select { border:none; padding:0; resize:none; min-height:0; background:transparent; }
+    textarea, input, select { border:none; padding:0; resize:none; min-height:0; background:transparent !important; -webkit-appearance:none; appearance:none; }
+    textarea:placeholder-shown, input:placeholder-shown { display:none; }
     .m:not(.activa) { display:none; }
   }
   .membrete { width:100%; border-collapse:collapse; margin-bottom:10px; }
   .membrete td { border:1px solid #000; padding:6px 10px; font-size:11px; }
+
+  /* Vista documento (lectura e impresión) */
+  #reporte { display:none; }
+  body.ver #reporte { display:block; }
+  body.ver #app { display:none; }
+  .doc { background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px 22px; font-size:12.5px; }
+  .doc h3 { font-size:13px; color:var(--navy); margin:16px 0 6px; text-transform:uppercase; letter-spacing:.3px; }
+  .doc table { width:100%; border-collapse:collapse; }
+  .doc th, .doc td { border:1px solid #c8cdd4; padding:6px 8px; text-align:left; vertical-align:top; }
+  .doc th { background:#eef1f5; font-size:11px; }
+  .doc .cab td { border:1px solid #000; }
+  .doc .txt { white-space:pre-wrap; }
+  @media print {
+    #app { display:none !important; }
+    #reporte { display:block !important; }
+    .doc { border:0; padding:0; }
+    .doc tr { break-inside:avoid; }
+    .doc h3 { break-after:avoid; }
+  }
 </style>
 </head>
 <body>
@@ -80,6 +102,7 @@
   <div class="sub">Herramientas 6M (Ishikawa) y 5 Por qué · Instituto Bioquímico Beta S.A.</div>
 </header>
 <div class="wrap" id="app"><div class="card">Cargando hallazgo…</div></div>
+<div class="wrap" id="reporte"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -276,8 +299,46 @@ function render(){
        <button class="btn sec" id="btn-borrador">💾 Guardar borrador</button>
        <button class="btn" id="btn-llevar">✅ Llevar al hallazgo</button>`;
   if(!SOLO_VER){ bind(); pintarAvisos(); }
+  autoAltura();
+  if(SOLO_VER){ document.body.classList.add('ver'); }
+  pintarReporte();
 }
 
+
+// ---------- Documento de solo lectura (vista de Calidad e impresión) ----------
+function reporteHtml(){
+  const marc = SEIS_M.filter(m=>A.seisM[m.k].aplica);
+  const cad = A.cadenas.filter(c=>c.porques.some(p=>p.trim()));
+  const plan = A.plan.filter(p=>p.que.trim());
+  const part = A.participantes.filter(p=>p.nombre.trim());
+  return `<div class="doc">
+    <table class="cab"><tr><td style="width:58%"><b>INSTITUTO BIOQUÍMICO BETA S.A.</b><br>Análisis de Causa Raíz (6M · 5 Por qué)</td>
+      <td>Reporte: <b>${esc(CODIGO)}</b><br>Hallazgo N°${esc(NUM)} · ${esc(F.criticidad||'')}<br>Fecha del análisis: ${esc(dmy(A.fecha))} · Estado: ${A.estado==='completado'?'Completado':'Borrador'}</td></tr></table>
+    <h3>Hallazgo</h3>
+    <table><tr><th style="width:22%">Requisito</th><td>${esc(F.ref||F.requerimiento||'')}</td></tr>
+      <tr><th>Hallazgo</th><td class="txt">${esc(F.descripcionHallazgo||'')}</td></tr>
+      ${F.evidenciaObjetiva?`<tr><th>Evidencia objetiva</th><td class="txt">${esc(F.evidenciaObjetiva)}</td></tr>`:''}</table>
+    <h3>1. Análisis 6M</h3>
+    <table><thead><tr><th style="width:22%">Factor</th><th>Lo observado</th></tr></thead><tbody>
+      ${marc.length ? marc.map(m=>`<tr><td><b>${esc(m.k)}</b></td><td class="txt">${esc(A.seisM[m.k].obs)}</td></tr>`).join('') : '<tr><td colspan="2">Sin factores marcados.</td></tr>'}</tbody></table>
+    <h3>2. Análisis 5 Por qué</h3>
+    ${cad.map((c,i)=>`<table style="margin-bottom:8px;"><thead><tr><th colspan="2">Cadena ${i+1}${c.m?' · '+esc(c.m):''}</th></tr></thead><tbody>
+      ${c.porques.filter(p=>p.trim()).map((p,j)=>`<tr><td style="width:22%">${j+1}° ¿Por qué?</td><td class="txt">${esc(p)}</td></tr>`).join('')}</tbody></table>`).join('') || '<p>Sin cadenas registradas.</p>'}
+    <h3>3. Causa raíz</h3>
+    <table><tr><td class="txt">${esc(A.causaRaiz)}</td><td style="width:22%"><b>6M:</b> ${esc(A.sixm||'—')}</td></tr></table>
+    <h3>4. Plan de acción (CAPA)</h3>
+    <table><thead><tr><th style="width:15%">Tipo</th><th>Acción</th><th style="width:16%">Responsable</th><th style="width:11%">Fecha</th><th style="width:20%">Estado / evidencia</th></tr></thead><tbody>
+      ${plan.map(p=>`<tr><td>${esc(p.tipo)}</td><td class="txt">${esc(p.que)}</td><td>${esc(p.responsable)}</td><td>${esc(dmy(p.fecha))}</td><td>${esc(p.estado||'Pendiente')}${p.evidencia?`<br><span style="color:var(--text-soft)">${esc(p.evidencia)}</span>`:''}</td></tr>`).join('') || '<tr><td colspan="5">Sin acciones.</td></tr>'}</tbody></table>
+    <h3>5. Participantes</h3>
+    <table><thead><tr><th>Nombre</th><th>Cargo</th><th style="width:22%">Firma</th></tr></thead><tbody>
+      ${part.map(p=>`<tr><td>${esc(p.nombre)}</td><td>${esc(p.cargo)}</td><td style="height:30px;"></td></tr>`).join('')}</tbody></table>
+  </div>`;
+}
+function pintarReporte(){ const r = document.getElementById('reporte'); if(r) r.innerHTML = reporteHtml(); }
+window.addEventListener('beforeprint', pintarReporte);
+
+function autoAltura(){ document.querySelectorAll('#app textarea').forEach(t => { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }); }
+window.addEventListener('beforeprint', autoAltura);
 function pintarAvisos(){
   const ul = document.getElementById('avisos'); if(!ul) return;
   const av = revisar();
@@ -304,6 +365,7 @@ function bind(){
     if(d.nn!=null) A.participantes[+d.nn].nombre = t.value;
     if(d.nc!=null) A.participantes[+d.nc].cargo = t.value;
     if(t.id==='fecha') A.fecha = t.value;
+    if(t.tagName==='TEXTAREA'){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
     pintarAvisos();
   };
   app.onclick = e => {
