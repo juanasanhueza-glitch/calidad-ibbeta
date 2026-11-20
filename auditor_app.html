@@ -4877,6 +4877,17 @@ function badgeRevisionQA(f){
   if(e === 'aceptado') return ` <div class="small" style="margin-top:6px; background:#e7f4ea; color:#2d6a3a; border:1px solid #9fd0a8; border-radius:6px; padding:4px 8px; display:inline-block; font-weight:700;">✅ Plan aceptado por QA el ${fch} — en implementación</div>`;
   return '';
 }
+// Plan de acción con varias actividades (del análisis de causa raíz), cada una con su responsable, fecha y estado
+function planAccionTablaHtml(f){
+  const plan = (f.analisisCausa && f.analisisCausa.plan || []).filter(p=>(p.que||'').trim());
+  if(!plan.length) return '';
+  const hoy = new Date().toISOString().slice(0,10);
+  return `<div style="margin-top:8px;"><label style="font-size:12px; font-weight:600;">Plan de acción (${plan.length} actividad${plan.length>1?'es':''} comprometida${plan.length>1?'s':''})</label>
+    <table style="width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px;">
+      <thead><tr style="background:#eef1f5;">${['Tipo','Actividad','Responsable','Fecha','Estado'].map(h=>`<th style="text-align:left; padding:5px 6px; border:1px solid var(--border); font-size:11px;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${plan.map(p=>`<tr><td style="padding:5px 6px; border:1px solid var(--border);">${esc(p.tipo||'')}</td><td style="padding:5px 6px; border:1px solid var(--border); white-space:pre-wrap;">${esc(p.que)}</td><td style="padding:5px 6px; border:1px solid var(--border);">${esc(p.responsable||'')}</td><td style="padding:5px 6px; border:1px solid var(--border); white-space:nowrap;">${esc(fechaFormatoChile(p.fecha||''))}${(p.estado!=='Implementada' && p.fecha && p.fecha<hoy)?' <span style="color:var(--red); font-weight:700;">vencida</span>':''}</td><td style="padding:5px 6px; border:1px solid var(--border);">${esc(p.estado||'Pendiente')}${p.evidencia?`<div class="small" style="color:var(--text-soft);">${esc(p.evidencia)}</div>`:''}</td></tr>`).join('')}</tbody></table>
+    <div class="small" style="color:var(--text-soft); margin-top:3px;">Viene del análisis de causa raíz. Para modificarlo, el área lo actualiza desde el portal («Abrir análisis»).</div></div>`;
+}
 // Enlace al Análisis de causa raíz (6M + 5 Por qué) registrado por el área desde el portal
 function analisisCausaLinkHtml(f, numero){
   const a = f.analisisCausa;
@@ -5094,6 +5105,9 @@ function findingCard(f, numero){
           ? `<div style="background:#fff4e5; border:1px solid #f0b866; border-radius:6px; padding:6px 10px; margin:6px 0; font-size:12.5px; color:#7d4e00;"><b>⚠️ Revisar antes de enviar al auditado:</b><ul style="margin:4px 0 0 18px; padding:0;">${pend.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${(tieneCortesDeLinea(f.descripcionHallazgo)||tieneCortesDeLinea(f.evidenciaObjetiva))?`<button type="button" class="secondary finding-unir-lineas" data-id="${f.id}" style="margin-top:6px; font-size:12px; padding:3px 10px;">🧹 Unir líneas</button>`:''}</div>`
           : `<div style="background:#e7f4ea; border-radius:6px; padding:4px 10px; margin:6px 0; font-size:12.5px; color:#3f7d4c; display:inline-block;">✅ Coherente y listo para el auditado</div>`; })()}
       <div class="item-req"><span class="small" style="text-transform:uppercase; font-weight:700; color:var(--text-soft);">Pregunta del checklist (origen):</span> ${esc(f.requerimiento)}</div>
+      <div class="hz-seccion" style="border-left:4px solid var(--navy); background:#fafbfc; border-radius:6px; padding:8px 12px 10px; margin-top:12px;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.4px;">① Datos del hallazgo</div>
+        <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa el auditor (Calidad) al levantar el hallazgo.</div>
       ${subareaFieldHtml(f, 'finding-field')}
       <div class="field" style="margin-top:6px;">
         <label>Requisito citado (norma y punto que aparecerán en el reporte)${(f.requisitoCitado && f.requisitoCitado.trim()) ? ' <span class="small" style="color:var(--amber); font-weight:700;">· ajustado por el auditor</span>' : ''}</label>
@@ -5101,7 +5115,6 @@ function findingCard(f, numero){
         <div class="small" style="margin-top:3px; color:var(--text-soft);">Viene de la Guía/catálogo; edítalo si debes quitar o agregar puntos (ej. quitar 16.27 o sumar 14.4, 14.28).
           ${(f.requisitoCitado && f.requisitoCitado.trim()) ? `<span class="finding-req-reset" data-id="${f.id}" style="text-decoration:underline; cursor:pointer; color:var(--teal); margin-left:6px;">↺ Volver a la cita del catálogo</span>` : ''}</div>
       </div>
-      ${f.respondioNombre ? `<div class="small" style="margin-top:6px; background:#e7f4ea; color:#3f7d4c; border-radius:6px; padding:4px 8px; display:inline-block;">👤 Respondido por el auditado: <b>${esc(f.respondioNombre)}</b>${f.respondioCargo?(' · '+esc(f.respondioCargo)):''}${f.respondioFecha?(' · '+esc(f.respondioFecha)):''}</div>${badgeRevisionQA(f)}` : ''}
       ${trazabilidadFieldHtml(f, 'finding-field')}
       <div class="field" style="margin-top:6px;">
         <label>Descripción del hallazgo (lo observado)</label>
@@ -5118,12 +5131,6 @@ function findingCard(f, numero){
             ${Object.keys(VOCAB_TIPO_DESVIACION).map(c=>`<option ${f.categoria===c?'selected':''}>${esc(c)}</option>`).join('')}
           </select>
         </div>
-        <div class="field"><label>Clasificación 6M</label>
-          <select class="finding-field" data-id="${f.id}" data-field="sixm">
-            <option value="">-</option>
-            ${SEIS_M_OPCIONES.map(s=>`<option ${f.sixm===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
         <div class="field" style="flex:1; min-width:200px;"><label>Tipo Desviación</label>
           <select class="finding-field" data-id="${f.id}" data-field="tipoDesviacion">
             <option value="">-</option>
@@ -5131,33 +5138,6 @@ function findingCard(f, numero){
           </select>
         </div>
       </div>
-      <div class="row" style="margin-top:8px;">
-        <div class="field" style="flex:1; min-width:200px;">
-          <label>Causa raíz</label>
-          <textarea class="finding-field" data-id="${f.id}" data-field="causaRaiz" placeholder="Causa raíz...">${esc(f.causaRaiz)}</textarea>
-        </div>
-        <div class="field" style="flex:1; min-width:200px;">
-          <label>Acción correctiva / preventiva</label>
-          <textarea class="finding-field" data-id="${f.id}" data-field="accion" placeholder="Acción a implementar...">${esc(f.accion)}</textarea>
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <div class="field"><label>Responsable</label><input type="text" class="finding-field" data-id="${f.id}" data-field="responsable" value="${esc(f.responsable)}"></div>
-        <div class="field"><label>Fecha compromiso</label><input type="date" class="finding-field" data-id="${f.id}" data-field="fechaCompromiso" value="${esc(f.fechaCompromiso)}"></div>
-        <div class="field"><label>Estado</label>
-          <select class="finding-field" data-id="${f.id}" data-field="estado">
-            ${ESTADO_OPCIONES.map(s=>`<option ${f.estado===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field"><label>Fecha cierre</label><input type="date" class="finding-field" data-id="${f.id}" data-field="fechaCierre" value="${esc(f.fechaCierre)}"></div>
-        <div style="align-self:flex-end;"><span class="badge" style="background:${ec[0]};color:${ec[1]};">${esc(f.estado)}</span></div>
-      </div>
-      <div class="flex-between" style="margin-top:10px;">
-        <span class="small" id="guardado-msg-${f.id}"></span>
-        <button type="button" class="finding-guardar" data-id="${f.id}">💾 Guardar hallazgo</button>
-      </div>
-      ${analisisCausaLinkHtml(f, numero)}
-      ${f.respondioNombre || (f.revisionesQA||[]).length ? revisionQAHtml(f) : ''}
       <div class="row" style="margin-top:10px;">
         <div class="field" style="flex:1;">
           <label>Evidencia fotográfica (${(f.fotos||[]).length}/2)</label>
@@ -5176,6 +5156,37 @@ function findingCard(f, numero){
           <div class="small" id="foto-estado-${f.id}" style="margin-top:6px;"></div>
         </div>
       </div>
+      </div>
+      <div class="hz-seccion" style="border-left:4px solid var(--teal); background:#fafbfc; border-radius:6px; padding:8px 12px 10px; margin-top:12px;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:.4px;">② Respuesta del dueño del proceso</div>
+        <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa el área auditada desde el portal. El análisis de causa raíz llena automáticamente la causa raíz, la clasificación 6M y el plan de acción.</div>
+      ${f.respondioNombre ? `<div class="small" style="margin-top:6px; background:#e7f4ea; color:#3f7d4c; border-radius:6px; padding:4px 8px; display:inline-block;">👤 Respondido por el auditado: <b>${esc(f.respondioNombre)}</b>${f.respondioCargo?(' · '+esc(f.respondioCargo)):''}${f.respondioFecha?(' · '+esc(f.respondioFecha)):''}</div>${badgeRevisionQA(f)}` : ''}
+      ${analisisCausaLinkHtml(f, numero)}
+      <div class="row" style="margin-top:8px;">
+        <div class="field" style="flex:1; min-width:200px;">
+          <label>Causa raíz</label>
+          <textarea class="finding-field" data-id="${f.id}" data-field="causaRaiz" placeholder="Causa raíz...">${esc(f.causaRaiz)}</textarea>
+        </div>
+        <div class="field"><label>Clasificación 6M</label>
+          <select class="finding-field" data-id="${f.id}" data-field="sixm">
+            <option value="">-</option>
+            ${SEIS_M_OPCIONES.map(s=>`<option ${f.sixm===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${planAccionTablaHtml(f)}
+      ${(f.analisisCausa && (f.analisisCausa.plan||[]).some(p=>(p.que||'').trim())) ? `<details style="margin-top:6px;"><summary class="small" style="cursor:pointer; color:var(--text-soft);">Texto resumido del plan (campo «Acción»)</summary>` : ''}
+      <div class="row" style="margin-top:8px;">
+        <div class="field" style="flex:1; min-width:200px;">
+          <label>Acción correctiva / preventiva</label>
+          <textarea class="finding-field" data-id="${f.id}" data-field="accion" placeholder="Acción a implementar...">${esc(f.accion)}</textarea>
+        </div>
+      </div>
+      ${(f.analisisCausa && (f.analisisCausa.plan||[]).some(p=>(p.que||'').trim())) ? `</details>` : ''}
+      <div class="row" style="margin-top:8px;">
+        <div class="field"><label>Responsable</label><input type="text" class="finding-field" data-id="${f.id}" data-field="responsable" value="${esc(f.responsable)}"></div>
+        <div class="field"><label>Fecha compromiso</label><input type="date" class="finding-field" data-id="${f.id}" data-field="fechaCompromiso" value="${esc(f.fechaCompromiso)}"></div>
+      </div>
       ${(f.fotosMejora||[]).length ? `
       <div class="row" style="margin-top:10px;">
         <div class="field" style="flex:1;">
@@ -5189,6 +5200,25 @@ function findingCard(f, numero){
           </div>
         </div>
       </div>` : ''}
+      </div>
+      <div class="hz-seccion" style="border-left:4px solid #6b4fa0; background:#fafbfc; border-radius:6px; padding:8px 12px 10px; margin-top:12px;">
+        <div style="font-size:12.5px; font-weight:700; color:#6b4fa0; text-transform:uppercase; letter-spacing:.4px;">③ Revisión y cierre</div>
+        <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa Calidad: revisa la respuesta del área, la acepta o devuelve, y cierra el hallazgo cuando se verifica la eficacia.</div>
+      <div class="row" style="margin-top:8px;">
+        <div class="field"><label>Estado</label>
+          <select class="finding-field" data-id="${f.id}" data-field="estado">
+            ${ESTADO_OPCIONES.map(s=>`<option ${f.estado===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Fecha cierre</label><input type="date" class="finding-field" data-id="${f.id}" data-field="fechaCierre" value="${esc(f.fechaCierre)}"></div>
+        <div style="align-self:flex-end;"><span class="badge" style="background:${ec[0]};color:${ec[1]};">${esc(f.estado)}</span></div>
+      </div>
+      <div class="flex-between" style="margin-top:10px;">
+        <span class="small" id="guardado-msg-${f.id}"></span>
+        <button type="button" class="finding-guardar" data-id="${f.id}">💾 Guardar hallazgo</button>
+      </div>
+      ${f.respondioNombre || (f.revisionesQA||[]).length ? revisionQAHtml(f) : ''}
+      </div>
     </div>
   `;
 }
