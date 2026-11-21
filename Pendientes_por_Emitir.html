@@ -165,6 +165,38 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
 .av-col .n{font-size:10.5px;font-weight:700;color:#334155;font-variant-numeric:tabular-nums}
 .av-col .l{font-size:9.5px;color:#888;white-space:nowrap}
 @media(max-width:640px){.av-grid{grid-template-columns:1fr}.av-chart{overflow-x:auto}}
+
+/* Impresión por área */
+.print-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed #E3EAF2}
+.print-btn{padding:7px 15px;border-radius:20px;border:1.5px solid #1F4E79;background:#1F4E79;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.print-btn:hover{background:#164066}
+.print-hint{font-size:10.5px;color:#888}
+.print-scope{display:none}
+@media print{
+  @page{size:A4;margin:12mm 11mm 14mm}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  body{background:#fff;font-size:11.5px}
+  .wrapper{max-width:none;padding:0}
+  .filter-bar,.kpi-card,.avance,.stats-scope,.sync-badge,.admin-badge,.mail-wrap,#empty-filtros[hidden]{display:none !important}
+  .doc-header{border-radius:6px 6px 0 0;padding:16px 20px 12px}
+  .doc-meta{border-radius:0 0 6px 6px;padding:8px 20px;margin-bottom:12px}
+  .intro{padding:10px 14px;margin-bottom:12px;font-size:11px;box-shadow:none}
+  .print-scope{display:flex;justify-content:space-between;align-items:center;gap:14px;background:#F5F9FF;border:1.5px solid #1F4E79;border-radius:8px;padding:10px 16px;margin-bottom:12px;break-inside:avoid}
+  .print-scope .ps-lbl{font-size:9.5px;font-weight:700;color:#1F4E79;text-transform:uppercase;letter-spacing:.06em}
+  .print-scope .ps-area{font-size:17px;font-weight:800;color:#1F4E79;margin-top:1px}
+  .print-scope .ps-det{font-size:10.5px;color:#555;margin-top:2px}
+  .print-scope .ps-num{text-align:center;background:#1F4E79;color:#fff;border-radius:8px;padding:6px 14px}
+  .print-scope .ps-num b{display:block;font-size:22px;line-height:1.1}
+  .print-scope .ps-num span{font-size:9.5px;color:#A9C9D1}
+  .summary-bar{margin-bottom:14px;gap:8px}
+  .stat{box-shadow:none;border:1px solid #E3EAF2;padding:8px 10px}
+  .stat .num{font-size:18px}
+  .resp-section{margin-bottom:14px}
+  .resp-header{break-after:avoid;page-break-after:avoid;padding:8px 14px}
+  .resp-body{box-shadow:none;border:1px solid #E3EAF2;border-top:none}
+  .ev-row{break-inside:avoid;page-break-inside:avoid;padding:9px 14px;grid-template-columns:140px 1fr}
+  .footer{margin-top:4px;padding:8px;color:#777}
+}
 </style>
 </head>
 <body>
@@ -242,13 +274,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     </div>
     <h3>Filtrar por área</h3>
     <div class="area-filter" id="area-filter"></div>
+    <div class="print-row">
+      <button class="print-btn" id="print-btn" type="button">🖨 <span id="print-lbl">Imprimir vista actual</span></button>
+      <span class="print-hint" id="print-hint">Elija un área arriba para imprimir solo sus pendientes. También puede guardarlo como PDF desde la ventana de impresión.</span>
+    </div>
   </div>
 
   <div id="empty-filtros" hidden>No hay eventos pendientes por emitir que coincidan con los filtros seleccionados.</div>
+  <div class="print-scope" id="print-scope"></div>
   <div id="sections"></div>
 
   <div class="footer">
-    Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; Derivado del Panel de Avance de Eventos — uso interno
+    Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; Derivado del Panel de Avance de Eventos — uso interno<span id="print-stamp"></span>
   </div>
 </div>
 
@@ -581,6 +618,30 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     document.getElementById('area-filter').innerHTML = ha;
   }
 
+  function nombreArea(){
+    if(!areaActiva) return '';
+    const a = DATA.pendientes.find(e => slugify(e.area || 'Sin área') === areaActiva);
+    return a ? (a.area || 'Sin área') : '';
+  }
+  function renderPrint(lista){
+    const area = nombreArea();
+    document.getElementById('print-lbl').textContent = area ? 'Imprimir pendientes de ' + area : 'Imprimir vista actual (todas las áreas)';
+    document.getElementById('print-hint').hidden = !!area;
+    const det = [];
+    const nResp = new Set(lista.map(e => e.rk)).size;
+    det.push(nResp + (nResp === 1 ? ' responsable' : ' responsables'));
+    const nD = lista.filter(e => e.tk === 'desvio').length, nN = lista.filter(e => e.tk === 'nc').length;
+    det.push(nD + (nD === 1 ? ' desvío' : ' desvíos') + ' · ' + nN + (nN === 1 ? ' no conformidad' : ' no conformidades'));
+    if(tipoActivo) det.push('solo ' + TIPO_INFO[tipoActivo].plural.toLowerCase());
+    if(respActivo && respInfo[respActivo]) det.push('responsable: ' + respInfo[respActivo].nombre);
+    if(document.getElementById('search').value.trim()) det.push('búsqueda: "' + document.getElementById('search').value.trim() + '"');
+    document.getElementById('print-scope').innerHTML = `
+      <div><div class="ps-lbl">Pendientes por emitir · ${area ? 'Área' : 'Alcance'}</div>
+        <div class="ps-area">${esc(area || 'Todas las áreas')}</div>
+        <div class="ps-det">${esc(det.join(' · '))}</div></div>
+      <div class="ps-num"><b>${lista.length}</b><span>por emitir</span></div>`;
+  }
+
   function renderSections(){
     const lista = filtrar(DATA.pendientes);
     const grupos = {};
@@ -617,6 +678,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     document.getElementById('sections').innerHTML = html;
     document.getElementById('empty-filtros').hidden = lista.length > 0;
     renderStats(lista);
+    renderPrint(lista);
 
     AVANCE.render();
   }
@@ -771,6 +833,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     setURL(); renderChips(); renderSections(); renderRespList();
   }
   function bind(){
+    document.getElementById('print-btn').addEventListener('click', () => {
+      const d = new Date(), z = n => String(n).padStart(2,'0');
+      document.getElementById('print-stamp').textContent = ' · Impreso el ' + z(d.getDate()) + '/' + z(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+      const t = document.title, area = nombreArea();
+      if(area) document.title = 'Pendientes por Emitir - ' + area;
+      window.print();
+      setTimeout(() => { document.title = t; }, 500);
+    });
     document.getElementById('tipo-filter').addEventListener('click', e => {
       const b = e.target.closest('.chip'); if(!b) return;
       tipoActivo = (b.dataset.tipo === tipoActivo) ? '' : b.dataset.tipo;
