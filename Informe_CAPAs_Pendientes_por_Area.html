@@ -193,6 +193,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
 .print-hint{font-size:10.5px;color:#888}
 .print-hint[hidden]{display:none}
 .print-scope{display:none}
+#print-sections{display:none}
 @media print{
   @page{size:A4;margin:12mm 11mm 14mm}
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
@@ -216,7 +217,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
   .print-scope .ps-stat b{display:block;font-size:16px;color:#1F4E79}
   .print-scope .ps-stat.red b{color:#C0392B}
   .print-scope .ps-stat span{font-size:9.5px;color:#777}
-  .area-section{margin-bottom:14px}
+  .area-section{display:none !important}
+  #print-sections{display:block}
+  .pr-sec{margin-bottom:14px}
+  .pr-sec .area-header{padding:8px 14px}
+  .pr-sec .area-header .cargo{font-size:10.5px;color:#A9C9D1;font-weight:400;margin-top:1px}
+  .pr-sec .capa-row{display:grid !important}
+  .pr-area{font-size:10.5px;color:#555;margin-top:5px}
   .area-header{break-after:avoid;page-break-after:avoid;padding:8px 14px}
   .area-body{box-shadow:none;border:1px solid #E3EAF2;border-top:none}
   .capa-row{break-inside:avoid;page-break-inside:avoid;padding:9px 14px}
@@ -317,6 +324,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
   </div>
   
   <div class="print-scope" id="print-scope"></div>
+  <div id="print-sections"></div>
     <div id="empty-filtros" hidden>No hay acciones abiertas que coincidan con los filtros seleccionados.</div>
   <div class="area-section" id="aseguramiento-de-calidad" data-slug="aseguramiento-de-calidad">
       <div class="area-header">
@@ -5407,7 +5415,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     return sec ? sec.textContent.trim() : '';
   }
   function filasVisibles(){
-    return filasBase().filter(r => r.getClientRects().length > 0);
+    // por clases (no por diseño en pantalla): en modo impresión las secciones originales están ocultas
+    const OCULTA = ['hidden-tipo','hidden-resp','hidden-search','hidden-closed'];
+    return filasBase().filter(r => {
+      const sec = r.closest('.area-section');
+      if(sec.classList.contains('hidden') || sec.classList.contains('hidden-by-tipo')) return false;
+      return !OCULTA.some(c => r.classList.contains(c));
+    });
   }
   function renderPrint(){
     const area = nombreAreaActiva();
@@ -5444,6 +5458,39 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
       '<div class="ps-num"><b>' + abiertas.length + '</b><span>CAPAs abiertos</span></div></div>' +
       '<div class="ps-stats">' + st(c.venc, 'Fuera de plazo (VENCIDO)', 'red') + st(c.plazo, 'En plazo') + st(c.sinf, 'Sin fecha') +
       (c.cerr ? st(c.cerr, 'Cerrados (incluidos)') : '') + '</div>';
+    armarPrintSecciones(filas, area);
+  }
+  // Para imprimir: las tarjetas visibles se agrupan por responsable por resolver
+  function armarPrintSecciones(filas, area){
+    const cont = document.getElementById('print-sections');
+    cont.innerHTML = '';
+    const grupos = {};
+    filas.forEach(r => { const k = r.dataset.resp || '_'; (grupos[k] = grupos[k] || []).push(r); });
+    const nombre = k => (respInfo[k] && respInfo[k].nombre) || 'Sin responsable asignado';
+    const abiertasDe = k => grupos[k].filter(r => !r.classList.contains('is-closed')).length;
+    const peso = r => r.classList.contains('is-closed') ? 3 : (r.dataset.cat === 'vencido' || (!r.dataset.cat && r.querySelector('.badge-red'))) ? 0 : 1;
+    Object.keys(grupos)
+      .sort((a,b) => (abiertasDe(b) - abiertasDe(a)) || nombre(a).localeCompare(nombre(b),'es'))
+      .forEach(k => {
+        const n = abiertasDe(k);
+        const sec = document.createElement('div');
+        sec.className = 'pr-sec';
+        sec.innerHTML = '<div class="area-header"><div><h2>' + escHtml(nombre(k)) + '</h2><div class="cargo">' +
+          escHtml((respInfo[k] && respInfo[k].cargo) || '—') + '</div></div><span class="area-count">' + n +
+          (n === 1 ? ' CAPA abierto' : ' CAPAs abiertos') + '</span></div><div class="area-body"></div>';
+        const body = sec.querySelector('.area-body');
+        grupos[k].slice().sort((a,b) => peso(a) - peso(b)).forEach(r => {
+          const cl = r.cloneNode(true);
+          cl.removeAttribute('id');
+          const rp = cl.querySelector('.capa-resp');
+          if(rp){
+            if(area) rp.remove();
+            else { const h = r.closest('.area-section').querySelector('.area-header h2'); rp.className = 'pr-area'; rp.textContent = 'Área: ' + (h ? h.textContent.trim() : '—'); }
+          }
+          body.appendChild(cl);
+        });
+        cont.appendChild(sec);
+      });
   }
   function imprimir(){
     armarPrintScope();
