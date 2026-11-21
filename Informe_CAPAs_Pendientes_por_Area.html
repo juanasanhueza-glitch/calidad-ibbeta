@@ -185,6 +185,43 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
 .av-col .n{font-size:10.5px;font-weight:700;color:#334155;font-variant-numeric:tabular-nums}
 .av-col .l{font-size:9.5px;color:#888;white-space:nowrap}
 @media(max-width:640px){.av-grid{grid-template-columns:1fr}.av-chart{overflow-x:auto}}
+
+/* Impresión por área */
+.print-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed #E3EAF2}
+.print-btn{padding:7px 15px;border-radius:20px;border:1.5px solid #1F4E79;background:#1F4E79;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.print-btn:hover{background:#164066}
+.print-hint{font-size:10.5px;color:#888}
+.print-hint[hidden]{display:none}
+.print-scope{display:none}
+@media print{
+  @page{size:A4;margin:12mm 11mm 14mm}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  body{background:#fff;font-size:11.5px}
+  .wrapper{max-width:none;padding:0}
+  .filter-bar,.kpi-card,.avance,.summary-bar,.stats-scope,.sync-badge,.admin-badge,.mail-wrap,#search-results{display:none !important}
+  .doc-header{border-radius:6px 6px 0 0;padding:16px 20px 12px}
+  .doc-meta{border-radius:0 0 6px 6px;padding:8px 20px;margin-bottom:12px}
+  .intro{padding:10px 14px;margin-bottom:10px;font-size:11px}
+  .tipo-legend{box-shadow:none;border:1px solid #E3EAF2;margin-bottom:12px;padding:10px 14px;font-size:10.5px;break-inside:avoid}
+  .print-scope{display:block;background:#F5F9FF;border:1.5px solid #1F4E79;border-radius:8px;padding:10px 16px;margin-bottom:14px;break-inside:avoid}
+  .print-scope .ps-top{display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .print-scope .ps-lbl{font-size:9.5px;font-weight:700;color:#1F4E79;text-transform:uppercase;letter-spacing:.06em}
+  .print-scope .ps-area{font-size:17px;font-weight:800;color:#1F4E79;margin-top:1px}
+  .print-scope .ps-det{font-size:10.5px;color:#555;margin-top:2px}
+  .print-scope .ps-num{text-align:center;background:#1F4E79;color:#fff;border-radius:8px;padding:6px 14px}
+  .print-scope .ps-num b{display:block;font-size:22px;line-height:1.1}
+  .print-scope .ps-num span{font-size:9.5px;color:#A9C9D1}
+  .print-scope .ps-stats{display:flex;gap:8px;margin-top:9px}
+  .print-scope .ps-stat{flex:1;background:#fff;border:1px solid #DCE7F3;border-radius:6px;text-align:center;padding:5px 6px}
+  .print-scope .ps-stat b{display:block;font-size:16px;color:#1F4E79}
+  .print-scope .ps-stat.red b{color:#C0392B}
+  .print-scope .ps-stat span{font-size:9.5px;color:#777}
+  .area-section{margin-bottom:14px}
+  .area-header{break-after:avoid;page-break-after:avoid;padding:8px 14px}
+  .area-body{box-shadow:none;border:1px solid #E3EAF2;border-top:none}
+  .capa-row{break-inside:avoid;page-break-inside:avoid;padding:9px 14px}
+  .footer{margin-top:4px;padding:8px;color:#777}
+}
 </style>
 </head>
 <body>
@@ -273,8 +310,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
       <label class="hide-closed-toggle"><input type="checkbox" id="hide-closed" checked> Ocultar cerrados</label>
       <button class="show-all-btn" id="show-all">Ver todas las áreas</button>
     </div>
+    <div class="print-row">
+      <button class="print-btn" id="print-btn" type="button">🖨 <span id="print-lbl">Imprimir vista actual</span></button>
+      <span class="print-hint" id="print-hint">Elija un área arriba para imprimir solo sus CAPAs. También puede guardarlo como PDF desde la ventana de impresión.</span>
+    </div>
   </div>
   
+  <div class="print-scope" id="print-scope"></div>
     <div id="empty-filtros" hidden>No hay acciones abiertas que coincidan con los filtros seleccionados.</div>
   <div class="area-section" id="aseguramiento-de-calidad" data-slug="aseguramiento-de-calidad">
       <div class="area-header">
@@ -4768,7 +4810,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     </div>
   </div>
   <div class="footer">
-    Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; 12 de agosto de 2026
+    Instituto Bioquímico Beta S.A. &nbsp;·&nbsp; Aseguramiento de Calidad &nbsp;·&nbsp; <span id="footer-fecha">12 de agosto de 2026</span><span id="print-stamp"></span>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -5143,6 +5185,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     const hoy = new Date();
     document.getElementById('doc-fecha').textContent =
       hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+    document.getElementById('footer-fecha').textContent = document.getElementById('doc-fecha').textContent;
 
     staticOrigins = new Set();
     document.querySelectorAll('.capa-row[data-origin]').forEach(row => {
@@ -5356,6 +5399,63 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     document.getElementById('kpi-bars').innerHTML = bars;
   }
 
+  // ----- Impresión por área -----
+  function nombreAreaActiva(){
+    const slug = areaActiva();
+    if(!slug) return '';
+    const sec = document.querySelector('.area-section[data-slug="' + slug + '"] .area-header h2');
+    return sec ? sec.textContent.trim() : '';
+  }
+  function filasVisibles(){
+    return filasBase().filter(r => r.getClientRects().length > 0);
+  }
+  function renderPrint(){
+    const area = nombreAreaActiva();
+    const lbl = document.getElementById('print-lbl');
+    if(!lbl) return;
+    lbl.textContent = area ? 'Imprimir CAPAs de ' + area : 'Imprimir vista actual (todas las áreas)';
+    document.getElementById('print-hint').hidden = !!area;
+  }
+  function armarPrintScope(){
+    const area = nombreAreaActiva();
+    const filas = filasVisibles();
+    const abiertas = filas.filter(r => !r.classList.contains('is-closed'));
+    const c = {venc:0, plazo:0, sinf:0, cerr:filas.length - abiertas.length};
+    abiertas.forEach(r => {
+      const cat = r.dataset.cat;
+      if(cat === 'vencido' || (!cat && r.querySelector('.badge-red'))) c.venc++;
+      else if(cat === 'sinfecha' || (!cat && (r.querySelector('.badge-gray') || !r.querySelector('.badge-slot span')))) c.sinf++;
+      else c.plazo++;
+    });
+    const resp = new Set(abiertas.map(r => r.dataset.resp).filter(Boolean)).size;
+    const nAreas = new Set(abiertas.map(r => r.closest('.area-section').dataset.slug)).size;
+    const det = [];
+    if(!area) det.push(nAreas + (nAreas === 1 ? ' área' : ' áreas'));
+    det.push(resp + (resp === 1 ? ' responsable' : ' responsables'));
+    if(tipoActivo && TIPOS[tipoActivo]) det.push('solo ' + TIPOS[tipoActivo].label);
+    if(respActivo && respInfo[respActivo]) det.push('responsable: ' + respInfo[respActivo].nombre);
+    const q = document.getElementById('search-origen').value.trim();
+    if(q) det.push('búsqueda: "' + q + '"');
+    const st = (n, t, cls) => '<div class="ps-stat' + (cls ? ' ' + cls : '') + '"><b>' + n + '</b><span>' + t + '</span></div>';
+    document.getElementById('print-scope').innerHTML =
+      '<div class="ps-top"><div><div class="ps-lbl">CAPAs pendientes de evidencia · ' + (area ? 'Área' : 'Alcance') + '</div>' +
+      '<div class="ps-area">' + escHtml(area || 'Todas las áreas') + '</div>' +
+      '<div class="ps-det">' + escHtml(det.join(' · ')) + '</div></div>' +
+      '<div class="ps-num"><b>' + abiertas.length + '</b><span>CAPAs abiertos</span></div></div>' +
+      '<div class="ps-stats">' + st(c.venc, 'Fuera de plazo (VENCIDO)', 'red') + st(c.plazo, 'En plazo') + st(c.sinf, 'Sin fecha') +
+      (c.cerr ? st(c.cerr, 'Cerrados (incluidos)') : '') + '</div>';
+  }
+  function imprimir(){
+    armarPrintScope();
+    const d = new Date(), z = n => String(n).padStart(2,'0');
+    document.getElementById('print-stamp').textContent = ' · Impreso el ' + z(d.getDate()) + '/' + z(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+    const t = document.title, area = nombreAreaActiva();
+    if(area) document.title = 'CAPAs Pendientes - ' + area;
+    window.print();
+    setTimeout(() => { document.title = t; }, 500);
+  }
+  window.addEventListener('beforeprint', armarPrintScope);
+
   function applyTipo(){
     renderKPI();
     AVANCE.render();
@@ -5392,6 +5492,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     const hayVisibles = Array.from(document.querySelectorAll('.area-section:not(#search-results)')).some(sec =>
       !sec.classList.contains('hidden') && !sec.classList.contains('hidden-by-tipo'));
     document.getElementById('empty-filtros').hidden = !filtrando || hayVisibles;
+    renderPrint();
     // indicadores superiores (solo con datos del Sheet)
     const scope = document.getElementById('stats-scope');
     if(statsVivos){
@@ -5615,6 +5716,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
 
   document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('admin-badge').hidden = !ES_ADMIN;
+    document.getElementById('print-btn').addEventListener('click', imprimir);
     document.querySelectorAll('.capa-row[data-origin]').forEach(row => {
       if(row.dataset.origin) staticOrigins.add(row.dataset.origin);
     });
@@ -5656,6 +5758,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;c
     });
     if(targetArea){
       filterArea(targetArea);
+      renderPrint();
       setTimeout(()=>{
         const vis=document.querySelector('.area-section:not(.hidden)');
         if(vis) vis.scrollIntoView({behavior:'smooth',block:'start'});
