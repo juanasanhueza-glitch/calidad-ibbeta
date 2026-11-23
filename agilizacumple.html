@@ -201,14 +201,12 @@
   .meta-block .sheet-link:hover { border-color: var(--accent); }
   .go-tpe {
     display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
-    font-weight: 600; font-size: 12.5px; padding: 5px 12px; border-radius: 999px;
-    background: #fdf1e2; color: #b45309; border: 1px solid #f1cf9f;
+    font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink); border: 0;
   }
-  .go-tpe:hover { border-color: #b45309; }
+  .go-tpe:hover { filter: brightness(1.08); }
   .go-tpe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .go-tpe { background: #352816; color: #f5b45a; border-color: #6a4c22; }
-  }
+
   .meta-actions { display: flex; align-items: center; gap: 12px; }
   .sync-status { display: inline-flex; align-items: center; gap: 6px; }
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
@@ -685,7 +683,7 @@
         </a>
         <a class="go-tpe" href="tareasporejecutar.html">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3.5" width="16" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8 11l1.5 1.5L12 10"/><path d="M14 11.5h3"/><path d="M8 16.5h.01"/><path d="M11 16.5h6"/></svg>
-          Tareas por Ejecutar →
+          Ir a Tareas por Ejecutar →
         </a>
       </div>
     </div>
