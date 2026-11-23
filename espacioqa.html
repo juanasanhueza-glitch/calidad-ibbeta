@@ -244,6 +244,17 @@
     font-size: 12px;
     color: var(--muted);
   }
+
+  .tasks-icon { background: #fdf1e2; color: #b45309; }
+  .tasks-status { color: #b45309; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tasks-icon { background: #352816; color: #f5b45a; }
+    :root:not([data-theme="light"]) .tasks-status { color: #f5b45a; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .initiative-card:hover .tasks-icon svg { animation: tick .5s ease-out; }
+  }
+  @keyframes tick { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: scale(1); } }
 </style>
 </head>
 <body>
@@ -277,6 +288,20 @@
         </div>
       </a>
 
+      <a class="initiative-card" href="tareasporejecutar.html">
+        <span class="initiative-icon tasks-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8 11l1.5 1.5L12 10"/><path d="M14 11.5h3"/><path d="M8 16.5h.01"/><path d="M11 16.5h6"/></svg>
+        </span>
+        <div>
+          <p class="initiative-name">Tareas por Ejecutar</p>
+          <p class="initiative-desc">Lo que el equipo comprometió y aún no empieza, ordenado por fecha compromiso. Al iniciarse, cada tarea pasa a Agiliza &amp; Cumple.</p>
+        </div>
+        <div class="initiative-meta">
+          <span class="initiative-status tasks-status"><span class="dot"></span><span id="tpeCount">Todo el equipo</span></span>
+          <span class="initiative-open">Ver tareas →</span>
+        </div>
+      </a>
+
       <div class="placeholder-card">Próximas iniciativas del equipo aparecerán aquí</div>
     </div>
   </section>
@@ -286,5 +311,33 @@
   </footer>
 
 </div>
+<script>
+(function () {
+  var URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBYByhSxtY6cQIl_Q4-Rnhm4dznq16fApKEhn2p1wJ6iRXSgYfByhwGLMJDPjKxDX1N9XXUyQvOVIC/pub?gid=777000001&single=true&output=csv";
+  var el = document.getElementById("tpeCount");
+  if (!el || !window.fetch) return;
+  fetch(URL, { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (text) {
+    var rows = [], row = [], f = "", q = false, n = 0, late = 0, today = new Date(); today.setHours(0,0,0,0);
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (q) { if (ch === '"') { if (text[i+1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ",") { row.push(f); f = ""; }
+      else if (ch === "\n") { row.push(f); rows.push(row); row = []; f = ""; }
+      else if (ch !== "\r") f += ch;
+    }
+    if (f || row.length) { row.push(f); rows.push(row); }
+    rows.slice(1).forEach(function (c) {
+      if (!c[1] || !c[1].trim()) return;
+      var est = (c[7] || "").trim();
+      if (est && est !== "Por ejecutar") return;
+      n++;
+      var m = (c[6] || "").trim().match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+      if (m && new Date(+m[3], +m[2]-1, +m[1]) < today) late++;
+    });
+    el.textContent = n + (n === 1 ? " por ejecutar" : " por ejecutar") + (late ? " · " + late + (late === 1 ? " vencida" : " vencidas") : "");
+  }).catch(function () {});
+})();
+</script>
 </body>
 </html>
