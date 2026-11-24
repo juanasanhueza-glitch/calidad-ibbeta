@@ -65,6 +65,12 @@
   .prog .it .n { font-weight:600; }
   .prog .it .e { font-size:12px; margin-top:4px; }
   .nota { font-size:12px; color: var(--text-muted); margin-top:10px; }
+  .riesgo .r-tit { font-weight:700; font-size:14px; color: var(--text-primary); display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .riesgo .r-n { flex:none; width:24px; height:24px; border-radius:12px; background: var(--navy, #002060); color:#fff; font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
+  .riesgo .r-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .riesgo .r-k { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--text-muted); margin-bottom:3px; }
+  .riesgo .r-v { font-size:12.8px; line-height:1.5; color: var(--text-secondary); }
+  .riesgo .r-dec { margin-top:10px; padding-top:8px; border-top:1px solid var(--border, #e3e8f1); font-size:12.5px; color: var(--text-primary); }
   .vacio { color: var(--text-muted); font-size:13px; padding:10px 0; }
   .resp-fila { display:grid; grid-template-columns: 1.4fr 70px 2fr; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
   .resp-fila .q { font-weight:600; font-size:13.5px; }
@@ -252,6 +258,36 @@ const PROGRAMA = {
     {t:'Aseguramiento de Calidad', m:/aseguramiento/i, nota:'Reprogramada para 2027 (Ed.02 · empresa auditora externa)'}
   ]
 };
+
+// Sección 8 · Riesgos para el cumplimiento futuro: mirada preventiva redactada por Aseguramiento de Calidad
+// (no se genera desde los reportes). Editar aquí para agregar, quitar o ajustar puntos.
+const RIESGOS_FUTUROS = [
+  { titulo: 'Responsabilidades GMP sin definir entre áreas',
+    riesgo: 'Actividades GMP que ninguna área asume como propias («eso no lo veo yo»): registros, documentos o trámites regulatorios que quedan sin dueño, y procesos que se detienen cuando falta la única persona que los conoce.',
+    senal: 'Los límites de responsabilidad entre áreas no están formalizados, y varios procesos dependen de una sola persona, sin suplente designado.',
+    propuesta: ['Elaborar una matriz RACI de las actividades GMP, regulatorias y documentales, que defina para cada una quién la ejecuta (R), quién responde y aprueba (A), a quién se consulta (C) y a quién se informa (I).',
+                'Designar un responsable suplente para cada actividad crítica, que cubra al titular en su ausencia.',
+                'Reflejar la matriz en las descripciones de cargo.'],
+    decide: 'Gerencia General, con las jefaturas de área; coordina Aseguramiento de Calidad.' },
+  { titulo: 'Cultura GMP limitada a las áreas productivas',
+    riesgo: 'Decisiones de áreas de apoyo que afectan el cumplimiento sin que lo adviertan: proveedores no calificados, compras sin evaluación o actividades GMP que no se consideran en la planificación.',
+    senal: 'La capacitación GMP se dirige principalmente al personal que interviene directamente en los procesos productivos.',
+    propuesta: ['Incluir en el Plan de Capacitación 2027 a todo el personal que participa en actividades GMP, también a las áreas de apoyo.',
+                'Compras: calificación y evaluación de proveedores.',
+                'Planificación: planificar considerando las actividades GMP, como la validación de limpieza de equipos y las calificaciones.',
+                'Microbiología y otras áreas de apoyo: su rol en el sistema de calidad.'],
+    decide: 'Gestión de Personas, con Aseguramiento de Calidad (Plan de Capacitación 2027).' },
+  { titulo: 'Actividades GMP fuera de la planificación de producción',
+    riesgo: 'Calificaciones de equipos y validaciones de limpieza que se postergan porque compiten con la producción, quedando vencidas.',
+    senal: 'Estas actividades se coordinan caso a caso y no forman parte del plan de producción.',
+    propuesta: ['Incorporar las calificaciones de equipos y las validaciones de limpieza en la planificación de producción, con fechas y holguras definidas.'],
+    decide: 'Planificación y Producción, con Aseguramiento de Calidad.' },
+  { titulo: 'Vigencia de documentos y programas',
+    riesgo: 'Procedimientos, programas de calibración o de capacitación que hoy están vigentes, pero que pueden vencer sin que se advierta a tiempo.',
+    senal: 'En las auditorías 2026 se detectaron documentos y programas vencidos o sin aprobación vigente.',
+    propuesta: ['Implementar un aviso de vencimiento en el sistema documental, con 30 a 60 días de anticipación, y revisarlo en el Comité de Calidad.'],
+    decide: 'Aseguramiento de Calidad.' }
+];
 
 // Temas transversales: se asignan por el requisito citado y, si no basta, por la descripción.
 const TEMAS = [
@@ -491,7 +527,7 @@ function render(anio){
     </section>
     <section class="portada pag2">
       <h3>Contenido</h3>
-      <ol class="indice-v"><li data-sec="1"><span>1. Mensajes clave</span><span class="lead"></span><span class="pn"></span></li><li data-sec="2"><span>2. Resultados del programa</span><span class="lead"></span><span class="pn"></span></li><li data-sec="3"><span>3. Mapa de riesgo por área</span><span class="lead"></span><span class="pn"></span></li><li data-sec="4"><span>4. Debilidades del sistema de calidad</span><span class="lead"></span><span class="pn"></span></li><li data-sec="5"><span>5. Hallazgos prioritarios e impacto sanitario</span><span class="lead"></span><span class="pn"></span></li><li data-sec="6"><span>6. Avance de los planes de acción por cargo</span><span class="lead"></span><span class="pn"></span></li><li data-sec="7"><span>7. Requerimientos a la Dirección</span><span class="lead"></span><span class="pn"></span></li><li data-sec="8"><span>8. Oportunidades de mejora y observaciones por área</span><span class="lead"></span><span class="pn"></span></li><li data-sec="9"><span>9. Criterios del informe</span><span class="lead"></span><span class="pn"></span></li></ol>
+      <ol class="indice-v"><li data-sec="1"><span>1. Mensajes clave</span><span class="lead"></span><span class="pn"></span></li><li data-sec="2"><span>2. Resultados del programa</span><span class="lead"></span><span class="pn"></span></li><li data-sec="3"><span>3. Mapa de riesgo por área</span><span class="lead"></span><span class="pn"></span></li><li data-sec="4"><span>4. Debilidades del sistema de calidad</span><span class="lead"></span><span class="pn"></span></li><li data-sec="5"><span>5. Hallazgos prioritarios e impacto sanitario</span><span class="lead"></span><span class="pn"></span></li><li data-sec="6"><span>6. Avance de los planes de acción por cargo</span><span class="lead"></span><span class="pn"></span></li><li data-sec="7"><span>7. Requerimientos a la Dirección</span><span class="lead"></span><span class="pn"></span></li><li data-sec="8"><span>8. Riesgos para el cumplimiento futuro</span><span class="lead"></span><span class="pn"></span></li><li data-sec="9"><span>9. Criterios del informe</span><span class="lead"></span><span class="pn"></span></li></ol>
       <h3>Objetivo</h3>
       <p>Informar a la Dirección el resultado del programa de auditorías internas ${anio}, las debilidades del sistema de calidad identificadas, los hallazgos de mayor impacto sanitario y el estado de los planes de acción, como antecedente para la Revisión por la Dirección y para apoyar la toma de decisiones y la asignación de recursos.</p>
       <h3>Alcance</h3>
@@ -579,11 +615,17 @@ function render(anio){
       <div class="nota">Propuesta generada a partir de los temas que se repiten en dos o más áreas; debe ser validada por Aseguramiento de Calidad antes de presentarse.</div>
     </div>
 
-    <h2 class="sec-titulo sec-nueva" data-sec="8">8. Oportunidades de mejora y observaciones por área</h2>
-    <p class="h2sub">Resumen de lo informado en la sección «Observaciones adicionales / Puntos de mejora» de cada reporte de auditoría. No constituyen No Conformidades, pero orientan la mejora del sistema.</p>
-    <div class="card">
-      ${mejoras.length ? `<table class="t" style="table-layout:fixed;"><colgroup><col style="width:22%"><col></colgroup><thead><tr><th>Área / reporte</th><th>Oportunidades de mejora y observaciones</th></tr></thead><tbody>${mejoras.map(m=>`<tr><td><b>${esc(m.area)}</b><div style="color:var(--text-muted); font-size:11.5px;">${esc(m.codigo)}</div></td><td style="white-space:pre-wrap; line-height:1.45;">${esc(m.texto)}</td></tr>`).join('')}</tbody></table>` : '<div class="vacio">Los reportes del periodo no registran observaciones adicionales ni puntos de mejora.</div>'}
-    </div>
+    <h2 class="sec-titulo sec-nueva" data-sec="8">8. Riesgos para el cumplimiento futuro</h2>
+    <p class="h2sub">Situaciones que hoy no constituyen un incumplimiento normativo, pero que, de no abordarse, podrían convertirse en No Conformidades en próximas auditorías o inspecciones. Se presentan con una mirada preventiva, para decisión de la Dirección.</p>
+    ${RIESGOS_FUTUROS.map((r,ix) => `<div class="card no-romper riesgo" style="margin-top:${ix?12:0}px;">
+      <div class="r-tit"><span class="r-n">${ix+1}</span>${esc(r.titulo)}</div>
+      <div class="r-grid">
+        <div><div class="r-k">Qué podría pasar</div><div class="r-v">${esc(r.riesgo)}</div></div>
+        <div><div class="r-k">Qué lo anticipa hoy</div><div class="r-v">${esc(r.senal)}</div></div>
+      </div>
+      <div class="r-k" style="margin-top:10px;">Propuesta</div><div class="r-v">${r.propuesta.length>1?`<ul style="margin:2px 0 0; padding-left:18px;">${r.propuesta.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:esc(r.propuesta[0])}</div>
+      <div class="r-dec"><b>Decisión / responsable:</b> ${esc(r.decide)}</div>
+    </div>`).join('')}
 
     <h2 class="sec-titulo" data-sec="9">9. Criterios del informe</h2>
     <div class="card no-romper criterios" style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
