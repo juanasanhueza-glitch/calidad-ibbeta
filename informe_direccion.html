@@ -233,20 +233,23 @@ function areaInfo(nombre){
 }
 
 // Programa anual (mismo orden que la app). Aseguramiento de Calidad se reprograma para el año siguiente.
+// Edición vigente del programa y fechas (programada / ejecución) tomadas de la planilla de seguimiento
+// «Programa_Auditorias_Internas», que alimenta el indicador del Comité. Fuera de plazo = ejecutada después del mes programado.
+const PROGRAMA_META = { '2026': { edicion:'PRG-QA-009.01 Ed.02', aprobada:'24-11-2026', meta:90, corte:'24-11-2026' } };
 const PROGRAMA = {
   '2026': [
-    {t:'Prevención de Riesgos', m:/prevenci/i},
-    {t:'Gestión de Personas / RRHH', m:/personas|rrhh/i},
-    {t:'Fraccionamiento', m:/fraccion/i},
-    {t:'Bodega', m:/^bodega(?!.*fraccion)/i},
-    {t:'Producción I', m:/producci.n i\b|producci.n i \(/i},
-    {t:'Producción II', m:/producci.n ii/i},
-    {t:'Aseo e Higiene', m:/aseo|higiene/i},
-    {t:'Mantenimiento', m:/mantenimiento/i},
-    {t:'CC – Microbiología', m:/microbiolog/i},
-    {t:'CC – Fco-Química y Metodología', m:/fco-qu|metodolog/i},
-    {t:'CC – Envase-Empaque', m:/envase/i},
-    {t:'Aseguramiento de Calidad', m:/aseguramiento/i, nota:'Reprogramada para 2027'}
+    {t:'Prevención de Riesgos', m:/prevenci/i, fp:'2026-06-23', fe:'2026-06-24'},
+    {t:'Gestión de Personas / RRHH', m:/personas|rrhh/i, fp:'2026-06-26', fe:'2026-07-09'},
+    {t:'Fraccionamiento', m:/fraccion/i, fp:'2026-07-08', fe:'2026-07-08'},
+    {t:'Bodega', m:/^bodega(?!.*fraccion)/i, fp:'2026-07-09', fe:'2026-07-10'},
+    {t:'Producción I', m:/producci.n i\b|producci.n i \(/i, fp:'2026-07-14', fe:'2026-07-22'},
+    {t:'Producción II', m:/producci.n ii/i, fp:'2026-07-21', fe:'2026-10-08'},
+    {t:'Aseo e Higiene', m:/aseo|higiene/i, fp:'2026-07-28', fe:'2026-11-24'},
+    {t:'Mantenimiento', m:/mantenimiento/i, fp:'2026-08-11', fe:'2026-11-20'},
+    {t:'CC – Microbiología', m:/microbiolog/i, fp:'2026-08-18', fe:'2026-11-19'},
+    {t:'CC – Fco-Química y Metodología', m:/fco-qu|metodolog/i, fp:'2026-08-25', fe:'2026-10-15'},
+    {t:'CC – Envase-Empaque', m:/envase/i, fp:'2026-09-09', fe:'2026-09-10'},
+    {t:'Aseguramiento de Calidad', m:/aseguramiento/i, nota:'Reprogramada para 2027 (Ed.02 · empresa auditora externa)'}
   ]
 };
 
@@ -353,10 +356,40 @@ function render(anio){
     else if(!a){ estado = 'Pendiente'; color = 'var(--st-warning)'; }
     else if(a.estado === 'finalizada'){ estado = 'Ejecutada · ' + (a.codigoReporte||''); color = 'var(--st-good)'; }
     else { estado = 'En curso · ' + (a.codigoReporte||'') + (a.fecha ? ' · ' + fFecha(a.fecha) : ''); color = 'var(--seq-4)'; }
-    return {t:p.t, estado, color, ejecutada: !!a && a.estado==='finalizada', reprog: !!p.nota && !a};
+    const finMes = p.fp ? (d=>new Date(d.getFullYear(), d.getMonth()+1, 0))(new Date(p.fp+'T12:00:00')) : null;
+    const fe = p.fe ? new Date(p.fe+'T12:00:00') : null;
+    return {t:p.t, estado, color, ejecutada: p.fe ? true : (!!a && a.estado==='finalizada'), reprog: !!p.nota && !a,
+            fp:p.fp, fe:p.fe, enPlazo: !!(fe && finMes && fe<=finMes), desfase: (fe && p.fp) ? Math.round((fe - new Date(p.fp+'T12:00:00'))/86400000) : null};
   });
   const nProg = filasProg.filter(x=>!x.reprog).length;
   const nEjec = filasProg.filter(x=>x.ejecutada).length;
+  const meta = PROGRAMA_META[anio] || null;
+  const conFechas = filasProg.filter(x=>!x.reprog && x.fp);
+  const nPlazo = conFechas.filter(x=>x.enPlazo).length;
+  const fueraPlazo = conFechas.filter(x=>x.fe && !x.enPlazo).sort((a,b)=>b.desfase-a.desfase);
+  let bloqueOportunidad = '';
+  if(meta && conFechas.length){
+    const pCum = pct(nEjec,nProg), pOpo = pct(nPlazo,conFechas.length);
+    const dmin = fueraPlazo.length ? Math.min(...fueraPlazo.map(x=>x.desfase)) : 0, dmax = fueraPlazo.length ? Math.max(...fueraPlazo.map(x=>x.desfase)) : 0;
+    bloqueOportunidad = `
+    <div class="card no-romper" style="margin-top:12px;">
+      <div style="font-weight:600; font-size:13.5px; margin-bottom:4px;">Cumplimiento y oportunidad del programa</div>
+      <div class="nota" style="margin:0 0 10px;">${esc(meta.edicion)}, aprobada el ${esc(meta.aprobada)}. Fechas según la planilla de seguimiento del programa al ${esc(meta.corte)}.</div>
+      <div class="grid-kpi">
+        <div class="card kpi"><div class="v">${pCum}%</div><div class="l">Cumplimiento del programa</div><div class="d">${nEjec} de ${nProg} auditorías programadas ejecutadas</div></div>
+        <div class="card kpi"><div class="v" style="color:${pOpo>=meta.meta?'var(--st-good)':'var(--st-critical)'}">${pOpo}%</div><div class="l">Oportunidad de ejecución</div><div class="d">${nPlazo} de ${conFechas.length} en el mes programado · meta ≥ ${meta.meta}%</div></div>
+        <div class="card kpi"><div class="v">${fueraPlazo.length}</div><div class="l">Ejecutadas fuera de plazo</div><div class="d">${fueraPlazo.length?`desfase de ${dmin} a ${dmax} días`:'sin desfases'}</div></div>
+      </div>
+    </div>
+    ${fueraPlazo.length ? `<div class="card" style="margin-top:12px;"><table class="t"><thead><tr><th>Auditoría ejecutada fuera de plazo</th><th class="num">Programada</th><th class="num">Ejecutada</th><th class="num">Días de desfase</th></tr></thead>
+        <tbody>${fueraPlazo.map(x=>`<tr><td>${esc(x.t)}</td><td class="num">${fFecha(x.fp)}</td><td class="num">${fFecha(x.fe)}</td><td class="num"><b>${x.desfase}</b></td></tr>`).join('')}</tbody></table></div>
+    <div class="card no-romper" style="margin-top:12px;">
+      <div style=" font-size:13px; line-height:1.55;"><b>Análisis.</b> El programa se ejecutó en su totalidad, pero ${fueraPlazo.length} de ${conFechas.length} auditorías se realizaron después del mes programado. Aseguramiento de Calidad reconoce este resultado como una debilidad de su propia gestión: los desfases se abordaron de forma reactiva, cuando ya se habían producido, y no hubo una gestión preventiva de la planificación que permitiera anticiparlos.</div>
+      <div style="margin-top:8px; font-size:13px; line-height:1.55;"><b>Objetivo 2027.</b> Alcanzar al menos ${meta.meta}% de auditorías ejecutadas en el mes programado. El Programa 2027 incorporará esta brecha como objetivo de mejora.</div>
+      <div style="margin-top:6px; font-size:13px; line-height:1.55;"><b>Acciones propuestas para el Programa 2027:</b> confirmar con cada área la fecha de auditoría al menos un mes antes; revisar mensualmente el avance del programa en el Comité de Calidad; y distribuir las auditorías de forma más pareja entre ambos semestres.</div>
+      <div class="nota">Cambios de la Ed.02: la auditoría a Aseguramiento de Calidad se reprograma para 2027, a ejecutar por una empresa auditora externa para resguardar la independencia; el seguimiento de las auditorías anteriores se realizó dentro de la auditoría de cada área.</div>
+    </div>` : ''}`;
+  }
 
   const tot = hal.length;
   const nSev = k => hal.filter(f=>f._sev===k).length;
@@ -365,6 +398,37 @@ function render(anio){
   const nPlan = hal.filter(f=>['cerrado','aceptado','respondido','devuelto'].includes(f._plan.k)).length;
 
   // Áreas (con hallazgos), ordenadas por gravedad
+
+  // ---- Causas raíz y eficacia de las acciones (se muestra solo con al menos MIN_ANALISIS análisis completados) ----
+  const MIN_ANALISIS = 5;
+  const conAC = hal.filter(f => f.analisisCausa && f.analisisCausa.estado === 'completado');
+  let bloqueCausas = '';
+  if(conAC.length >= MIN_ANALISIS){
+    const SEISM = ['Método','Mano de obra','Máquina','Materiales','Medio ambiente','Medición'];
+    const cuenta6 = SEISM.map(m => ({m, n: conAC.filter(f => (f.analisisCausa.sixm || f.sixm) === m).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
+    const tot6 = cuenta6.reduce((a,x)=>a+x.n,0) || 1;
+    const reqCM = hal.filter(f => /cr[ií]tico|mayor/i.test(f._sev||''));
+    const pctAC = pct(reqCM.filter(f=>f.analisisCausa && f.analisisCausa.estado==='completado').length, reqCM.length);
+    const conRev = hal.map(f => (f.revisionesQA||[]).filter(r=>r.decision!=='Nota interna')).filter(r=>r.length);
+    const primera = conRev.filter(r => r[0].decision === 'Aceptado').length;
+    const hoyISO = (d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))(new Date());
+    const acc = conAC.flatMap(f => (f.analisisCausa.plan||[]).filter(p => (p.que||'').trim()));
+    const impl = acc.filter(p => p.estado === 'Implementada').length;
+    const venc = acc.filter(p => p.estado !== 'Implementada' && p.fecha && p.fecha < hoyISO).length;
+    const top = cuenta6[0];
+    bloqueCausas = `
+    <div class="card no-romper" style="margin-top:10px;">
+      <div style="font-weight:600; color:var(--navy); margin-bottom:2px;">Origen de las causas raíz y eficacia de las acciones</div>
+      <div class="h2sub" style="margin-bottom:10px;">Basado en ${conAC.length} análisis de causa raíz (6M y 5 Por qué) completados por las áreas.${top?` La mayor parte de las causas se origina en <b>${esc(top.m)}</b> (${pct(top.n,tot6)}%).`:''}</div>
+      <div class="grid-kpi" style="margin-bottom:12px; grid-template-columns:repeat(4,1fr);">
+        <div class="kpi"><div class="v">${pctAC}%</div><div class="l">Hallazgos críticos y mayores con análisis de causa</div></div>
+        <div class="kpi"><div class="v">${conRev.length ? pct(primera, conRev.length) : 0}%</div><div class="l">Planes aceptados en la primera revisión</div></div>
+        <div class="kpi"><div class="v">${impl}/${acc.length}</div><div class="l">Acciones implementadas</div></div>
+        <div class="kpi"><div class="v">${venc}</div><div class="l">Acciones con fecha vencida</div></div>
+      </div>
+      ${cuenta6.map(x => `<div class="tema-fila"><div class="nom">${esc(x.m)}</div><div class="barra" style="width:${Math.max(8, x.n*100/cuenta6[0].n)}%"><span style="flex:1; background:var(--navy)" data-tip="${esc(x.m)}: ${x.n} causas raíz (${pct(x.n,tot6)}%)"></span></div><div class="tot">${x.n}</div></div>`).join('')}
+    </div>`;
+  }
   const mejoras = auds.filter(a => (a.notasAdicionales||'').trim()).map(a => ({area: areaInfo(a.areaManual||'').corto, codigo: a.codigoReporte||'', texto: limpiarTexto(a.notasAdicionales)}));
   const areas = [...new Set(hal.map(f=>f._area))];
   const peso = a => hal.filter(f=>f._area===a).reduce((s,f)=> s + ({'NC Crítico':100,'NC Mayor':10,'NC Menor':1}[f._sev]||0), 0);
@@ -395,6 +459,7 @@ function render(anio){
   const temaTop = temas.find(t=>t.t!=='Otros');
   const areaTop = areas[0];
   const mensajes = [];
+  if(meta && conFechas.length) mensajes.push(`El programa ${esc(meta.edicion)} se cumplió en un <b>${pct(nEjec,nProg)}%</b> (${nEjec} de ${nProg} auditorías), pero solo el <b>${pct(nPlazo,conFechas.length)}%</b> se ejecutó en el mes programado. Es una brecha de gestión preventiva de Aseguramiento de Calidad y un objetivo de mejora para 2027.`);
   if(tot) mensajes.push(`Se levantaron <b>${tot} hallazgos</b> en ${new Set(hal.map(f=>f._aud.id)).size} auditorías: <b>${nSev('NC Crítico')} críticos</b> y <b>${nSev('NC Mayor')} mayores</b>, cuya gestión se coordina con las jefaturas de cada área.`);
   if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.charAt(0).toLowerCase()+temaTop.t.slice(1))}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
   if(areaTop) mensajes.push(`El área con más hallazgos de alta criticidad es <b>${esc(areaTop)}</b>, con ${hal.filter(f=>f._area===areaTop).length} hallazgos (${(n=>n===1?'1 crítico':n+' críticos')(hal.filter(f=>f._area===areaTop && f._sev==='NC Crítico').length)}).`);
@@ -434,7 +499,7 @@ function render(anio){
     </section>`;
   document.getElementById('contenido').innerHTML = portada + `
     <h2 class="sec-titulo" data-sec="1">1. Mensajes clave</h2>
-    <p class="h2sub">Lo que la Dirección debe saber, en cinco puntos.</p>
+    <p class="h2sub">Lo que la Dirección debe saber.</p>
     <div class="card"><ul class="mensajes" style="margin:0; padding-left:20px;">${mensajes.map(m=>`<li>${m}</li>`).join('') || '<li>Sin hallazgos registrados para este año.</li>'}</ul></div>
 
     <h2 class="sec-titulo" data-sec="2">2. Resultados del programa</h2>
@@ -451,6 +516,7 @@ function render(anio){
       <div style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Avance del programa anual</div>
       <div class="prog">${filasProg.map(p=>`<div class="it"><div class="n">${esc(p.t)}</div><div class="e" style="color:${p.color}">● ${esc(p.estado)}</div></div>`).join('')}</div>
     </div>
+    ${bloqueOportunidad}
 
     <h2 class="sec-titulo sec-nueva" data-sec="3">3. Mapa de riesgo por área</h2>
     <p class="h2sub">Cantidad de hallazgos por área y criticidad. Las áreas están ordenadas de mayor a menor riesgo.</p>
@@ -502,6 +568,7 @@ function render(anio){
         ${c.fs.length ? `<div class="barra">${c.cer?`<span style="flex:${c.cer}; background:var(--st-good)" data-tip="${esc(c.cargo)} · Cerrados: ${c.cer}"></span>`:''}${c.acp?`<span style="flex:${c.acp}; background:var(--teal)" data-tip="${esc(c.cargo)} · Plan aceptado: ${c.acp}"></span>`:''}${c.res?`<span style="flex:${c.res}; background:var(--seq-4)" data-tip="${esc(c.cargo)} · Plan recibido: ${c.res}"></span>`:''}${c.dev?`<span style="flex:${c.dev}; background:var(--st-serious)" data-tip="${esc(c.cargo)} · Devuelto: ${c.dev}"></span>`:''}${c.pen?`<span style="flex:${c.pen}; background:var(--st-critical)" data-tip="${esc(c.cargo)} · Sin plan de acción: ${c.pen}"></span>`:''}</div>` : '<div class="c">Supervisión técnica transversal; sin áreas asignadas directamente en este período.</div>'}
       </div>`).join('')}
     </div>
+    ${bloqueCausas}
 
     <h2 class="sec-titulo" data-sec="7">7. Requerimientos a la Dirección</h2>
     <p class="h2sub">Propuesta de Aseguramiento de Calidad para las debilidades transversales: decisiones y recursos que no puede resolver un área por sí sola, de modo que los cargos sanitarios cuenten con los medios necesarios para cumplir sus funciones (D.S. N° 3/2010, Art. 157).</p>
