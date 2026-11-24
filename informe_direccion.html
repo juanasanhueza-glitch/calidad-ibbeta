@@ -442,13 +442,15 @@ function render(anio){
     return {nom, area, n};
   });
   const nForm = partic.length, nPart = partic.filter(x=>x.n>0).length, pPart = pct(nPart, nForm);
-  const porAreaAud = [...new Set(partic.map(x=>x.area))].map(ar => { const xs = partic.filter(x=>x.area===ar); return {ar, f: xs.length, p: xs.filter(x=>x.n>0).length}; }).sort((a,b)=> (b.f-b.p)-(a.f-a.p) || b.f-a.f);
+  const porAreaAud = [...new Set(partic.map(x=>x.area))].map(ar => { const xs = partic.filter(x=>x.area===ar); return {ar, f: xs.length, p: xs.filter(x=>x.n>0).length}; }).sort((a,b)=> b.f-a.f || b.p-a.p);
+  const otras = partic.filter(x=>x.area!=='Aseguramiento de Calidad'), nOtrasP = otras.filter(x=>x.n>0).length;
   const bloqueAuditores = nForm ? `
     <div class="card no-romper" style="margin-top:12px;">
       <div style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Participación de los auditores internos</div>
       <div class="grid-kpi">
         <div class="card kpi"><div class="v" style="color:${pPart>=META_PARTICIPACION?'var(--st-good)':'var(--st-critical)'}">${pPart}%</div><div class="l">Participación</div><div class="d">${nPart} de ${nForm} auditores formados participaron en al menos una auditoría · meta ≥ ${META_PARTICIPACION}%</div></div>
         <div class="card kpi"><div class="v">${nForm - nPart}</div><div class="l">Auditores sin participación</div><div class="d">formados, pero sin intervenir en las auditorías ${anio}</div></div>
+        <div class="card kpi"><div class="v" style="color:${pct(nOtrasP,otras.length)>=META_PARTICIPACION?'var(--st-good)':'var(--st-critical)'}">${nOtrasP} / ${otras.length}</div><div class="l">Auditores de otras áreas</div><div class="d">formados fuera de Aseguramiento de Calidad que participaron (${pct(nOtrasP,otras.length)}%)</div></div>
       </div>
       <table class="t" style="margin-top:12px;"><thead><tr><th>Área de origen del auditor</th><th class="num">Auditores formados</th><th class="num">Participaron</th><th class="num">Participación</th></tr></thead>
         <tbody>${porAreaAud.map(x=>`<tr><td>${esc(x.ar)}</td><td class="num">${x.f}</td><td class="num">${x.p}</td><td class="num"><b>${pct(x.p,x.f)}%</b></td></tr>`).join('')}</tbody></table>
