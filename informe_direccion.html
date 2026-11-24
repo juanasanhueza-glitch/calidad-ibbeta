@@ -259,6 +259,10 @@ const PROGRAMA = {
   ]
 };
 
+// Nómina de auditores internos formados 2026 (nombre, área). Fuente: nómina de la app de auditorías.
+const AUDITORES_INTERNOS = [["Joscelyn Melissa Bazaes Zúñiga", "Aseguramiento de Calidad"], ["Catalina Jacqueline Figueroa González", "Aseguramiento de Calidad"], ["Gabriel Ignacio González Benavides", "Aseguramiento de Calidad"], ["Juana Del Carmen Sanhueza Trangolao", "Aseguramiento de Calidad"], ["Davis Junior Martínez Muñoz", "Aseguramiento de Calidad"], ["Ana Millaray Obreque Sánchez", "Aseguramiento de Calidad"], ["Lidia Soledad Rivero Morales", "Aseguramiento de Calidad"], ["Bastián Ignacio Torres Díaz", "Aseguramiento de Calidad"], ["Ana María Alegría Troncoso", "Bodega"], ["Pablo Manuel Garrido Alarcón", "Bodega"], ["Ariel Andrés Duque Duque", "Control de Calidad"], ["Camila Del Pilar Espinosa Espinoza", "Control de Calidad"], ["Esteban Humberto Fernández Monje", "Control de Calidad"], ["María Alicia Machuca Gálvez", "Control de Calidad"], ["Marcia Andrea Olivares Rodríguez", "Control de Calidad"], ["María Angélica Rojas Ferrando", "Control de Calidad"], ["Joel Savid Jara Rodríguez", "Mantenimiento"], ["Christian Ignacio Jerez Silva", "Mantenimiento"], ["Cristian Andrés Moreno Carrasco", "Producción"], ["Oswaldo José Tamayo Guerra", "Producción I"], ["Romina Paz Tranamil Núñez", "Producción I"], ["Ingrid Norma Castro Santana", "Producción II"], ["Alice Hellen Muñoz Castro", "Producción II"], ["Patricia Ivone Yáñez Pinto", "Producción II"]];
+const META_PARTICIPACION = 90;
+
 // Sección 8 · Riesgos para el cumplimiento futuro: mirada preventiva redactada por Aseguramiento de Calidad
 // (no se genera desde los reportes). Editar aquí para agregar, quitar o ajustar puntos.
 const RIESGOS_FUTUROS = [
@@ -277,11 +281,13 @@ const RIESGOS_FUTUROS = [
                 'Planificación: planificar considerando las actividades GMP, como la validación de limpieza de equipos y las calificaciones.',
                 'Microbiología y otras áreas de apoyo: su rol en el sistema de calidad.'],
     decide: 'Gestión de Personas, con Aseguramiento de Calidad (Plan de Capacitación 2027).' },
-  { titulo: 'Actividades GMP fuera de la planificación de producción',
-    riesgo: 'Calificaciones de equipos y validaciones de limpieza que se postergan porque compiten con la producción, quedando vencidas.',
+  { titulo: 'Actividades GMP y mantenciones fuera de la planificación de producción',
+    riesgo: 'Calificaciones de equipos, validaciones de limpieza y mantenciones preventivas que se postergan porque compiten con la producción, quedando vencidas o generando fallas de equipos en proceso.',
     senal: 'Estas actividades se coordinan caso a caso y no forman parte del plan de producción.',
-    propuesta: ['Incorporar las calificaciones de equipos y las validaciones de limpieza en la planificación de producción, con fechas y holguras definidas.'],
-    decide: 'Planificación y Producción, con Aseguramiento de Calidad.' },
+    propuesta: ['Incorporar en la planificación de producción las calificaciones de equipos, las validaciones de limpieza y las mantenciones preventivas, con fechas y holguras definidas.',
+                'Definir para cada equipo su plan de mantenimiento preventivo.',
+                'Si parte del mantenimiento preventivo se asigna al operador del equipo, incorporarlo en su descripción de cargo.'],
+    decide: 'Planificación, Producción y Mantenimiento, con Aseguramiento de Calidad.' },
   { titulo: 'Vigencia de documentos y programas',
     riesgo: 'Procedimientos, programas de calibración o de capacitación que hoy están vigentes, pero que pueden vencer sin que se advierta a tiempo.',
     senal: 'En las auditorías 2026 se detectaron documentos y programas vencidos o sin aprobación vigente.',
@@ -427,6 +433,32 @@ function render(anio){
     </div>` : ''}`;
   }
 
+  // Participación de los auditores internos formados (registrados como Auditor 1, 2 o 3 en las auditorías del año)
+  const normN = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const audTxt = auds.map(a => normN([a.auditor1,a.auditor2,a.auditor3].filter(Boolean).join(' | ')));
+  const partic = AUDITORES_INTERNOS.map(([nom, area]) => {
+    const tk = normN(nom).split(/\s+/), nombre = tk[0], apellido = tk[tk.length-2] || tk[tk.length-1];
+    const n = audTxt.filter(t => t.includes(nombre) && t.includes(apellido)).length;
+    return {nom, area, n};
+  });
+  const nForm = partic.length, nPart = partic.filter(x=>x.n>0).length, pPart = pct(nPart, nForm);
+  const porAreaAud = [...new Set(partic.map(x=>x.area))].map(ar => { const xs = partic.filter(x=>x.area===ar); return {ar, f: xs.length, p: xs.filter(x=>x.n>0).length}; }).sort((a,b)=> (b.f-b.p)-(a.f-a.p) || b.f-a.f);
+  const bloqueAuditores = nForm ? `
+    <div class="card no-romper" style="margin-top:12px;">
+      <div style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Participación de los auditores internos</div>
+      <div class="grid-kpi">
+        <div class="card kpi"><div class="v" style="color:${pPart>=META_PARTICIPACION?'var(--st-good)':'var(--st-critical)'}">${pPart}%</div><div class="l">Participación</div><div class="d">${nPart} de ${nForm} auditores formados participaron en al menos una auditoría · meta ≥ ${META_PARTICIPACION}%</div></div>
+        <div class="card kpi"><div class="v">${nForm - nPart}</div><div class="l">Auditores sin participación</div><div class="d">formados, pero sin intervenir en las auditorías ${anio}</div></div>
+      </div>
+      <table class="t" style="margin-top:12px;"><thead><tr><th>Área de origen del auditor</th><th class="num">Auditores formados</th><th class="num">Participaron</th><th class="num">Participación</th></tr></thead>
+        <tbody>${porAreaAud.map(x=>`<tr><td>${esc(x.ar)}</td><td class="num">${x.f}</td><td class="num">${x.p}</td><td class="num"><b>${pct(x.p,x.f)}%</b></td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="card no-romper" style="margin-top:12px;">
+      <div style="font-size:13px; line-height:1.55;"><b>Análisis.</b> A pesar de la formación realizada, la participación de los auditores internos en las auditorías ${anio} fue baja y no alcanzó el ${META_PARTICIPACION}% del total de auditores formados. Las razones son diversas, entre ellas la carga operativa de cada área y la disponibilidad de tiempo. Sin embargo, un auditor que no participa, ni siquiera como oyente, no adquiere la experiencia necesaria para llegar a ser auditor líder, y la formación pierde su efecto.</div>
+      <div style="margin-top:8px; font-size:13px; line-height:1.55;"><b>Compromiso requerido.</b> Potenciar y formar a los auditores internos es una responsabilidad de la organización, no solo de Aseguramiento de Calidad. Se requiere el respaldo de la Dirección para que las jefaturas liberen el tiempo de sus auditores y la participación sea parte de sus objetivos.</div>
+      <div style="margin-top:8px; font-size:13px; line-height:1.55;"><b>Objetivo 2027.</b> Alcanzar al menos ${META_PARTICIPACION}% de participación de los auditores formados, con una trayectoria de formación práctica: oyente, auditor y auditor líder.</div>
+      <div class="nota">Se considera participación el registro como auditor en el reporte de cada auditoría (F-QA-009.03). Las participaciones como oyente no quedan registradas en la app.</div>
+    </div>` : '';
   const tot = hal.length;
   const nSev = k => hal.filter(f=>f._sev===k).length;
   const nRein = hal.filter(f=>f._rein).length;
@@ -496,6 +528,7 @@ function render(anio){
   const areaTop = areas[0];
   const mensajes = [];
   if(meta && conFechas.length) mensajes.push(`El programa ${esc(meta.edicion)} se cumplió en un <b>${pct(nEjec,nProg)}%</b> (${nEjec} de ${nProg} auditorías), pero solo el <b>${pct(nPlazo,conFechas.length)}%</b> se ejecutó en el mes programado. Es una brecha de gestión preventiva de Aseguramiento de Calidad y un objetivo de mejora para 2027.`);
+  if(nForm) mensajes.push(`Solo <b>${pPart}%</b> de los auditores internos formados participó en las auditorías ${anio} (${nPart} de ${nForm}), bajo la meta de ${META_PARTICIPACION}%. Potenciar su formación práctica requiere el compromiso de toda la organización.`);
   if(tot) mensajes.push(`Se levantaron <b>${tot} hallazgos</b> en ${new Set(hal.map(f=>f._aud.id)).size} auditorías: <b>${nSev('NC Crítico')} críticos</b> y <b>${nSev('NC Mayor')} mayores</b>, cuya gestión se coordina con las jefaturas de cada área.`);
   if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.charAt(0).toLowerCase()+temaTop.t.slice(1))}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
   if(areaTop) mensajes.push(`El área con más hallazgos de alta criticidad es <b>${esc(areaTop)}</b>, con ${hal.filter(f=>f._area===areaTop).length} hallazgos (${(n=>n===1?'1 crítico':n+' críticos')(hal.filter(f=>f._area===areaTop && f._sev==='NC Crítico').length)}).`);
@@ -553,6 +586,7 @@ function render(anio){
       <div class="prog">${filasProg.map(p=>`<div class="it"><div class="n">${esc(p.t)}</div><div class="e" style="color:${p.color}">● ${esc(p.estado)}</div></div>`).join('')}</div>
     </div>
     ${bloqueOportunidad}
+    ${bloqueAuditores}
 
     <h2 class="sec-titulo sec-nueva" data-sec="3">3. Mapa de riesgo por área</h2>
     <p class="h2sub">Cantidad de hallazgos por área y criticidad. Las áreas están ordenadas de mayor a menor riesgo.</p>
@@ -611,6 +645,7 @@ function render(anio){
     <div class="card">
       <ol style="margin:0; padding-left:20px;">
         ${temas.filter(t=>t.areas.length>=2 && t.pedido).slice(0,5).map(t => `<li style="margin:8px 0; font-size:14px;"><b>${esc(t.t)}</b> (${t.areas.length} áreas, ${t.fs.length} hallazgos): ${esc(t.pedido)}</li>`).join('') || '<li>Sin temas transversales en este período.</li>'}
+        ${nForm && pPart < META_PARTICIPACION ? `<li style="margin:8px 0; font-size:14px;"><b>Formación práctica de auditores internos</b> (${pPart}% de participación en ${anio}): respaldo de la Dirección para que las jefaturas liberen el tiempo de sus auditores formados, e incorporar la participación en sus objetivos 2027.</li>` : ''}
       </ol>
       <div class="nota">Propuesta generada a partir de los temas que se repiten en dos o más áreas; debe ser validada por Aseguramiento de Calidad antes de presentarse.</div>
     </div>
