@@ -671,7 +671,7 @@
     color: var(--good);
     display: flex; align-items: center; justify-content: center;
   }
-  .closed-name { font-weight: 600; font-size: 13.5px; color: var(--ink); margin-bottom: 2px; }
+  .closed-name { font-weight: 600; font-size: 13.5px; color: var(--ink); margin-bottom: 2px; overflow-wrap: anywhere; }
   .closed-meta { font-size: 12px; color: var(--muted); line-height: 1.5; }
   .closed-days { font-family: "Roboto Mono", monospace; font-weight: 600; color: var(--good); }
   .closed-empty {
@@ -707,6 +707,31 @@
     header.top { flex-direction: column; align-items: flex-start; }
     .meta-block { align-items: flex-start; text-align: left; }
   }
+
+  /* ---------- Navegación del partido (compartida por las 3 páginas) ---------- */
+  .match-nav { display: flex; align-items: stretch; gap: 6px; margin: 0 0 24px; flex-wrap: wrap; }
+  .match-nav a {
+    flex: 1 1 180px; display: flex; align-items: center; gap: 10px; text-decoration: none;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 9px 14px; color: var(--ink); box-shadow: var(--shadow);
+    transition: border-color .15s ease;
+  }
+  .match-nav a:hover { border-color: var(--accent); }
+  .match-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .match-nav .mn-n {
+    flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; background: var(--line); color: var(--ink);
+  }
+  .match-nav .mn-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .match-nav .mn-step { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .match-nav .mn-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .match-nav .mn-go { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .match-nav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; cursor: default; }
+  .match-nav a[aria-current="page"] .mn-step { color: rgba(255,255,255,.75); }
+  .match-nav a[aria-current="page"] .mn-n { background: rgba(255,255,255,.22); color: #fff; }
+  .match-nav a[aria-current="page"] .mn-go { color: rgba(255,255,255,.85); }
+  .match-nav .mn-arrow { align-self: center; color: var(--muted); font-size: 14px; flex: none; }
+  @media (max-width: 640px) { .match-nav .mn-arrow { display: none; } }
 </style>
 
 <div class="wrap">
@@ -724,13 +749,19 @@
         <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1x2y668ilHStOqI3rCCWOMnKEDNDNG6UfM9_XE_3dH5Q/edit" target="_blank" rel="noopener">
           Abrir Registro de Tareas ↗
         </a>
-        <a class="go-tpe" href="tareasporejecutar.html">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3.5" width="16" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8 11l1.5 1.5L12 10"/><path d="M14 11.5h3"/><path d="M8 16.5h.01"/><path d="M11 16.5h6"/></svg>
-          Ir a Tareas por Ejecutar →
-        </a>
+        <a class="go-tpe" href="marcador.html">Ver el Resultado →</a>
       </div>
     </div>
   </header>
+
+  <nav class="match-nav" aria-label="Tiempos del partido">
+    <a href="tareasporejecutar.html"><span class="mn-n">1</span><span class="mn-txt"><span class="mn-step">1er tiempo</span><span class="mn-name">Tareas por Ejecutar</span></span><span class="mn-go">Ir →</span></a>
+    <span class="mn-arrow" aria-hidden="true">→</span>
+    <a href="agilizacumple.html" aria-current="page"><span class="mn-n">2</span><span class="mn-txt"><span class="mn-step">2do tiempo</span><span class="mn-name">Agiliza &amp; Cumple</span></span><span class="mn-go">Estás aquí</span></a>
+    <span class="mn-arrow" aria-hidden="true">→</span>
+    <a href="marcador.html"><span class="mn-n">3</span><span class="mn-txt"><span class="mn-step">Resultado</span><span class="mn-name">Marcador del equipo</span></span><span class="mn-go">Ir →</span></a>
+  </nav>
+
 
   <div class="stale-banner" id="staleBanner" role="status">
     <span class="stale-icon" aria-hidden="true">⚠</span>
@@ -784,15 +815,6 @@
     </div>
   </section>
 
-  <section aria-labelledby="closed-h" id="closed-section" style="scroll-margin-top: 20px;">
-    <div class="section-head">
-      <div>
-        <h2 id="closed-h">Cerradas <span id="closedCount" class="closed-count"></span></h2>
-        <p class="desc">Cada tarea cerrada es una menos en el camino a cumplir el 100%.</p>
-      </div>
-    </div>
-    <div id="closedWrap"></div>
-  </section>
 
   <footer class="page">
     <span>Panel generado a partir del Registro de Tareas de QA — se recalcula localmente cada vez que lo abres.</span>
@@ -1096,7 +1118,7 @@
       { label: "Tareas abiertas", value: openTasks.length, sub: total + " en total", cls: "", jump: "tasks-section", jumpLabel: "Ir a la tabla de tareas activas" },
       { label: "Estancadas (5+ días)", value: estancadas, sub: estancadas ? "necesitan empuje" : "ninguna por ahora", cls: estancadas ? "critical" : "good", jump: "tasks-section", jumpLabel: "Ir a la tabla de tareas activas, ordenada por días sin avance", ensureDesc: true },
       { label: "Prom. días sin avance", value: avgDias, sub: "tareas abiertas", cls: "accent" },
-      { label: "Cerradas", value: cerradas + " / " + total, sub: total ? Math.round(cerradas / total * 100) + "% del total" : "—", cls: "good", jump: "closed-section", jumpLabel: "Ir a la sección de tareas cerradas" }
+      { label: "Cerradas", value: cerradas + " / " + total, sub: total ? Math.round(cerradas / total * 100) + "% del total" : "—", cls: "good", jump: "marcador.html#closed-section", jumpHint: "Ver en Resultado →", jumpLabel: "Ver las tareas cerradas en el Marcador del equipo" }
     ];
 
     document.getElementById("kpis").innerHTML = items.map(function (it) {
@@ -1104,7 +1126,7 @@
       var attrs = it.jump
         ? ' data-jump="' + it.jump + '"' + (it.ensureDesc ? ' data-ensure-desc="1"' : "") + ' role="button" tabindex="0" aria-label="' + it.jumpLabel + '"'
         : "";
-      var hint = it.jump ? '<span class="jump-hint">Ver ↓</span>' : "";
+      var hint = it.jump ? '<span class="jump-hint">' + (it.jumpHint || "Ver ↓") + '</span>' : "";
       return '<div class="kpi ' + it.cls + clickable + '"' + attrs + '>' +
         hint +
         '<div class="label">' + it.label + '</div>' +
@@ -1114,6 +1136,7 @@
   }
 
   function jumpToSection(id, ensureDesc) {
+    if (id.indexOf(".html") !== -1) { window.location.href = id; return; }
     if (ensureDesc && sortDir !== "desc") {
       var sortBtn = document.getElementById("sortDays");
       sortDir = "desc";
@@ -1411,7 +1434,6 @@
     renderRoster();
     renderPerformance();
     renderTasks();
-    renderClosed();
     updateFilterNote();
   }
 

@@ -335,6 +335,31 @@
     .search { margin-left: 0; width: 100%; }
     .flow .hint { margin-left: 0; }
   }
+
+  /* ---------- Navegación del partido (compartida por las 3 páginas) ---------- */
+  .match-nav { display: flex; align-items: stretch; gap: 6px; margin: 0 0 24px; flex-wrap: wrap; }
+  .match-nav a {
+    flex: 1 1 180px; display: flex; align-items: center; gap: 10px; text-decoration: none;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 9px 14px; color: var(--ink); box-shadow: var(--shadow);
+    transition: border-color .15s ease;
+  }
+  .match-nav a:hover { border-color: var(--accent); }
+  .match-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .match-nav .mn-n {
+    flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; background: var(--line); color: var(--ink);
+  }
+  .match-nav .mn-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .match-nav .mn-step { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .match-nav .mn-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .match-nav .mn-go { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .match-nav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; cursor: default; }
+  .match-nav a[aria-current="page"] .mn-step { color: rgba(255,255,255,.75); }
+  .match-nav a[aria-current="page"] .mn-n { background: rgba(255,255,255,.22); color: #fff; }
+  .match-nav a[aria-current="page"] .mn-go { color: rgba(255,255,255,.85); }
+  .match-nav .mn-arrow { align-self: center; color: var(--muted); font-size: 14px; flex: none; }
+  @media (max-width: 640px) { .match-nav .mn-arrow { display: none; } }
 </style>
 </head>
 <body>
@@ -356,19 +381,20 @@
     </div>
   </header>
 
+  <nav class="match-nav" aria-label="Tiempos del partido">
+    <a href="tareasporejecutar.html" aria-current="page"><span class="mn-n">1</span><span class="mn-txt"><span class="mn-step">1er tiempo</span><span class="mn-name">Tareas por Ejecutar</span></span><span class="mn-go">Estás aquí</span></a>
+    <span class="mn-arrow" aria-hidden="true">→</span>
+    <a href="agilizacumple.html"><span class="mn-n">2</span><span class="mn-txt"><span class="mn-step">2do tiempo</span><span class="mn-name">Agiliza &amp; Cumple</span></span><span class="mn-go">Ir →</span></a>
+    <span class="mn-arrow" aria-hidden="true">→</span>
+    <a href="marcador.html"><span class="mn-n">3</span><span class="mn-txt"><span class="mn-step">Resultado</span><span class="mn-name">Marcador del equipo</span></span><span class="mn-go">Ir →</span></a>
+  </nav>
+
+
   <div class="banner" id="banner" role="status">
     <span aria-hidden="true">⚠</span>
     <span id="bannerText">No se pudo conectar con la hoja "Tareas por Ejecutar". Revisa que esté publicada en la web y vuelve a actualizar.</span>
   </div>
 
-  <div class="flow" aria-label="Cómo funciona">
-    <span class="stage here"><span class="pill">1</span> Por ejecutar</span>
-    <span class="arrow" aria-hidden="true">→</span>
-    <span class="stage there"><span class="pill">2</span> Se inicia y pasa a Agiliza &amp; Cumple</span>
-    <span class="arrow" aria-hidden="true">→</span>
-    <span class="stage there"><span class="pill">3</span> Revisión, firma y cierre</span>
-    <span class="hint">Toca una tarea para ver su detalle.</span>
-  </div>
 
   <section class="kpis" id="kpis" aria-label="Filtrar por plazo"></section>
 
