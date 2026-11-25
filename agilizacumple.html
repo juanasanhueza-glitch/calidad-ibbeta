@@ -602,6 +602,49 @@
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .legend-item .dot { width: 8px; height: 8px; border-radius: 50%; }
 
+  /* ---------- Desempeño por persona ---------- */
+  .perf-team {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 28px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; box-shadow: var(--shadow); margin-bottom: 12px;
+  }
+  .perf-team .t-label { font-size: 12px; color: var(--muted); }
+  .perf-team .t-value { font-family: "Roboto Mono", monospace; font-size: 20px; font-weight: 600; color: var(--ink); }
+  .perf-team .t-value.good { color: var(--good); }
+  .perf-team .t-bar { flex: 1 1 220px; }
+  .perf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .perf-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .perf-card.empty { background: var(--surface-2); border-style: dashed; box-shadow: none; }
+  .perf-head { display: flex; align-items: center; gap: 10px; }
+  .perf-head .person-name { font-weight: 600; font-size: 13.5px; }
+  .perf-head .person-role { font-size: 11.5px; color: var(--muted); }
+  .perf-pct-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .perf-pct { font-family: "Roboto Mono", monospace; font-size: 22px; font-weight: 600; color: var(--ink); }
+  .perf-frac { font-size: 12px; color: var(--ink-soft); }
+  .perf-bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .perf-bar span { display: block; height: 100%; border-radius: 99px; background: var(--good); }
+  @media (prefers-reduced-motion: no-preference) {
+    .perf-bar span { transition: width .6s ease-out; }
+  }
+  .perf-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 0; }
+  .perf-stats div { display: flex; flex-direction: column; }
+  .perf-stats dt { font-size: 11px; color: var(--muted); }
+  .perf-stats dd { margin: 0; font-family: "Roboto Mono", monospace; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .perf-stats dd.hl { color: var(--good); }
+  .perf-last { font-size: 12px; color: var(--ink-soft); border-top: 1px dashed var(--line); padding-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .perf-last.warning { color: var(--warning); }
+  .perf-last.critical { color: var(--critical); }
+  .perf-empty-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
   /* ---------- Closed tasks ---------- */
   .closed-count { font-family: "Roboto Mono", monospace; font-weight: 500; color: var(--muted); font-size: 13px; }
   .closed-grid {
@@ -708,6 +751,17 @@
       </div>
     </div>
     <div class="roster" id="roster" role="group" aria-label="Personas del equipo"></div>
+  </section>
+
+  <section aria-labelledby="perf-h" id="perf-section" style="scroll-margin-top: 20px;">
+    <div class="section-head">
+      <div>
+        <h2 id="perf-h">Marcador del equipo · ¿Cuántos goles llevamos?</h2>
+        <p class="desc">Cada tarea cerrada es un gol. El marcador se arma con lo que cada uno registra en el Registro de Tareas: lo que no se anota, no suma.</p>
+      </div>
+    </div>
+    <div id="perfTeam"></div>
+    <div class="perf-grid" id="perfGrid"></div>
   </section>
 
   <section aria-labelledby="tasks-h" id="tasks-section" style="scroll-margin-top: 20px;">
@@ -854,9 +908,13 @@
   // 13 Aprobador final, 14 Fecha cierre, 15 Estado actual,
   // 16-20 columnas de días, 21 Última fecha de avance, 22 Días sin avance
   var COL = {
-    id: 0, tarea: 1, ejecutor: 2, prioridad: 4, revisor: 7,
-    aprobador: 13, estado: 15, diasTotales: 20, ultimaFecha: 21, diasSinAvance: 22
+    id: 0, tarea: 1, ejecutor: 2, prioridad: 4, fechaEjecucion: 5, revisor: 7,
+    aprobador: 13, fechaCierre: 14, estado: 15, diasRevision: 17, diasTotales: 20, ultimaFecha: 21, diasSinAvance: 22
   };
+
+  // The core team (fixed list above). Other names found in the Registro are
+  // added to TEAM on the fly; they show in "Desempeño" only if they execute tasks.
+  var CORE_IDS = TEAM.map(function (p) { return p.id; });
 
   function slugify(s) {
     return s.toLowerCase()
@@ -927,6 +985,12 @@
         aprobador: getOrCreatePerson(r[COL.aprobador]),
         estado: estado,
         ultimaFechaAvance: parseDMY(r[COL.ultimaFecha]) || todayISO(),
+        ultimaFechaReal: parseDMY(r[COL.ultimaFecha]),
+        fechaCierre: parseDMY(r[COL.fechaCierre]),
+        diasRevision: (function () {
+          var n = parseFloat(String(r[COL.diasRevision] || "").replace(",", "."));
+          return isNaN(n) ? null : n;
+        })(),
         diasTotales: parseInt(r[COL.diasTotales], 10) || null,
         diasSinAvanceSheet: (function () {
           var raw = (r[COL.diasSinAvance] || "").trim();
@@ -1261,10 +1325,102 @@
     }).join("") + '</div>';
   }
 
+  // ---- Desempeño por persona ----
+  function isoOf(d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function weekStartISO() {
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
+    return isoOf(d);
+  }
+  function monthStartISO() { var d = new Date(); return isoOf(new Date(d.getFullYear(), d.getMonth(), 1)); }
+  function closeDateOf(t) { return t.fechaCierre || (t.fechaCierre === undefined ? t.ultimaFechaAvance : null); }
+  function pctText(n, d) { return d ? Math.round(n / d * 1000) / 10 : 0; }
+  function fmtPct(v) { return String(v).replace(".", ",") + "%"; }
+
+  function perfFor(tasks) {
+    var today = todayISO(), wk = weekStartISO(), mo = monthStartISO();
+    var closed = tasks.filter(function (t) { return t.estado === "Cerrada"; });
+    var cd = closed.map(closeDateOf).filter(Boolean);
+    var last = tasks.map(function (t) { return t.ultimaFechaReal !== undefined ? t.ultimaFechaReal : t.ultimaFechaAvance; })
+      .filter(Boolean).sort().pop() || null;
+    return {
+      asignadas: tasks.length,
+      cerradas: closed.length,
+      pct: pctText(closed.length, tasks.length),
+      semana: cd.filter(function (d) { return d >= wk && d <= today; }).length,
+      mes: cd.filter(function (d) { return d >= mo && d <= today; }).length,
+      ultimo: last
+    };
+  }
+
+  function lastText(iso) {
+    if (!iso) return { txt: "Aún sin tocar el balón", lvl: "critical" };
+    var d = daysSince(iso);
+    var txt = d === 0 ? "Último toque al balón: hoy" : d === 1 ? "Último toque al balón: ayer" : "Último toque al balón: hace " + d + " días";
+    return { txt: txt, lvl: d >= 10 ? "critical" : d >= 5 ? "warning" : "ok" };
+  }
+
+  function renderPerformance() {
+    var grid = document.getElementById("perfGrid");
+    var teamEl = document.getElementById("perfTeam");
+    if (!grid || !teamEl) return;
+
+    var byPerson = {};
+    TASKS.forEach(function (t) {
+      if (!t.ejecutor) return;
+      (byPerson[t.ejecutor] = byPerson[t.ejecutor] || []).push(t);
+    });
+
+    // Core team always shows (so an empty card nudges people to register their tasks);
+    // anyone else shows only if they execute at least one task. Alphabetical — not a ranking.
+    var people = TEAM.filter(function (p) { return CORE_IDS.indexOf(p.id) !== -1 || (byPerson[p.id] || []).length; })
+      .slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+
+    var team = perfFor(TASKS.filter(function (t) { return t.ejecutor; }));
+    teamEl.innerHTML = '<div class="perf-team">' +
+      '<div><div class="t-label">Goles del equipo</div><div class="t-value tnum">' + fmtPct(team.pct) + '</div></div>' +
+      '<div class="t-bar"><div class="perf-bar" role="img" aria-label="' + team.cerradas + ' de ' + team.asignadas + ' tareas cerradas"><span style="width:' + team.pct + '%"></span></div>' +
+        '<div class="t-label" style="margin-top:5px">' + team.cerradas + ' goles de ' + team.asignadas + ' tareas</div></div>' +
+      '<div><div class="t-label">Goles esta semana</div><div class="t-value good tnum">' + team.semana + '</div></div>' +
+      '<div><div class="t-label">Goles este mes</div><div class="t-value good tnum">' + team.mes + '</div></div>' +
+    '</div>';
+
+    grid.innerHTML = people.map(function (p) {
+      var tasks = byPerson[p.id] || [];
+      var head = '<div class="perf-head"><div class="avatar">' + initials(p.nombre) + '</div>' +
+        '<div><div class="person-name">' + p.nombre + '</div>' + (p.cargo ? '<div class="person-role">' + p.cargo + '</div>' : "") + '</div></div>';
+      if (!tasks.length) {
+        return '<div class="perf-card empty">' + head +
+          '<div class="perf-empty-note">Aún no entra a la cancha: registra tus tareas en el Registro para empezar a sumar goles.</div></div>';
+      }
+      var m = perfFor(tasks);
+      // Same as the Sheet's "Prom. días revisión": average days the person takes when they are the reviewer.
+      var revs = TASKS.filter(function (t) { return t.revisor === p.id && t.diasRevision != null; })
+        .map(function (t) { return t.diasRevision; });
+      m.promRevision = revs.length ? Math.round(revs.reduce(function (s, v) { return s + v; }, 0) / revs.length * 10) / 10 : null;
+      var last = lastText(m.ultimo);
+      return '<div class="perf-card">' + head +
+        '<div class="perf-pct-row"><span class="perf-pct tnum">' + fmtPct(m.pct) + '</span>' +
+          '<span class="perf-frac">' + m.cerradas + (m.cerradas === 1 ? ' gol' : ' goles') + ' de ' + m.asignadas + '</span></div>' +
+        '<div class="perf-bar" role="img" aria-label="' + fmtPct(m.pct) + ' de cierre"><span style="width:' + m.pct + '%"></span></div>' +
+        '<dl class="perf-stats">' +
+          '<div><dt>Goles esta semana</dt><dd class="tnum' + (m.semana ? " hl" : "") + '">' + m.semana + '</dd></div>' +
+          '<div><dt>Goles este mes</dt><dd class="tnum' + (m.mes ? " hl" : "") + '">' + m.mes + '</dd></div>' +
+          '<div><dt>En juego</dt><dd class="tnum">' + (m.asignadas - m.cerradas) + '</dd></div>' +
+          '<div><dt title="Promedio de días que demora cuando es revisor/a">Días prom. revisando</dt><dd class="tnum">' + (m.promRevision != null ? String(m.promRevision).replace(".", ",") : "—") + '</dd></div>' +
+        '</dl>' +
+        '<div class="perf-last ' + last.lvl + '">' + alertIcon(last.lvl) + ' ' + last.txt + '</div>' +
+      '</div>';
+    }).join("");
+  }
+
   function renderAll() {
     deriveTasks();
     renderKpis();
     renderRoster();
+    renderPerformance();
     renderTasks();
     renderClosed();
     updateFilterNote();
