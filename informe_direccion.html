@@ -346,7 +346,7 @@ function detalleTema(t){
     return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([c,ti]) => `<b>${esc(c)}</b>${ti?' '+esc(ti):''}`).join(' · ');
   }
   if(t.t==='Otros'){
-    return t.fs.map(f => { const d = String(f.descripcionHallazgo||f.requerimiento||'').replace(/\s+/g,' ').trim(); return `<b>${esc(f._area)}</b>${f.ref?' ('+esc(String(f.ref).replace(/\s+/g,' ').slice(0,40))+')':''}: ${esc(d.length>110?d.slice(0,110)+'…':d)}`; }).join('<br>');
+    return t.fs.map(f => { const d = String(f.descripcionHallazgo||f.requerimiento||'').replace(/\s+/g,' ').trim(); return `<b>${esc(f._area)}</b>${f.ref?' ('+esc(String(f.ref).replace(/\s+/g,' ').slice(0,40))+')':''}: ${esc(d)}`; }).join('<br>');
   }
   return '';
 }
