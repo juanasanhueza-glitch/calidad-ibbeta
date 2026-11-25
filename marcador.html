@@ -644,6 +644,24 @@
   .perf-last.warning { color: var(--warning); }
   .perf-last.critical { color: var(--critical); }
   .perf-empty-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .perf-card.clickable { cursor: pointer; transition: border-color .15s ease; }
+  .perf-card.clickable:hover { border-color: var(--line-strong); }
+  .perf-card.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .perf-card[aria-expanded="true"] { grid-column: 1 / -1; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); cursor: default; }
+  .perf-toggle { font-size: 11.5px; font-weight: 600; color: var(--accent); align-self: flex-start; }
+  .perf-card[aria-expanded="true"] .perf-toggle { cursor: pointer; }
+  .perf-detail { display: none; }
+  .perf-card[aria-expanded="true"] .perf-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .pd-group h4 { margin: 0 0 8px; font-size: 12.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .pd-group h4 .c { font-family: "Roboto Mono", monospace; font-weight: 500; color: var(--muted); }
+  .pd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .pd-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; font-size: 12.5px; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); }
+  .pd-list li.goal { border-left: 3px solid var(--good); }
+  .pd-list .pd-name { overflow-wrap: anywhere; color: var(--ink); }
+  .pd-list .pd-meta { flex: none; text-align: right; font-size: 11.5px; color: var(--muted); white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .pd-list .wk { font-size: 10.5px; font-weight: 700; color: var(--good); background: var(--good-soft); padding: 1px 6px; border-radius: 99px; }
+  .pd-list .stage-chip { font-size: 10.5px; }
+  .pd-empty { font-size: 12px; color: var(--muted); padding: 6px 0; }
 
   /* ---------- Closed tasks ---------- */
   .closed-count { font-family: "Roboto Mono", monospace; font-weight: 500; color: var(--muted); font-size: 13px; }
@@ -1354,6 +1372,35 @@
     return { txt: txt, lvl: d >= 10 ? "critical" : d >= 5 ? "warning" : "ok" };
   }
 
+  var expandedPerson = null;
+
+  function goalItem(t, wk) {
+    var d = closeDateOf(t);
+    return '<li class="goal"><span class="pd-name">' + t.tarea + '</span><span class="pd-meta">' +
+      (d ? fmtDateShort(d) : "sin fecha") + (d && d >= wk ? '<span class="wk">esta semana</span>' : "") + '</span></li>';
+  }
+  function inPlayItem(t) {
+    var h = t.holder && t.holder.personId ? personById(t.holder.personId) : null;
+    return '<li><span class="pd-name">' + t.tarea + (h ? '<br><span style="color:var(--muted);font-size:11.5px">En la cancha de ' + h.nombre + '</span>' : "") + '</span>' +
+      '<span class="pd-meta"><span class="stage-chip ' + (STAGE_CLASS[t.estado] || "") + '">' + t.estado + '</span>' +
+      (t.dias == null ? "" : t.dias === 0 ? '<span class="wk">avance hoy</span>' : t.dias === 1 ? "avance ayer" : t.dias + " días sin avance") + '</span></li>';
+  }
+  function perfDetail(tasks) {
+    var wk = weekStartISO(), mo = monthStartISO(), today = todayISO();
+    var goalsMonth = tasks.filter(function (t) { var d = closeDateOf(t); return t.estado === "Cerrada" && d && d >= mo && d <= today; })
+      .sort(function (a, b) { return closeDateOf(b) < closeDateOf(a) ? -1 : 1; });
+    var inPlay = tasks.filter(function (t) { return t.estado !== "Cerrada"; })
+      .sort(function (a, b) { return (b.dias || 0) - (a.dias || 0); });
+    return '<div class="perf-detail">' +
+      '<div class="pd-group"><h4>Goles de este mes <span class="c">(' + goalsMonth.length + ')</span></h4>' +
+        (goalsMonth.length ? '<ul class="pd-list">' + goalsMonth.map(function (t) { return goalItem(t, wk); }).join("") + '</ul>'
+          : '<div class="pd-empty">Sin goles este mes todavía.</div>') + '</div>' +
+      '<div class="pd-group"><h4>En juego <span class="c">(' + inPlay.length + ')</span></h4>' +
+        (inPlay.length ? '<ul class="pd-list">' + inPlay.map(inPlayItem).join("") + '</ul>'
+          : '<div class="pd-empty">Nada en juego.</div>') + '</div>' +
+    '</div>';
+  }
+
   function renderPerformance() {
     var grid = document.getElementById("perfGrid");
     var teamEl = document.getElementById("perfTeam");
@@ -1393,7 +1440,8 @@
         .map(function (t) { return t.diasRevision; });
       m.promRevision = revs.length ? Math.round(revs.reduce(function (s, v) { return s + v; }, 0) / revs.length * 10) / 10 : null;
       var last = lastText(m.ultimo);
-      return '<div class="perf-card">' + head +
+      var open = expandedPerson === p.id;
+      return '<div class="perf-card clickable" role="button" tabindex="0" data-person="' + p.id + '" aria-expanded="' + open + '">' + head +
         '<div class="perf-pct-row"><span class="perf-pct tnum">' + fmtPct(m.pct) + '</span>' +
           '<span class="perf-frac">' + m.cerradas + (m.cerradas === 1 ? ' gol' : ' goles') + ' de ' + m.asignadas + '</span></div>' +
         '<div class="perf-bar" role="img" aria-label="' + fmtPct(m.pct) + ' de cierre"><span style="width:' + m.pct + '%"></span></div>' +
@@ -1404,9 +1452,30 @@
           '<div><dt title="Promedio de días que demora cuando es revisor/a">Días prom. revisando</dt><dd class="tnum">' + (m.promRevision != null ? String(m.promRevision).replace(".", ",") : "—") + '</dd></div>' +
         '</dl>' +
         '<div class="perf-last ' + last.lvl + '">' + alertIcon(last.lvl) + ' ' + last.txt + '</div>' +
+        '<span class="perf-toggle">' + (open ? "Cerrar detalle ▴" : "Ver detalle ▾") + '</span>' +
+        (open ? perfDetail(tasks) : "") +
       '</div>';
     }).join("");
   }
+
+  function togglePerf(card) {
+    var id = card.getAttribute("data-person");
+    expandedPerson = expandedPerson === id ? null : id;
+    renderPerformance();
+    var again = document.querySelector('.perf-card[data-person="' + id + '"]');
+    if (again && expandedPerson && again.scrollIntoView) again.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  document.getElementById("perfGrid").addEventListener("click", function (e) {
+    var card = e.target.closest(".perf-card.clickable"); if (!card) return;
+    // When open, only the header area or the toggle closes it (so scrolling/selecting inside the lists doesn't).
+    if (card.getAttribute("aria-expanded") === "true" && !e.target.closest(".perf-toggle, .perf-head, .perf-pct-row")) return;
+    togglePerf(card);
+  });
+  document.getElementById("perfGrid").addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("perf-card")) {
+      e.preventDefault(); togglePerf(e.target);
+    }
+  });
 
   var PAGE_T0 = Date.now();
   function renderAll() {
