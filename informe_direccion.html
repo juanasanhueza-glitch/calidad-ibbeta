@@ -65,6 +65,8 @@
   .prog .it .n { font-weight:600; }
   .prog .it .e { font-size:12px; margin-top:4px; }
   .nota { font-size:12px; color: var(--text-muted); margin-top:10px; }
+  .tema-det { grid-column:1 / -1; font-size:11.5px; line-height:1.5; color: var(--text-secondary); margin-top:6px; }
+  .tema-det > span:first-child { font-weight:600; color: var(--text-muted); }
   .riesgo .r-tit { font-weight:700; font-size:14px; color: var(--text-primary); display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .riesgo .r-n { flex:none; width:24px; height:24px; border-radius:12px; background: var(--navy, #002060); color:#fff; font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
   .riesgo .r-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -327,11 +329,27 @@ const TEMAS = [
 ];
 // Cargo responsable del tema según D.S. N° 3/2010 (Arts. 152-155). Temas sin artículo aplicable no se muestran.
 const DS3_TEMA = {"Integridad de datos (ALCOA+)": "Jefe de Aseguramiento de la Calidad · Art. 155 b)", "Calibración y metrología": "Jefe de Aseguramiento de la Calidad · Art. 155 f)", "Calificación y validación": "Jefe de Aseguramiento de la Calidad · Art. 155 d) y f)", "Control documental": "Jefe de Aseguramiento de la Calidad · Art. 155 a)", "Infraestructura y mantención": "Jefe de Producción · Art. 153 d)", "Higiene y sanitización": "Jefe de Producción · Art. 153 b)", "Materiales y rotulación": "Jefe de Producción · Art. 153 b) y c); Jefe de Control de Calidad · Art. 154 b)", "Procesos productivos": "Jefe de Producción · Art. 153 b) y c)", "Laboratorio de control de calidad": "Jefe de Control de Calidad · Art. 154 e), f) y g)", "Equipos": "Jefe de Producción · Art. 153 d); calibración y calificación: Jefe de Aseguramiento de la Calidad · Art. 155 f)", "Sistema de gestión de calidad": "Jefe de Aseguramiento de la Calidad · Art. 155 e) e i)"};
+// Hallazgos levantados en la revisión de procedimientos internos del área (SOP no implementado o no cumplido)
+// que no calzan con otro tema: se agrupan aparte, indicando los procedimientos involucrados.
+const TEMA_SOP = 'Cumplimiento de procedimientos internos (SOP)';
+const PEDIDO_SOP = 'Asegurar que cada jefatura verifique la implementación y el cumplimiento de sus procedimientos vigentes (difusión, capacitación y registros), y actualizar o dar de baja los que ya no reflejan la práctica.';
+function detalleTema(t){
+  if(t.t===TEMA_SOP){
+    const m = new Map();
+    t.fs.forEach(f => { const cod = f.sopCodigo || f.ref || ''; const tit = String(f.requerimiento||'').replace(/^Procedimiento\s+\S+\s*[—-]\s*/i,'').trim(); if(cod && !m.has(cod)) m.set(cod, tit); });
+    return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([c,ti]) => `<b>${esc(c)}</b>${ti?' '+esc(ti):''}`).join(' · ');
+  }
+  if(t.t==='Otros'){
+    return t.fs.map(f => { const d = String(f.descripcionHallazgo||f.requerimiento||'').replace(/\s+/g,' ').trim(); return `<b>${esc(f._area)}</b>${f.ref?' ('+esc(String(f.ref).replace(/\s+/g,' ').slice(0,40))+')':''}: ${esc(d.length>110?d.slice(0,110)+'…':d)}`; }).join('<br>');
+  }
+  return '';
+}
 function temaDe(f){
   const ref = (f.ref||'') + ' ';
   const txt = (f.descripcionHallazgo || f.requerimiento || '');
   for(const t of TEMAS){ if(t.r.test(ref)) return t.t; }
   for(const t of TEMAS){ if(t.r.test(txt)) return t.t; }
+  if(f.sopCodigo || /^Procedimiento\s/i.test(f.requerimiento||'')) return TEMA_SOP;
   return 'Otros';
 }
 
@@ -505,10 +523,10 @@ function render(anio){
   areas.sort((a,b)=>peso(b)-peso(a));
 
   // Temas
-  const temas = [...new Set(TEMAS.map(t=>t.t))].concat(['Otros']).map(t => {
+  const temas = [...new Set(TEMAS.map(t=>t.t))].concat([TEMA_SOP, 'Otros']).map(t => {
     const fs = hal.filter(f=>f._tema===t);
-    return {t, fs, areas:[...new Set(fs.map(f=>f._area))], pedido:(TEMAS.find(x=>x.t===t && x.pedido)||{}).pedido};
-  }).filter(x=>x.fs.length).sort((a,b)=> b.areas.length - a.areas.length || b.fs.length - a.fs.length);
+    return {t, fs, areas:[...new Set(fs.map(f=>f._area))], pedido: t===TEMA_SOP ? PEDIDO_SOP : (TEMAS.find(x=>x.t===t && x.pedido)||{}).pedido};
+  }).filter(x=>x.fs.length).sort((a,b)=> (a.t==='Otros') - (b.t==='Otros') || b.areas.length - a.areas.length || b.fs.length - a.fs.length);
   const maxTema = Math.max(1, ...temas.map(x=>x.fs.length));
 
   // Prioritarios: críticos + mayores reincidentes
@@ -526,7 +544,7 @@ function render(anio){
   // Mensajes clave (se generan con los datos)
   // Columnas del mapa: Observación solo si existen observaciones en el periodo
   const SEV_MAPA = SEV.filter(x => x.k!=='Observación' || hal.some(f=>f._sev===x.k));
-  const temaTop = temas.find(t=>t.t!=='Otros');
+  const temaTop = temas.find(t=>t.t!=='Otros');  // «Otros» nunca se presenta como debilidad principal
   const areaTop = areas[0];
   const mensajes = [];
   if(meta && conFechas.length) mensajes.push(`El programa ${esc(meta.edicion)} se cumplió en un <b>${pct(nEjec,nProg)}%</b> (${nEjec} de ${nProg} auditorías), pero solo el <b>${pct(nPlazo,conFechas.length)}%</b> se ejecutó en el mes programado. Es una brecha de gestión preventiva de Aseguramiento de Calidad y un objetivo de mejora para 2027.`);
@@ -613,6 +631,7 @@ function render(anio){
         <div class="barra" style="width:${Math.max(8, t.fs.length*100/maxTema)}%">${SEV.map(s => { const n = t.fs.filter(f=>f._sev===s.k).length; return n ? `<span style="flex:${n}; background:${s.c}" data-tip="${esc(t.t)} · ${s.k}: ${n}"></span>` : ''; }).join('')}</div>
         <div class="tot">${t.fs.length}</div>
         <div class="areas">${t.areas.map(a=>`<span class="chip">${esc(a)}</span>`).join('')}</div>
+        ${detalleTema(t) ? `<div class="tema-det"><span>${t.t===TEMA_SOP?'Procedimientos involucrados':'Hallazgos sin tema asignado'}:</span> ${detalleTema(t)}</div>` : ''}
       </div>`).join('') || '<div class="vacio">Sin hallazgos registrados.</div>'}
     </div>
 
