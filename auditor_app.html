@@ -5316,17 +5316,18 @@ function findingCard(f, numero){
         <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa el área auditada desde el portal. El análisis de causa raíz llena automáticamente la causa raíz, la clasificación 6M y el plan de acción.</div>
       ${f.respondioNombre ? `<div class="small" style="margin-top:6px; background:#e7f4ea; color:#3f7d4c; border-radius:6px; padding:4px 8px; display:inline-block;">👤 Respondido por el auditado: <b>${esc(f.respondioNombre)}</b>${f.respondioCargo?(' · '+esc(f.respondioCargo)):''}${f.respondioFecha?(' · '+esc(f.respondioFecha)):''}</div>${badgeRevisionQA(f)}` : ''}
       ${analisisCausaLinkHtml(f, numero)}
-      <div class="row" style="margin-top:8px;">
-        <div class="field" style="flex:1; min-width:200px;">
-          <label>Causa raíz</label>
-          <textarea class="finding-field" data-id="${f.id}" data-field="causaRaiz" placeholder="Causa raíz...">${esc(f.causaRaiz)}</textarea>
-        </div>
+      <div class="row" style="margin-top:8px; align-items:flex-end;">
         <div class="field"><label>Clasificación 6M</label>
           <select class="finding-field" data-id="${f.id}" data-field="sixm">
             <option value="">-</option>
             ${SEIS_M_OPCIONES.map(s=>`<option ${f.sixm===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
+        <div class="small" style="flex:1; color:var(--text-soft); padding-bottom:6px;">La propone el análisis de causa (la «M» de la causa raíz). Calidad puede corregirla aquí y guardar el hallazgo; el área no la sobrescribe.</div>
+      </div>
+      <div class="field" style="margin-top:6px;">
+        <label>Causa raíz</label>
+        <textarea class="finding-field" data-id="${f.id}" data-field="causaRaiz" placeholder="Causa raíz..." rows="${Math.min(14, Math.max(3, String(f.causaRaiz||'').split('\n').reduce((n,l)=>n+Math.max(1,Math.ceil(l.length/120)),0)))}" style="width:100%; resize:vertical;">${esc(f.causaRaiz)}</textarea>
       </div>
       ${planAccionTablaHtml(f)}
       ${(f.analisisCausa && (f.analisisCausa.plan||[]).some(p=>(p.que||'').trim())) ? `<details style="margin-top:6px;"><summary class="small" style="cursor:pointer; color:var(--text-soft);">Texto resumido del plan (campo «Acción»)</summary>` : ''}
