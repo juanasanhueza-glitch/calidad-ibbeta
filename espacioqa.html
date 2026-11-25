@@ -245,6 +245,27 @@
     color: var(--muted);
   }
 
+  .step {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 6px;
+  }
+  .step .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--line); color: var(--ink-soft); font-size: 10.5px; letter-spacing: 0;
+  }
+  .step.final .n { background: #e3f5e1; color: #0a7d0a; }
+  .score-icon { background: #e3f5e1; color: #0a7d0a; }
+  .score-status { color: #0a7d0a; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .score-icon,
+    :root:not([data-theme="light"]) .step.final .n { background: #1d3320; color: #5fd35f; }
+    :root:not([data-theme="light"]) .score-status { color: #5fd35f; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .initiative-card:hover .score-icon svg { animation: tick .5s ease-out; }
+  }
   .tasks-icon { background: #fdf1e2; color: #b45309; }
   .tasks-status { color: #b45309; }
   @media (prefers-color-scheme: dark) {
@@ -271,28 +292,15 @@
   <section aria-labelledby="initiatives-h">
     <div class="section-head">
       <h2 id="initiatives-h">Iniciativas</h2>
-      <p class="desc">Elige una iniciativa para entrar a su panel.</p>
+      <p class="desc">El partido en tres tiempos: lo que se compromete, lo que se ejecuta y el resultado.</p>
     </div>
     <div class="initiatives">
-      <a class="initiative-card" href="agilizacumple.html">
-        <span class="initiative-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        </span>
-        <div>
-          <p class="initiative-name">Iniciativa Agiliza &amp; Cumple</p>
-          <p class="initiative-desc">Ejecución, revisión y cierre de auditorías y documentación del equipo de QA. Panel de tareas con seguimiento por persona y estado.</p>
-        </div>
-        <div class="initiative-meta">
-          <span class="initiative-status"><span class="dot"></span>En curso</span>
-          <span class="initiative-open">Abrir panel →</span>
-        </div>
-      </a>
-
       <a class="initiative-card" href="tareasporejecutar.html">
         <span class="initiative-icon tasks-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8 11l1.5 1.5L12 10"/><path d="M14 11.5h3"/><path d="M8 16.5h.01"/><path d="M11 16.5h6"/></svg>
         </span>
         <div>
+          <p class="step"><span class="n">1</span>1er tiempo</p>
           <p class="initiative-name">Tareas por Ejecutar</p>
           <p class="initiative-desc">Lo que el equipo comprometió y aún no empieza, ordenado por fecha compromiso. Al iniciarse, cada tarea pasa a Agiliza &amp; Cumple.</p>
         </div>
@@ -302,7 +310,35 @@
         </div>
       </a>
 
-      <div class="placeholder-card">Próximas iniciativas del equipo aparecerán aquí</div>
+      <a class="initiative-card" href="agilizacumple.html">
+        <span class="initiative-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </span>
+        <div>
+          <p class="step"><span class="n">2</span>2do tiempo</p>
+          <p class="initiative-name">Iniciativa Agiliza &amp; Cumple</p>
+          <p class="initiative-desc">Ejecución, revisión y cierre de auditorías y documentación del equipo de QA. Panel de tareas con seguimiento por persona y estado.</p>
+        </div>
+        <div class="initiative-meta">
+          <span class="initiative-status"><span class="dot"></span>En curso</span>
+          <span class="initiative-open">Abrir panel →</span>
+        </div>
+      </a>
+
+      <a class="initiative-card" href="marcador.html">
+        <span class="initiative-icon score-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V7h18v12"/><path d="M3 7l3-3h12l3 3"/><path d="M7 19v-6h10v6"/><circle cx="12" cy="10.2" r="1.4" fill="currentColor" stroke="none"/></svg>
+        </span>
+        <div>
+          <p class="step final"><span class="n">3</span>Resultado</p>
+          <p class="initiative-name">Marcador del equipo</p>
+          <p class="initiative-desc">¿Cuántos goles llevamos? Cada tarea cerrada es un gol: el marcador del equipo y de cada jugador, con lo que se registra en Agiliza &amp; Cumple.</p>
+        </div>
+        <div class="initiative-meta">
+          <span class="initiative-status score-status"><span class="dot"></span><span id="scoreCount">Ver resultado</span></span>
+          <span class="initiative-open">Ver marcador →</span>
+        </div>
+      </a>
     </div>
   </section>
 
@@ -336,6 +372,35 @@
       if (m && new Date(+m[3], +m[2]-1, +m[1]) < today) late++;
     });
     el.textContent = n + (n === 1 ? " por ejecutar" : " por ejecutar") + (late ? " · " + late + (late === 1 ? " vencida" : " vencidas") : "");
+  }).catch(function () {});
+})();
+</script>
+<script>
+(function () {
+  // Registro de Tareas (gid 431293435): col 0 ID, col 15 Estado actual.
+  var URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBYByhSxtY6cQIl_Q4-Rnhm4dznq16fApKEhn2p1wJ6iRXSgYfByhwGLMJDPjKxDX1N9XXUyQvOVIC/pub?gid=431293435&single=true&output=csv";
+  var el = document.getElementById("scoreCount");
+  if (!el || !window.fetch) return;
+  fetch(URL, { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (text) {
+    var rows = [], row = [], f = "", q = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (q) { if (ch === '"') { if (text[i+1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ",") { row.push(f); f = ""; }
+      else if (ch === "\n") { row.push(f); rows.push(row); row = []; f = ""; }
+      else if (ch !== "\r") f += ch;
+    }
+    if (f || row.length) { row.push(f); rows.push(row); }
+    var total = 0, goles = 0;
+    rows.slice(1).forEach(function (c) {
+      if (!c[0] || !c[0].trim() || !(c[15] || "").trim()) return;
+      total++;
+      if (c[15].trim() === "Cerrada") goles++;
+    });
+    if (!total) return;
+    var pct = Math.round(goles / total * 1000) / 10;
+    el.textContent = goles + " goles · " + String(pct).replace(".", ",") + "%";
   }).catch(function () {});
 })();
 </script>
