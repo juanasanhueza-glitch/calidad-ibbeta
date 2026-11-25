@@ -377,7 +377,7 @@ function bind(){
     else if(t.id==='add-cadena'){ A.cadenas.push({m:'', porques:['','','']}); render(); }
     else if(t.id==='usar-ultimo'){
       const c = A.cadenas[0]; const u = (c.porques.filter(p=>p.trim()).slice(-1)[0]||'').trim();
-      if(u){ const limpio = u.replace(/^porque\s+/i,''); A.causaRaiz = limpio.charAt(0).toUpperCase() + limpio.slice(1); if(c.m && !A.sixm) A.sixm = c.m; render(); }
+      if(u){ const limpio = u.replace(/^\s*¿[^?]*\?\s*/,'').replace(/^porque\s+/i,'').trim() || u; A.causaRaiz = limpio.charAt(0).toUpperCase() + limpio.slice(1); if(c.m && !A.sixm) A.sixm = c.m; render(); }
     }
     else if(t.id==='add-plan'){ A.plan.push({tipo:'Acción correctiva', que:'', responsable:'', fecha:'', estado:'Pendiente', evidencia:''}); render(); }
     else if(d.qplan!=null){ A.plan.splice(+d.qplan,1); render(); }

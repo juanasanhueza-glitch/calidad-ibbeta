@@ -174,7 +174,8 @@ function detalle(f, hoy){
   const a = f.analisisCausa, eq = estadoQA(f), ea = estadoAnalisis(f), ac = acciones(f);
   const revs = (f.revisionesQA||[]).filter(r=>r.decision!=='Nota interna');
   const u = revs[revs.length-1];
-  const marc = a ? Object.entries(a.seisM||{}).filter(([k,v])=>v && v.aplica) : [];
+  const ORDEN_6M = ['Mano de obra','Método','Máquina','Materiales','Medio ambiente','Medición'];
+  const marc = a ? Object.entries(a.seisM||{}).filter(([k,v])=>v && v.aplica).sort((x,y)=>{ const i=ORDEN_6M.indexOf(x[0]), j=ORDEN_6M.indexOf(y[0]); return (i<0?99:i)-(j<0?99:j); }) : [];
   const cad = a ? (a.cadenas||[]).filter(c=>(c.porques||[]).some(p=>(p||'').trim())) : [];
   return `<div class="hz">
     <div class="hz-head-keep"><h3><span>Hallazgo N°${f._n} · ${esc(subarea(f))}</span><span>${esc(f.criticidad||'')}${f.esReincidente?' · Reincidente':''}</span></h3>
