@@ -298,7 +298,15 @@
   details.moved summary .tag { font-size: 11px; font-weight: 700; background: var(--move-soft); color: var(--move); padding: 1px 8px; border-radius: 999px; }
   .moved-list { list-style: none; margin: 0 0 12px; padding: 0; }
   .moved-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
-  .moved-list li .st { color: var(--muted); white-space: nowrap; }
+  .moved-list li .st { color: var(--muted); white-space: nowrap; text-align: right; }
+  .moved-list li .st .d { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+  .moved-list li.no-date .st .d { font-weight: 500; color: var(--muted); }
+  details.moved summary .today-stat { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  details.moved summary .today-stat b { color: var(--move); }
+  .period { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 10px; }
+  .period .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+  .period .chip { font-size: 12px; padding: 3px 10px; }
+  .moved-empty { font-size: 12.5px; color: var(--muted); padding: 10px 0 14px; border-top: 1px solid var(--line); }
 
   .empty-all {
     display: none; text-align: center; padding: 40px 20px; background: var(--surface);
@@ -380,7 +388,13 @@
   <section class="board" id="board" aria-label="Tareas por plazo"></section>
 
   <details class="moved" id="moved">
-    <summary>Traspasadas a Agiliza &amp; Cumple <span class="tag" id="movedCount">0</span></summary>
+    <summary>Traspasadas a Agiliza &amp; Cumple <span class="tag" id="movedCount">0</span><span class="today-stat" id="todayStat"></span></summary>
+    <div class="period" id="period" role="group" aria-label="Filtrar traspasadas por período">
+      <span class="lbl">Ver:</span>
+      <button type="button" class="chip" data-period="today" aria-pressed="true">Hoy <span class="n tnum" data-n="today">0</span></button>
+      <button type="button" class="chip" data-period="week" aria-pressed="false">Esta semana <span class="n tnum" data-n="week">0</span></button>
+      <button type="button" class="chip" data-period="all" aria-pressed="false">Todo <span class="n tnum" data-n="all">0</span></button>
+    </div>
     <ul class="moved-list" id="movedList"></ul>
   </details>
 
@@ -398,7 +412,8 @@
   var AUTO_REFRESH_MS = 5 * 60 * 1000;
 
   // Column order in the sheet.
-  var COL = { id: 0, tarea: 1, responsable: 2, prioridad: 3, origen: 4, registro: 5, compromiso: 6, estado: 7, obs: 8 };
+  // J (9) and K (10) are formulas; L (11) "Fecha traspaso" is entered by hand when the task moves to Agiliza.
+  var COL = { id: 0, tarea: 1, responsable: 2, prioridad: 3, origen: 4, registro: 5, compromiso: 6, estado: 7, obs: 8, traspaso: 11 };
 
   var GROUPS = [
     { key: "late", label: "Vencidas" },
@@ -413,12 +428,14 @@
     ["PE-02","Ingreso de respuestas hallazgos auditoría interna 2026","Ignacio Fuentes","Alta","Auditoría","20/11/2026","27/11/2026","Por ejecutar","Compromiso acordado en reunión del 20/11"],
     ["PE-03","Revisión NC06-25","Gabriel González","Media","Desvío / NC","18/11/2026","05/12/2026","Por ejecutar",""],
     ["PE-04","Plan de auditoría Aseo e Higiene","Catalina Figueroa","Media","Auditoría","23/11/2026","","Por ejecutar","Reprogramar fecha"],
-    ["PE-05","Presentación GP: cómo responder hallazgos","Juana Sanhueza","Alta","Reunión","23/11/2026","27/11/2026","Traspasada a Agiliza","ID 127 en Agiliza"]
+    ["PE-05","Presentación GP: cómo responder hallazgos","Juana Sanhueza","Alta","Reunión","23/11/2026","27/11/2026","Traspasada a Agiliza","ID 127 en Agiliza","","",""],
+    ["PE-06","Solicitar AC por aluminios impresos","Juana Sanhueza","Media","Otro","23/11/2026","","Traspasada a Agiliza","ID 136 en Agiliza","","",fmtDate(startOfToday())],
+    ["PE-07","Reunión con Control de Calidad","Juana Sanhueza","Media","Reunión","23/11/2026","24/11/2026","Traspasada a Agiliza","ID 135 en Agiliza","","",fmtDate(new Date(Date.now() - 86400000))]
   ];
 
   var demo = /[?&]demo=1\b/.test(location.search);
   var TASKS = [];
-  var state = { group: null, person: null, q: "" };
+  var state = { group: null, person: null, q: "", period: "today" };
   var lastUpdated = null;
 
   function $(id) { return document.getElementById(id); }
@@ -476,7 +493,8 @@
         registro: parseDMY(r[COL.registro]),
         due: due, diff: diff, group: group,
         estado: estado,
-        obs: (r[COL.obs] || "").trim()
+        obs: (r[COL.obs] || "").trim(),
+        traspaso: parseDMY(r[COL.traspaso])
       });
     });
     return out;
@@ -526,6 +544,8 @@
 
   function renderPeople() {
     var counts = {};
+    // Everyone with a task on the sheet gets a chip (count = pending), so people who only have traspasadas can still be filtered.
+    TASKS.forEach(function (t) { if (!(t.responsable in counts)) counts[t.responsable] = 0; });
     pending().forEach(function (t) { counts[t.responsable] = (counts[t.responsable] || 0) + 1; });
     var names = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); });
     if (state.person && names.indexOf(state.person) === -1) state.person = null;
@@ -548,7 +568,7 @@
       '</dl><div class="detail-actions">' +
       '<button type="button" class="mini-btn" data-copy="' + esc(t.key) + '">⇢ Copiar para Agiliza</button>' +
       '<a class="mini-btn ghost" href="https://docs.google.com/spreadsheets/d/1x2y668ilHStOqI3rCCWOMnKEDNDNG6UfM9_XE_3dH5Q/edit#gid=431293435" target="_blank" rel="noopener">Abrir Registro ↗</a>' +
-      '</div><p class="handoff">Al iniciarla: regístrala en Agiliza &amp; Cumple y cambia su estado aquí a "Traspasada a Agiliza".</p></div>';
+      '</div><p class="handoff">Al iniciarla: regístrala en Agiliza &amp; Cumple y cambia su estado aquí a "Traspasada a Agiliza" y anota la fecha en la columna L (Fecha traspaso).</p></div>';
     return '<article class="task t-' + t.group + '" tabindex="0" role="button" aria-expanded="false" data-key="' + esc(t.key) + '">' +
       '<div class="task-top"><p class="task-title">' + esc(t.tarea) + '</p><span class="prio ' + esc(t.prioridad) + '">' + esc(t.prioridad) + '</span></div>' +
       (t.origen ? '<span class="origin">' + esc(t.origen) + '</span>' : "") +
@@ -569,12 +589,45 @@
     }).join("");
   }
 
+  // Monday of the current week (weeks run Monday–Sunday).
+  function startOfWeek() { var d = startOfToday(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  function inPeriod(t, period) {
+    if (period === "all") return true;
+    if (!t.traspaso) return false;
+    var from = period === "today" ? startOfToday() : startOfWeek();
+    return t.traspaso >= from && t.traspaso <= startOfToday();
+  }
+  var PERIOD_LABEL = { today: "Hoy", week: "Esta semana", all: "En total" };
+
   function renderMoved() {
-    var moved = TASKS.filter(function (t) { return t.estado !== "Por ejecutar"; });
-    $("movedCount").textContent = moved.length;
-    $("moved").style.display = moved.length ? "" : "none";
-    $("movedList").innerHTML = moved.map(function (t) {
-      return '<li><span>' + esc(t.tarea) + ' · <span style="color:var(--muted)">' + esc(t.responsable) + '</span></span><span class="st">' + esc(t.estado) + '</span></li>';
+    var allMoved = TASKS.filter(function (t) { return t.estado !== "Por ejecutar"; });
+    $("movedCount").textContent = allMoved.length;
+    $("moved").style.display = allMoved.length ? "" : "none";
+    // Person chip and search also apply here, so you can see e.g. "Juana · Hoy".
+    var moved = allMoved.filter(matches);
+    ["today", "week", "all"].forEach(function (k) {
+      var el = document.querySelector('#period [data-n="' + k + '"]');
+      if (el) el.textContent = moved.filter(function (t) { return inPeriod(t, k); }).length;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#period .chip"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-period") === state.period ? "true" : "false");
+    });
+    var nToday = moved.filter(function (t) { return inPeriod(t, "today"); }).length;
+    $("todayStat").innerHTML = esc(state.person || "Equipo") + ' · Hoy: <b class="tnum">' + nToday + '</b> ' + (nToday === 1 ? "traspasada" : "traspasadas");
+
+    var list = moved.filter(function (t) { return inPeriod(t, state.period); }).sort(function (a, b) {
+      if (a.traspaso && b.traspaso) return b.traspaso - a.traspaso;
+      return a.traspaso ? -1 : b.traspaso ? 1 : 0;
+    });
+    if (!list.length) {
+      $("movedList").innerHTML = '<li class="moved-empty">' +
+        (state.period === "today" ? "Nada traspasado hoy" : state.period === "week" ? "Nada traspasado esta semana" : "Sin tareas traspasadas") +
+        (state.person ? " para " + esc(state.person) : "") + '.</li>';
+      return;
+    }
+    $("movedList").innerHTML = list.map(function (t) {
+      return '<li' + (t.traspaso ? "" : ' class="no-date"') + '><span>' + esc(t.tarea) + ' · <span style="color:var(--muted)">' + esc(t.responsable) + '</span></span>' +
+        '<span class="st"><span class="d">' + (t.traspaso ? fmtDate(t.traspaso) : "sin fecha") + '</span>' + esc(t.estado) + '</span></li>';
     }).join("");
   }
 
@@ -616,7 +669,12 @@
     state.person = state.person === p ? null : p;
     renderAll();
   });
-  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); renderKpis(); renderBoard(); });
+  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); renderKpis(); renderBoard(); renderMoved(); });
+  $("period").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-period]"); if (!b) return;
+    state.period = b.getAttribute("data-period");
+    renderMoved();
+  });
   $("board").addEventListener("click", function (e) {
     var copy = e.target.closest("[data-copy]");
     if (copy) {
