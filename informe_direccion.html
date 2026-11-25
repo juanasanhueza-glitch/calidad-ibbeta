@@ -344,6 +344,17 @@ function detalleTema(t){
   }
   return '';
 }
+// Acciones del plan de un hallazgo y su verificación por Calidad (misma regla que la app: cerrada = verificada conforme)
+function accionesH(f){
+  const plan = (f.analisisCausa && f.analisisCausa.plan || []).filter(p=>(p.que||'').trim());
+  const base = plan.length ? plan.map(p=>({que:p.que, resp:p.responsable||'', fecha:p.fecha||''}))
+    : (f.accion||'').trim() ? [{que:f.accion, resp:f.responsable||'', fecha:f.fechaCompromiso||''}] : [];
+  return base.map(x => { const k = String(x.que||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,120);
+    const vs = (f.verificacionesQA||[]).filter(v=>v.clave===k); const v = vs[vs.length-1]||null;
+    return Object.assign(x, {cerrada: !!(v && v.resultado==='Conforme'), nc: !!(v && v.resultado==='No conforme')}); });
+}
+// Meta de cierre del año: hallazgos críticos y mayores con causa raíz y plan de acción
+const META_CAUSA = { fecha:'31-12-2026', texto:'todos los hallazgos críticos y mayores con causa raíz y plan de acción propuesto' };
 function temaDe(f){
   const ref = (f.ref||'') + ' ';
   const txt = (f.descripcionHallazgo || f.requerimiento || '');
@@ -487,6 +498,33 @@ function render(anio){
 
   // Áreas (con hallazgos), ordenadas por gravedad
 
+  // ---- Avance hacia la meta de diciembre: causa raíz y plan de acción; acciones CAPA verificadas por Calidad ----
+  const hoyCapa = (d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))(new Date());
+  const reqMeta = hal.filter(f => /cr[ií]tico|mayor/i.test(f._sev||''));
+  const conCausa = f => !!(f.analisisCausa && f.analisisCausa.estado==='completado');
+  const conPlan = f => accionesH(f).length > 0;
+  const nMetaOk = reqMeta.filter(f => conCausa(f) && conPlan(f)).length;
+  const accAll = hal.flatMap(f => accionesH(f).map(a => Object.assign({area:f._area}, a)));
+  const accCer = accAll.filter(a=>a.cerrada).length, accVenc = accAll.filter(a=>!a.cerrada && a.fecha && a.fecha < hoyCapa).length;
+  const nEficaz = hal.filter(f => (f.eficaciaQA||[]).length && f.eficaciaQA[f.eficaciaQA.length-1].resultado==='Eficaz').length;
+  const porAreaCapa = [...new Set(hal.map(f=>f._area))].map(ar => { const fs = hal.filter(f=>f._area===ar), rq = fs.filter(f=>/cr[ií]tico|mayor/i.test(f._sev||'')), ac = accAll.filter(a=>a.area===ar);
+    return {ar, rq: rq.length, ok: rq.filter(f=>conCausa(f)&&conPlan(f)).length, ac: ac.length, cer: ac.filter(a=>a.cerrada).length, venc: ac.filter(a=>!a.cerrada && a.fecha && a.fecha < hoyCapa).length}; })
+    .sort((a,b)=> (b.rq-b.ok)-(a.rq-a.ok) || b.venc-a.venc || b.rq-a.rq);
+  const pMeta = pct(nMetaOk, reqMeta.length);
+  const bloqueMeta = reqMeta.length ? `
+    <div class="card no-romper" style="margin-top:12px;">
+      <div style="font-weight:600; font-size:13.5px; margin-bottom:2px;">Meta al ${esc(META_CAUSA.fecha)}: causa raíz y plan de acción</div>
+      <div class="h2sub" style="margin-bottom:10px;">Objetivo: ${esc(META_CAUSA.texto)}, registrados por cada dueño de proceso en el portal (análisis 6M y 5 Por qué). Las acciones se cuentan como cerradas solo cuando Aseguramiento de Calidad verifica la evidencia, y el hallazgo se cierra cuando se verifica su eficacia.</div>
+      <div class="grid-kpi" style="grid-template-columns:repeat(4,1fr);">
+        <div class="card kpi"><div class="v" style="color:${pMeta>=100?'var(--st-good)':'var(--st-critical)'}">${pMeta}%</div><div class="l">Avance de la meta</div><div class="d">${nMetaOk} de ${reqMeta.length} hallazgos críticos y mayores con causa raíz y plan</div></div>
+        <div class="card kpi"><div class="v">${accAll.length}</div><div class="l">Acciones CAPA comprometidas</div><div class="d">en los planes de acción de las áreas</div></div>
+        <div class="card kpi"><div class="v">${accCer} / ${accAll.length}</div><div class="l">Acciones cerradas por Calidad</div><div class="d">${accVenc ? `${accVenc} con fecha vencida` : 'sin acciones vencidas'}</div></div>
+        <div class="card kpi"><div class="v">${nEficaz}</div><div class="l">Hallazgos con eficacia verificada</div><div class="d">cerrados tras verificar que no se repiten</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;"><table class="t"><thead><tr><th>Área</th><th class="num">Hallazgos críticos y mayores</th><th class="num">Con causa raíz y plan</th><th class="num">Acciones comprometidas</th><th class="num">Cerradas por Calidad</th><th class="num">Vencidas</th></tr></thead>
+      <tbody>${porAreaCapa.map(x=>`<tr><td>${esc(x.ar)}</td><td class="num">${x.rq}</td><td class="num"><b style="color:${x.rq && x.ok<x.rq?'var(--st-critical)':'inherit'}">${x.ok}</b></td><td class="num">${x.ac}</td><td class="num">${x.cer}</td><td class="num">${x.venc?`<b style="color:var(--st-critical)">${x.venc}</b>`:0}</td></tr>`).join('')}</tbody></table></div>` : '';
+
   // ---- Causas raíz y eficacia de las acciones (se muestra solo con al menos MIN_ANALISIS análisis completados) ----
   const MIN_ANALISIS = 5;
   const conAC = hal.filter(f => f.analisisCausa && f.analisisCausa.estado === 'completado');
@@ -500,9 +538,9 @@ function render(anio){
     const conRev = hal.map(f => (f.revisionesQA||[]).filter(r=>r.decision!=='Nota interna')).filter(r=>r.length);
     const primera = conRev.filter(r => r[0].decision === 'Aceptado').length;
     const hoyISO = (d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))(new Date());
-    const acc = conAC.flatMap(f => (f.analisisCausa.plan||[]).filter(p => (p.que||'').trim()));
-    const impl = acc.filter(p => p.estado === 'Implementada').length;
-    const venc = acc.filter(p => p.estado !== 'Implementada' && p.fecha && p.fecha < hoyISO).length;
+    const acc = conAC.flatMap(f => accionesH(f));
+    const impl = acc.filter(p => p.cerrada).length;
+    const venc = acc.filter(p => !p.cerrada && p.fecha && p.fecha < hoyISO).length;
     const top = cuenta6[0];
     bloqueCausas = `
     <div class="card no-romper" style="margin-top:10px;">
@@ -511,7 +549,7 @@ function render(anio){
       <div class="grid-kpi" style="margin-bottom:12px; grid-template-columns:repeat(4,1fr);">
         <div class="kpi"><div class="v">${pctAC}%</div><div class="l">Hallazgos críticos y mayores con análisis de causa</div></div>
         <div class="kpi"><div class="v">${conRev.length ? pct(primera, conRev.length) : 0}%</div><div class="l">Planes aceptados en la primera revisión</div></div>
-        <div class="kpi"><div class="v">${impl}/${acc.length}</div><div class="l">Acciones implementadas</div></div>
+        <div class="kpi"><div class="v">${impl}/${acc.length}</div><div class="l">Acciones cerradas por Calidad</div></div>
         <div class="kpi"><div class="v">${venc}</div><div class="l">Acciones con fecha vencida</div></div>
       </div>
       ${cuenta6.map(x => `<div class="tema-fila"><div class="nom">${esc(x.m)}</div><div class="barra" style="width:${Math.max(8, x.n*100/cuenta6[0].n)}%"><span style="flex:1; background:var(--navy)" data-tip="${esc(x.m)}: ${x.n} causas raíz (${pct(x.n,tot6)}%)"></span></div><div class="tot">${x.n}</div></div>`).join('')}
@@ -549,6 +587,7 @@ function render(anio){
   const mensajes = [];
   if(meta && conFechas.length) mensajes.push(`El programa ${esc(meta.edicion)} se cumplió en un <b>${pct(nEjec,nProg)}%</b> (${nEjec} de ${nProg} auditorías), pero solo el <b>${pct(nPlazo,conFechas.length)}%</b> se ejecutó en el mes programado. Es una brecha de gestión preventiva de Aseguramiento de Calidad y un objetivo de mejora para 2027.`);
   if(nForm) mensajes.push(`Solo <b>${pPart}%</b> de los auditores internos formados participó en las auditorías ${anio} (${nPart} de ${nForm}), bajo la meta de ${META_PARTICIPACION}%. Potenciar su formación práctica requiere el compromiso de toda la organización.`);
+  if(reqMeta.length) mensajes.push(`Meta al ${esc(META_CAUSA.fecha)}: ${esc(META_CAUSA.texto)}. Avance actual: <b>${pMeta}%</b> (${nMetaOk} de ${reqMeta.length})${accAll.length?`; ${accCer} de ${accAll.length} acciones CAPA cerradas por Calidad`:''}.`);
   if(tot) mensajes.push(`Se levantaron <b>${tot} hallazgos</b> en ${new Set(hal.map(f=>f._aud.id)).size} auditorías: <b>${nSev('NC Crítico')} críticos</b> y <b>${nSev('NC Mayor')} mayores</b>, cuya gestión se coordina con las jefaturas de cada área.`);
   if(temaTop) mensajes.push(`La principal debilidad del sistema es <b>${esc(temaTop.t.charAt(0).toLowerCase()+temaTop.t.slice(1))}</b>: se repite en <b>${temaTop.areas.length} de ${areas.length} áreas</b> (${temaTop.fs.length} hallazgos). Al ser transversal, su causa es del sistema de calidad y no de un área en particular.`);
   if(areaTop) mensajes.push(`El área con más hallazgos de alta criticidad es <b>${esc(areaTop)}</b>, con ${hal.filter(f=>f._area===areaTop).length} hallazgos (${(n=>n===1?'1 crítico':n+' críticos')(hal.filter(f=>f._area===areaTop && f._sev==='NC Crítico').length)}).`);
@@ -659,6 +698,7 @@ function render(anio){
         ${c.fs.length ? `<div class="barra">${c.cer?`<span style="flex:${c.cer}; background:var(--st-good)" data-tip="${esc(c.cargo)} · Cerrados: ${c.cer}"></span>`:''}${c.acp?`<span style="flex:${c.acp}; background:var(--teal)" data-tip="${esc(c.cargo)} · Plan aceptado: ${c.acp}"></span>`:''}${c.res?`<span style="flex:${c.res}; background:var(--seq-4)" data-tip="${esc(c.cargo)} · Plan recibido: ${c.res}"></span>`:''}${c.dev?`<span style="flex:${c.dev}; background:var(--st-serious)" data-tip="${esc(c.cargo)} · Devuelto: ${c.dev}"></span>`:''}${c.pen?`<span style="flex:${c.pen}; background:var(--st-critical)" data-tip="${esc(c.cargo)} · Sin plan de acción: ${c.pen}"></span>`:''}</div>` : '<div class="c">Supervisión técnica transversal; sin áreas asignadas directamente en este período.</div>'}
       </div>`).join('')}
     </div>
+    ${bloqueMeta}
     ${bloqueCausas}
 
     <h2 class="sec-titulo" data-sec="7">7. Requerimientos a la Dirección</h2>

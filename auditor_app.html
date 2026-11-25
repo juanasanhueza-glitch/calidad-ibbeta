@@ -4514,6 +4514,56 @@ function attachHandlers(){
       await saveFinding(finding); render();
     };
   });
+  document.querySelectorAll('.verif-registrar').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.dataset.id, i = +btn.dataset.i;
+      const f = STATE.findings.find(x=>x.id===id); if(!f) return;
+      const a = accionesHallazgo(f)[i]; if(!a) return;
+      const q = c => document.querySelector(`.${c}[data-id="${id}"][data-i="${i}"]`);
+      const fechaRecepcion = (q('verif-fecha')||{}).value || '';
+      const resultado = (q('verif-res')||{}).value || 'Conforme';
+      const autor = ((q('verif-autor')||{}).value || '').trim();
+      const evidencia = ((q('verif-evid')||{}).value || '').trim();
+      const obs = ((q('verif-obs')||{}).value || '').trim();
+      if(!fechaRecepcion){ alert('Indica la fecha en que se recibió la evidencia.'); return; }
+      if(!autor){ alert('Indica quién verifica.'); return; }
+      if(resultado==='Conforme' && !evidencia){ alert('Describe la evidencia recibida que permite cerrar la acción.'); return; }
+      if(resultado==='No conforme' && !obs){ alert('Escribe la observación: qué falta para cerrar la acción.'); return; }
+      try{ localStorage.setItem('revisorQA', autor); }catch(e){}
+      const v = { clave: claveAccion(a), que: a.que, tipo: a.tipo, fechaRecepcion, evidencia, resultado, autor, obs, ts: new Date().toISOString() };
+      const previo = (f.verificacionesQA||[]).slice();
+      f.verificacionesQA = previo.concat([v]);
+      try{ await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').doc(f.id).set({verificacionesQA: f.verificacionesQA}, {merge:true}); avisoToast(resultado==='Conforme' ? 'Acción cerrada.' : 'Verificación registrada: no conforme.'); }
+      catch(e){ f.verificacionesQA = previo; alert('No se pudo guardar la verificación: ' + (e.message||e)); return; }
+      const y = window.scrollY; render(); window.scrollTo(0,y);
+    };
+  });
+  document.querySelectorAll('.ef-registrar').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const f = STATE.findings.find(x=>x.id===id); if(!f) return;
+      const q = c => document.querySelector(`.${c}[data-id="${id}"]`);
+      const acs = accionesHallazgo(f), vs = acs.map(a=>verifAccion(f,a));
+      if(!acs.length || vs.some(v=>!v || v.resultado!=='Conforme')){ alert('Aún hay acciones sin cerrar.'); return; }
+      const fecha = (q('ef-fecha')||{}).value || '', resultado = (q('ef-res')||{}).value || 'Eficaz';
+      const autor = ((q('ef-autor')||{}).value||'').trim(), evidencia = ((q('ef-evid')||{}).value||'').trim();
+      if(!fecha || !autor || !evidencia){ alert('Completa la fecha, quién verifica y cómo se verificó la eficacia.'); return; }
+      if(resultado==='Eficaz' && !confirm('¿Registrar la eficacia y cerrar el hallazgo con fecha ' + fechaFormatoChile(fecha) + '?')) return;
+      try{ localStorage.setItem('revisorQA', autor); }catch(e){}
+      const e = {fecha, resultado, autor, evidencia, ts:new Date().toISOString()};
+      const prev = {eficaciaQA:f.eficaciaQA, estado:f.estado, fechaCierre:f.fechaCierre, evidenciaCierre:f.evidenciaCierre};
+      f.eficaciaQA = (f.eficaciaQA||[]).concat([e]);
+      const cambios = {eficaciaQA: f.eficaciaQA};
+      if(resultado==='Eficaz'){
+        f.estado = 'Cerrada'; f.fechaCierre = fecha;
+        f.evidenciaCierre = acs.map((a,i)=>`${a.tipo}: ${vs[i].evidencia} (recibida el ${fechaFormatoChile(vs[i].fechaRecepcion)}, ${vs[i].autor})`).join('\n') + `\nEficacia verificada el ${fechaFormatoChile(fecha)} por ${autor}: ${evidencia}`;
+        Object.assign(cambios, {estado:f.estado, fechaCierre:f.fechaCierre, evidenciaCierre:f.evidenciaCierre});
+      }
+      try{ await db.collection('kpi_ibbeta').doc('nt127_hallazgos').collection('items').doc(f.id).set(cambios, {merge:true}); avisoToast(resultado==='Eficaz' ? 'Eficacia registrada: hallazgo cerrado.' : 'Registrado: acciones no eficaces.'); }
+      catch(err){ Object.assign(f, prev); alert('No se pudo guardar: ' + (err.message||err)); return; }
+      const y = window.scrollY; render(); window.scrollTo(0,y);
+    };
+  });
   document.querySelectorAll('.rev-registrar').forEach(btn=>{
     btn.onclick = async () => {
       const id = btn.dataset.id;
@@ -4878,6 +4928,83 @@ function badgeRevisionQA(f){
   return '';
 }
 // Plan de acción con varias actividades (del análisis de causa raíz), cada una con su responsable, fecha y estado
+// ---------- Verificación de Calidad por acción del plan (cierre parcial) ----------
+// Historial en f.verificacionesQA = [{clave, que, tipo, fechaRecepcion, evidencia, resultado:'Conforme'|'No conforme', autor, obs, ts}]
+// La última verificación de cada acción manda. El hallazgo se cierra cuando todas sus acciones están verificadas conformes.
+function accionesHallazgo(f){
+  const plan = (f.analisisCausa && f.analisisCausa.plan || []).filter(p=>(p.que||'').trim());
+  if(plan.length) return plan.map(p=>({tipo:p.tipo||'Acción', que:p.que, responsable:p.responsable||'', fecha:p.fecha||'', estadoArea:p.estado||'Pendiente', evidenciaArea:p.evidencia||''}));
+  if((f.accion||'').trim()) return [{tipo:'Acción', que:f.accion, responsable:f.responsable||'', fecha:f.fechaCompromiso||'', estadoArea:'', evidenciaArea:''}];
+  return [];
+}
+function claveAccion(a){ return String(a.que||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,120); }
+function verifAccion(f, a){ const k = claveAccion(a); const vs = (f.verificacionesQA||[]).filter(v=>v.clave===k); return vs[vs.length-1] || null; }
+function codigoAccion(numero, i){ return (numero ? 'H'+numero+'-' : '') + 'A' + (i+1); }
+function verificacionAccionesHtml(f, numero){
+  const acs = accionesHallazgo(f);
+  if(!acs.length) return `<div class="small" style="margin-top:8px; color:var(--text-soft);">Sin plan de acción registrado por el área: no hay acciones que verificar.</div>`;
+  const hoy = todayStr();
+  const autorDef = (()=>{ try{ return localStorage.getItem('revisorQA')||''; }catch(e){ return ''; } })();
+  const vs = acs.map(a=>verifAccion(f,a));
+  const nConf = vs.filter(v=>v && v.resultado==='Conforme').length;
+  const todas = nConf === acs.length;
+  const td = 'padding:5px 6px; border:1px solid var(--border); vertical-align:top;';
+  const filas = acs.map((a,i)=>{
+    const v = vs[i];
+    const venc = (!v || v.resultado!=='Conforme') && a.fecha && a.fecha < hoy;
+    const badge = v ? (v.resultado==='Conforme'
+        ? `<span class="badge" style="background:#e7f4ea;color:#2d6a3a;">✓ Cerrada</span><div class="small" style="margin-top:3px;">Evidencia recibida el ${esc(fechaFormatoChile(v.fechaRecepcion))}${v.autor?' · '+esc(v.autor):''}</div>`
+        : `<span class="badge" style="background:#fde8e1;color:#8a3b1c;">No conforme</span><div class="small" style="margin-top:3px;">${esc(fechaFormatoChile(v.fechaRecepcion))}${v.autor?' · '+esc(v.autor):''}</div>`)
+      : `<span class="badge" style="background:#eef1f5;color:#4f5866;">Por verificar</span>`;
+    return `<tr>
+      <td style="${td} white-space:nowrap; font-weight:600;">${codigoAccion(numero,i)}</td>
+      <td style="${td}">${esc(a.tipo)}</td>
+      <td style="${td} white-space:pre-wrap;">${esc(a.que)}</td>
+      <td style="${td}">${esc(a.responsable)}<div class="small">${esc(fechaFormatoChile(a.fecha))}${venc?' <span style="color:var(--red); font-weight:600;">vencida</span>':''}</div></td>
+      <td style="${td}">${esc(a.estadoArea||'—')}${a.evidenciaArea?`<div class="small" style="color:var(--text-soft);">${esc(a.evidenciaArea)}</div>`:''}</td>
+      <td style="${td}">${badge}${v && v.evidencia?`<div class="small" style="color:var(--text-soft); margin-top:2px;">${esc(v.evidencia)}</div>`:''}${v && v.obs?`<div class="small" style="margin-top:2px;"><i>${esc(v.obs)}</i></div>`:''}</td>
+    </tr>
+    <tr class="no-print"><td colspan="6" style="padding:0 6px 6px; border:1px solid var(--border); border-top:0;">
+      <details ${v && v.resultado==='Conforme' ? '' : ''}><summary class="small" style="cursor:pointer; color:var(--teal, #2b7a6b); padding-top:4px;">${v ? 'Registrar nueva verificación' : 'Verificar esta acción'}</summary>
+        <div class="row" style="margin-top:6px; gap:8px; flex-wrap:wrap;">
+          <div class="field" style="min-width:150px;"><label>Evidencia recibida el</label><input type="date" class="verif-fecha" data-id="${f.id}" data-i="${i}" value="${hoy}"></div>
+          <div class="field" style="min-width:210px;"><label>Resultado</label><select class="verif-res" data-id="${f.id}" data-i="${i}"><option value="Conforme">Conforme: la acción se cierra</option><option value="No conforme">No conforme: sigue abierta</option></select></div>
+          <div class="field" style="min-width:180px;"><label>Verificado por</label><input class="verif-autor" data-id="${f.id}" data-i="${i}" value="${esc(autorDef)}" placeholder="Nombre"></div>
+        </div>
+        <div class="field" style="margin-top:6px;"><label>Evidencia recibida</label><textarea rows="2" class="verif-evid" data-id="${f.id}" data-i="${i}" placeholder="Ej. SOP QA-0XX Ed.02 aprobado y difundido; registro de capacitación del 10-12-2026">${esc(a.evidenciaArea||'')}</textarea></div>
+        <div class="field" style="margin-top:6px;"><label>Observación (opcional)</label><input class="verif-obs" data-id="${f.id}" data-i="${i}" placeholder="Ej. falta la firma de aprobación; reenviar"></div>
+        <div style="margin-top:6px; text-align:right;"><button type="button" class="verif-registrar" data-id="${f.id}" data-i="${i}">✔ Registrar verificación</button></div>
+      </details>
+    </td></tr>`;
+  }).join('');
+  const efs = f.eficaciaQA || [], ef = efs[efs.length-1] || null;
+  const efHist = efs.length ? `<div class="small" style="margin-top:6px;">${efs.map(e=>`<div style="border-left:3px solid ${e.resultado==='Eficaz'?'#2d6a3a':'#8a3b1c'}; padding:3px 8px; margin:3px 0; background:${e.resultado==='Eficaz'?'#e7f4ea':'#fde8e1'};"><b>${esc(e.resultado)}</b> · ${esc(fechaFormatoChile(e.fecha))}${e.autor?' · '+esc(e.autor):''}<br>${esc(e.evidencia||'')}</div>`).join('')}</div>` : '';
+  const formEf = `<details ${ef && ef.resultado==='No eficaz' ? '' : 'open'} style="margin-top:6px;"><summary class="small" style="cursor:pointer; color:var(--teal, #2b7a6b);">Registrar verificación de eficacia</summary>
+      <div class="row" style="margin-top:6px; gap:8px; flex-wrap:wrap;">
+        <div class="field" style="min-width:150px;"><label>Fecha de verificación</label><input type="date" class="ef-fecha" data-id="${f.id}" value="${hoy}"></div>
+        <div class="field" style="min-width:260px;"><label>Resultado</label><select class="ef-res" data-id="${f.id}"><option value="Eficaz">Eficaz: el hallazgo se cierra</option><option value="No eficaz">No eficaz: el área debe volver a analizar</option></select></div>
+        <div class="field" style="min-width:180px;"><label>Verificado por</label><input class="ef-autor" data-id="${f.id}" value="${esc(autorDef)}" placeholder="Nombre"></div>
+      </div>
+      <div class="field" style="margin-top:6px;"><label>Cómo se verificó la eficacia</label><textarea rows="2" class="ef-evid" data-id="${f.id}" placeholder="Ej. en la auditoría de seguimiento del 15-03-2027 se revisaron 10 permisos de trabajo: todos archivados y firmados; el hallazgo no se repite."></textarea></div>
+      <div style="margin-top:6px; text-align:right;"><button type="button" class="ef-registrar" data-id="${f.id}">✔ Registrar eficacia</button></div></details>`;
+  const cierre = f.estado==='Cerrada'
+    ? `<div class="small" style="margin-top:8px; padding:8px 10px; background:#e7f4ea; color:#2d6a3a; border-radius:6px;">✓ Hallazgo cerrado${f.fechaCierre?' el '+esc(fechaFormatoChile(f.fechaCierre)):''}, con eficacia verificada.</div>${efHist}`
+    : todas
+      ? `<div style="margin-top:10px; padding:8px 10px; background:#f3f7f6; border:1px solid #cfe3de; border-radius:6px;">
+          <div style="font-size:12px; font-weight:700;">Verificación de eficacia</div>
+          <div class="small" style="color:var(--text-soft);">Todas las acciones están cerradas. Antes de cerrar el hallazgo, verifique que fueron eficaces: que la causa raíz se eliminó y el hallazgo no se repite (por ejemplo, en una revisión posterior de registros o en la auditoría de seguimiento).</div>
+          ${ef && ef.resultado==='No eficaz' ? `<div class="small" style="margin-top:6px; color:#8a3b1c;"><b>Acciones no eficaces:</b> el área debe volver a analizar la causa y ajustar su plan.</div>` : ''}
+          ${efHist}${formEf}</div>`
+      : `<div class="small" style="margin-top:6px; color:var(--text-soft);">Cuando todas las acciones estén cerradas, se habilita la verificación de eficacia, que es la que cierra el hallazgo.</div>`;
+  return `<div style="margin-top:10px;">
+    <label style="font-size:12px; font-weight:600;">Verificación de acciones por Calidad · ${nConf} de ${acs.length} cerrada${acs.length>1?'s':''}</label>
+    <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Calidad cierra cada acción según la evidencia recibida y el compromiso adquirido por el dueño del proceso. Se puede cerrar una acción y mantener abiertas las demás.</div>
+    <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+      <thead><tr style="background:#eef1f5;">${['Código','Tipo','Acción','Responsable · compromiso','Informa el área','Verificación Calidad'].map(h=>`<th style="text-align:left; padding:5px 6px; border:1px solid var(--border); font-size:11px;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${filas}</tbody></table>
+    ${cierre}
+  </div>`;
+}
 function planAccionTablaHtml(f){
   const plan = (f.analisisCausa && f.analisisCausa.plan || []).filter(p=>(p.que||'').trim());
   if(!plan.length) return '';
@@ -4935,6 +5062,28 @@ function revisionQAHtml(f){
 function avisoPorRevisarHtml(n){
   return n ? `<div class="count" style="margin-top:4px; background:#fff4d6; color:#7a5310; border:1px solid #e9c46a; border-radius:6px; padding:3px 8px; display:inline-block; font-weight:700;">🔔 ${n} ${n===1?'respuesta':'respuestas'} del auditado por revisar y cerrar</div>` : '';
 }
+// Resumen de acciones CAPA por responsable (dueño de proceso). lista: [{f, numero}] — numero opcional para mostrar códigos H#-A#.
+function resumenResponsablesHtml(lista, titulo){
+  const hoy = todayStr(), m = new Map();
+  lista.forEach(({f, numero}) => accionesHallazgo(f).forEach((a,i) => {
+    const nom = String(a.responsable||'').replace(/\s+/g,' ').trim() || 'Sin responsable';
+    const k = nom.toLowerCase();
+    if(!m.has(k)) m.set(k, {nom, tot:0, cer:0, pen:0, venc:0, nc:0, cods:[]});
+    const r = m.get(k), v = verifAccion(f,a), cerrada = !!(v && v.resultado==='Conforme');
+    r.tot++; if(cerrada) r.cer++; else { r.pen++; if(a.fecha && a.fecha < hoy) r.venc++; if(v && v.resultado==='No conforme') r.nc++; if(numero) r.cods.push(codigoAccion(numero,i)); }
+  }));
+  const rows = [...m.values()].sort((a,b)=> b.venc-a.venc || b.pen-a.pen || a.nom.localeCompare(b.nom));
+  if(!rows.length) return '';
+  const T = rows.reduce((s,r)=>({tot:s.tot+r.tot, cer:s.cer+r.cer, pen:s.pen+r.pen, venc:s.venc+r.venc, nc:s.nc+r.nc}), {tot:0,cer:0,pen:0,venc:0,nc:0});
+  const td = 'padding:5px 8px; border:1px solid var(--border);', tn = td+' text-align:center;';
+  const conCods = rows.some(r=>r.cods.length);
+  return `<details class="card" style="padding:10px 14px;"><summary style="cursor:pointer; font-weight:700; font-size:13.5px;">📊 ${esc(titulo||'Acciones CAPA por responsable')} · ${T.cer} de ${T.tot} cerradas · ${T.pen} pendientes${T.venc?` · <span style="color:var(--red);">${T.venc} vencidas</span>`:''}</summary>
+    <table style="width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px;">
+      <thead><tr style="background:#eef1f5;">${['Responsable','Comprometidas','Cerradas por Calidad','Pendientes de entregar','Vencidas','No conformes'].concat(conCods?['Acciones pendientes']:[]).map(h=>`<th style="${td} font-size:11px; text-align:left;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r=>`<tr><td style="${td}">${esc(r.nom)}</td><td style="${tn}">${r.tot}</td><td style="${tn}">${r.cer}</td><td style="${tn} font-weight:600;">${r.pen}</td><td style="${tn}${r.venc?' color:var(--red); font-weight:700;':''}">${r.venc}</td><td style="${tn}">${r.nc}</td>${conCods?`<td style="${td}">${r.cods.join(', ')||'—'}</td>`:''}</tr>`).join('')}
+        <tr style="background:#f6f7f9; font-weight:700;"><td style="${td}">Total</td><td style="${tn}">${T.tot}</td><td style="${tn}">${T.cer}</td><td style="${tn}">${T.pen}</td><td style="${tn}">${T.venc}</td><td style="${tn}">${T.nc}</td>${conCods?`<td style="${td}"></td>`:''}</tr></tbody></table>
+    <div class="small" style="color:var(--text-soft); margin-top:4px;">Una acción cuenta como cerrada solo cuando Calidad la verifica conforme. Los responsables se agrupan tal como el área los escribió.</div></details>`;
+}
 function viewHallazgos(){
   updateOverdue();
 
@@ -4970,6 +5119,7 @@ function viewHallazgos(){
         const pend = areas.map(a => ({a, n: Object.values(grupos[a]).flat().filter(porRevisarAuditado).length})).filter(x => x.n);
         return pend.length ? `<div class="card" style="background:#fff8e6; border:1px solid #e9c46a;"><b>🔔 Respuestas del auditado por revisar:</b> ${pend.map(x => `${esc(x.a)} (${x.n})`).join(' · ')}</div>` : '';
       })()}
+      ${resumenResponsablesHtml(STATE.findings.map(f=>({f})), 'Acciones CAPA por responsable · todas las áreas')}
       <div class="card">
         <div class="toolbar">
           <input type="text" id="finding-search-global" class="search-box" placeholder="Buscar en todos los hallazgos (por código de reporte, descripción, ref)...">
@@ -5003,6 +5153,7 @@ function viewHallazgos(){
         <div><h1 style="font-size:18px; margin:0;">${esc(STATE.hallazgosArea)}</h1><div class="subtitle">Índice de reportes con hallazgos</div></div>
         <button class="secondary" id="btn-volver-hallazgos-areas">&larr; Todas las áreas</button>
       </div>
+      ${resumenResponsablesHtml(Object.values(codigosObj).flat().map(f=>({f})), 'Acciones CAPA por responsable · ' + STATE.hallazgosArea)}
       <div class="area-select-grid">
         ${codigos.map(cod=>{
           const items = codigosObj[cod];
@@ -5029,6 +5180,7 @@ function viewHallazgos(){
       <div><h1 style="font-size:18px; margin:0;">${esc(STATE.hallazgosCodigo)}</h1><div class="subtitle">${esc(STATE.hallazgosArea)} &middot; ${list.length} hallazgo(s)</div></div>
       <button class="secondary" id="btn-volver-hallazgos-codigos">&larr; ${esc(STATE.hallazgosArea)}</button>
     </div>
+    ${resumenResponsablesHtml(list.map((f,i)=>({f, numero:i+1})), 'Acciones CAPA por responsable · ' + STATE.hallazgosCodigo)}
     ${list.length===0 ? '<div class="empty-state">Sin hallazgos para este reporte.</div>' : list.map((f,i)=>findingCard(f, i+1)).join('')}
   `;
 }
@@ -5205,7 +5357,8 @@ function findingCard(f, numero){
       </div>
       <div class="hz-seccion" style="border-left:4px solid #6b4fa0; background:#fafbfc; border-radius:6px; padding:8px 12px 10px; margin-top:12px;">
         <div style="font-size:12.5px; font-weight:700; color:#6b4fa0; text-transform:uppercase; letter-spacing:.4px;">③ Revisión y cierre</div>
-        <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa Calidad: revisa la respuesta del área, la acepta o devuelve, y cierra el hallazgo cuando se verifica la eficacia.</div>
+        <div class="small" style="color:var(--text-soft); margin-bottom:4px;">Completa Calidad: revisa la respuesta del área, la acepta o devuelve, verifica cada acción con la evidencia recibida y cierra el hallazgo cuando todas están conformes.</div>
+      ${verificacionAccionesHtml(f, numero)}
       <div class="row" style="margin-top:8px;">
         <div class="field"><label>Estado</label>
           <select class="finding-field" data-id="${f.id}" data-field="estado">

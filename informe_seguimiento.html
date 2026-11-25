@@ -103,9 +103,12 @@ function estadoAnalisis(f){
 // Acciones: del plan del análisis; si no hay análisis, de la respuesta del portal
 function acciones(f){
   const plan = f.analisisCausa && (f.analisisCausa.plan||[]).filter(p=>(p.que||'').trim());
-  if(plan && plan.length) return plan.map(p=>({tipo:p.tipo, que:p.que, resp:p.responsable, fecha:p.fecha, estado:p.estado||'Pendiente', evid:p.evidencia||''}));
-  if((f.accion||'').trim()) return [{tipo:'Acción', que:f.accion, resp:f.responsable||'', fecha:f.fechaCompromiso||'', estado:f.estado==='Cerrada'?'Implementada':'Pendiente', evid:''}];
-  return [];
+  const base = (plan && plan.length) ? plan.map(p=>({tipo:p.tipo, que:p.que, resp:p.responsable, fecha:p.fecha, estado:p.estado||'Pendiente', evid:p.evidencia||''}))
+    : (f.accion||'').trim() ? [{tipo:'Acción', que:f.accion, resp:f.responsable||'', fecha:f.fechaCompromiso||'', estado:f.estado==='Cerrada'?'Implementada':'Pendiente', evid:''}] : [];
+  // Verificación de Calidad por acción (última registrada); una acción se considera cerrada solo si Calidad la verificó conforme
+  return base.map(x => { const k = String(x.que||'').toLowerCase().replace(/\s+/g,' ').trim().slice(0,120);
+    const vs = (f.verificacionesQA||[]).filter(v=>v.clave===k); const v = vs[vs.length-1] || null;
+    return Object.assign(x, {verif:v, cerrada: !!(v && v.resultado==='Conforme')}); });
 }
 
 async function cargar(){
@@ -127,14 +130,15 @@ function render(audit, hs){
   const hoy = hoyISO();
   const todas = hs.flatMap(f => acciones(f).map(a => Object.assign({n:f._n}, a)));
   const impl = todas.filter(a=>a.estado==='Implementada').length;
-  const venc = todas.filter(a=>a.estado!=='Implementada' && a.fecha && a.fecha < hoy);
+  const venc = todas.filter(a=>!a.cerrada && a.estado!=='Implementada' && a.fecha && a.fecha < hoy);
+  const cerr = todas.filter(a=>a.cerrada).length;
   const req = hs.filter(requiere);
   const kp = [
     [hs.length, 'Hallazgos del reporte'],
     [hs.filter(f=>f.respondioNombre).length + ' / ' + hs.length, 'Con respuesta del área'],
     [req.filter(f=>f.analisisCausa && f.analisisCausa.estado==='completado').length + ' / ' + req.length, 'Análisis de causa (Crít. y Mayor)'],
     [hs.filter(f=>['Aceptado','Cerrado'].includes(estadoQA(f).t)).length + ' / ' + hs.length, 'Planes aceptados o cerrados'],
-    [impl + ' / ' + todas.length, 'Acciones implementadas'],
+    [cerr + ' / ' + todas.length, 'Acciones cerradas por Calidad'],
     [venc.length, 'Acciones con fecha vencida'],
     [hs.filter(f=>estadoQA(f).t==='Devuelto').length, 'Devueltos con observaciones'],
     [hs.filter(f=>estadoQA(f).t==='Sin respuesta').length, 'Sin respuesta']
@@ -159,10 +163,19 @@ function render(audit, hs){
         return `<tr><td>${f._n}</td><td>${tagCrit(f.criticidad)}</td><td>${esc(desc.length>110?desc.slice(0,110)+'…':desc)}</td><td><span class="tag ${ea.c}">${esc(ea.t)}</span></td><td><span class="tag ${eq.c}">${esc(eq.t)}</span></td><td>${ac.length? ac.filter(a=>a.estado==='Implementada').length+' / '+ac.length : '—'}</td><td>${pend.length? `${esc(dmy(pend[0]))}${pend[0]<hoy?' <span class="tag t-dev">vencida</span>':''}` : '—'}</td></tr>`; }).join('')}
     </tbody></table>
 
-    <h2>3. Detalle por hallazgo</h2>
+    <h2>3. Acciones por responsable</h2>
+    ${(() => { const m = new Map();
+      hs.forEach(f => acciones(f).forEach((x,ix) => { const nom = String(x.resp||'').replace(/\s+/g,' ').trim() || 'Sin responsable', k = nom.toLowerCase();
+        if(!m.has(k)) m.set(k,{nom,tot:0,cer:0,pen:0,venc:0,cods:[]}); const r = m.get(k); r.tot++;
+        if(x.cerrada) r.cer++; else { r.pen++; if(x.fecha && x.fecha < hoy) r.venc++; r.cods.push('H'+f._n+'-A'+(ix+1)); } }));
+      const rows = [...m.values()].sort((a,b)=> b.venc-a.venc || b.pen-a.pen || a.nom.localeCompare(b.nom));
+      return rows.length ? `<table><thead><tr><th>Responsable</th><th style="width:11%">Comprometidas</th><th style="width:11%">Cerradas por Calidad</th><th style="width:11%">Pendientes</th><th style="width:9%">Vencidas</th><th style="width:24%">Acciones pendientes</th></tr></thead><tbody>
+        ${rows.map(r=>`<tr><td>${esc(r.nom)}</td><td>${r.tot}</td><td>${r.cer}</td><td><b>${r.pen}</b></td><td>${r.venc?`<span class="tag t-dev">${r.venc}</span>`:'0'}</td><td>${r.cods.join(', ')||'—'}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">Sin acciones comprometidas.</div>'; })()}
+
+    <h2>4. Detalle por hallazgo</h2>
     ${hs.map(f => detalle(f, hoy)).join('')}
 
-    <h2>4. Revisión</h2>
+    <h2>5. Revisión</h2>
     <table class="firmas"><thead><tr><th style="width:22%"></th><th>Nombre / Cargo</th><th style="width:22%">Firma</th><th style="width:14%">Fecha</th></tr></thead><tbody>
       <tr><td><b>Revisado por</b><br><span class="muted">Aseguramiento de Calidad</span></td><td></td><td></td><td></td></tr>
       <tr><td><b>Tomó conocimiento</b><br><span class="muted">Jefatura del área</span></td><td></td><td></td><td></td></tr></tbody></table>
@@ -191,8 +204,9 @@ function detalle(f, hoy){
       <div class="lbl">Causa raíz${(a&&a.sixm)||f.sixm?` <span class="muted" style="font-weight:400;">· 6M: ${esc((a&&a.sixm)||f.sixm)}</span>`:''}</div>
       <div class="txt">${esc(f.causaRaiz || (a&&a.causaRaiz) || '') || '<span class="muted">Sin causa raíz registrada.</span>'}</div>
       <div class="lbl">Plan de acción</div>
-      ${ac.length ? `<table><thead><tr><th style="width:15%">Tipo</th><th>Acción</th><th style="width:15%">Responsable</th><th style="width:10%">Fecha</th><th style="width:19%">Estado / evidencia</th></tr></thead><tbody>
-        ${ac.map(x=>`<tr><td>${esc(x.tipo)}</td><td class="txt">${esc(x.que)}</td><td>${esc(x.resp)}</td><td>${esc(dmy(x.fecha))}${x.estado!=='Implementada' && x.fecha && x.fecha<hoy?'<br><span class="tag t-dev">vencida</span>':''}</td><td>${esc(x.estado)}${x.evid?`<br><span class="muted">${esc(x.evid)}</span>`:''}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">Sin plan de acción registrado.</div>'}
+      ${ac.length ? `<table><thead><tr><th style="width:8%">Código</th><th style="width:13%">Tipo</th><th>Acción</th><th style="width:15%">Responsable</th><th style="width:10%">Fecha</th><th style="width:16%">Informa el área</th><th style="width:17%">Verificación Calidad</th></tr></thead><tbody>
+        ${ac.map((x,ix)=>`<tr><td style="white-space:nowrap; font-weight:600;">H${f._n}-A${ix+1}</td><td>${esc(x.tipo)}</td><td class="txt">${esc(x.que)}</td><td>${esc(x.resp)}</td><td>${esc(dmy(x.fecha))}${!x.cerrada && x.estado!=='Implementada' && x.fecha && x.fecha<hoy?'<br><span class="tag t-dev">vencida</span>':''}</td><td>${esc(x.estado)}${x.evid?`<br><span class="muted">${esc(x.evid)}</span>`:''}</td><td>${x.verif ? (x.cerrada ? `<span class="tag t-ok">Cerrada</span><br><span class="muted">Evidencia recibida el ${esc(dmy(x.verif.fechaRecepcion))}${x.verif.autor?' · '+esc(x.verif.autor):''}</span>` : `<span class="tag t-dev">No conforme</span><br><span class="muted">${esc(dmy(x.verif.fechaRecepcion))}${x.verif.obs?' · '+esc(x.verif.obs):''}</span>`) : '<span class="muted">Por verificar</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="muted">Sin plan de acción registrado.</div>'}
+      ${(f.eficaciaQA||[]).length ? (e => `<div class="lbl">Verificación de eficacia · ${esc(e.resultado)} · ${esc(dmy(e.fecha))}${e.autor?' · '+esc(e.autor):''}</div><div class="txt">${esc(e.evidencia||'')}</div>`)(f.eficaciaQA[f.eficaciaQA.length-1]) : ''}
       ${u ? `<div class="lbl">Última revisión de Calidad · ${esc(u.decision)} · ${esc(dmy(u.fecha))}${u.autor?' · '+esc(u.autor):''}</div><div class="txt">${esc(u.texto||'')}</div>` : ''}
       ${(f.fotosMejora||[]).length ? `<div class="lbl">Evidencia fotográfica de la mejora</div><div class="fotos">${f.fotosMejora.map(src=>`<img src="${src}">`).join('')}</div>` : ''}
     </div>
