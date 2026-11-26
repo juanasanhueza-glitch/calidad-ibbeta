@@ -360,6 +360,66 @@
   .match-nav a[aria-current="page"] .mn-go { color: rgba(255,255,255,.85); }
   .match-nav .mn-arrow { align-self: center; color: var(--muted); font-size: 14px; flex: none; }
   @media (max-width: 640px) { .match-nav .mn-arrow { display: none; } }
+
+  /* ---------- Jugadas (botones que escriben en el Sheet) ---------- */
+  .qaj-btn {
+    all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--accent-soft-line); color: var(--accent); background: var(--surface);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .qaj-btn:hover { background: var(--accent-soft); }
+  .qaj-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .qaj-btn.goal { border-color: transparent; background: var(--good-soft); color: var(--good); }
+  .qaj-btn.goal:hover { filter: brightness(0.97); }
+  .qaj-btn.check { border-color: transparent; background: var(--good-soft); color: var(--good); padding: 3px 9px; }
+  .qaj-btn[disabled], .qaj-btn[aria-busy="true"] { opacity: .5; cursor: default; pointer-events: none; }
+  .qaj-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .qaj-menu {
+    position: absolute; z-index: 60; min-width: 230px; max-width: 300px; max-height: 360px; overflow: auto;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(0,0,0,.28); padding: 6px; font-size: 12.5px; color: var(--ink);
+  }
+  .qaj-menu .qaj-title { font-weight: 700; padding: 6px 8px 2px; }
+  .qaj-menu .qaj-note { color: var(--muted); font-size: 11.5px; padding: 0 8px 6px; line-height: 1.4; }
+  .qaj-menu button {
+    all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; width: 100%;
+    padding: 7px 8px; border-radius: 8px;
+  }
+  .qaj-menu button:hover, .qaj-menu button:focus-visible { background: var(--accent-soft); outline: none; }
+  .qaj-menu button .s { font-size: 11px; color: var(--muted); }
+  .qaj-menu button.primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; text-align: center; margin-top: 4px; }
+  .qaj-menu button.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .qaj-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+  .qaj-overlay {
+    position: fixed; inset: 0; z-index: 70; background: rgba(20,19,15,.45);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .qaj-dialog {
+    background: var(--surface); color: var(--ink); border-radius: 14px; padding: 20px 22px; width: 100%; max-width: 360px;
+    box-shadow: 0 20px 48px -12px rgba(0,0,0,.4); font-size: 13px;
+  }
+  .qaj-dialog h3 { margin: 0 0 6px; font-size: 15px; }
+  .qaj-dialog p { margin: 0 0 12px; color: var(--ink-soft); }
+  .qaj-dialog p.err { color: #d03b3b; font-weight: 600; }
+  .qaj-dialog input {
+    box-sizing: border-box; width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink);
+  }
+  .qaj-dialog .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .qaj-dialog .row button { font: inherit; font-weight: 600; cursor: pointer; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); }
+  .qaj-dialog .row button.ok { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  .qaj-toast {
+    position: fixed; left: 50%; bottom: 24px; z-index: 80; transform: translateX(-50%) translateY(20px); opacity: 0;
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px; font-size: 12.5px; max-width: 90vw;
+    transition: opacity .2s ease, transform .2s ease; pointer-events: none; text-align: center;
+  }
+  .qaj-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .qaj-toast.err { background: #b42318; color: #fff; }
+  .task-top .tt-right { display: flex; align-items: center; gap: 6px; flex: none; }
 </style>
 </head>
 <body>
@@ -432,6 +492,142 @@
 <script>
 (function () {
   "use strict";
+
+  // ---------- Jugadas: botones que escriben en el Sheet a través del Apps Script ----------
+  var QAJ = (function () {
+    // Pega aquí el enlace /exec de la implementación del Apps Script "Jugadas Espacio QA".
+    var API_URL = "https://script.google.com/macros/s/AKfycbw-7dEF7pARa56qK1Jd2WuE3NeJ2-VfTpVYynnTfywJu2pSYQB7iVjn6a3gx_QJ05ckmA/exec";
+    var STORE = "qaClaveEquipo";
+    var memKey = "";
+    var equipoCache = null;
+
+    function configured() { return /^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(API_URL); }
+    function getKey() { try { return localStorage.getItem(STORE) || memKey; } catch (e) { return memKey; } }
+    function setKey(k) { memKey = k; try { localStorage.setItem(STORE, k); } catch (e) {} }
+    function clearKey() { memKey = ""; try { localStorage.removeItem(STORE); } catch (e) {} }
+    function escH(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+    var toastEl, toastTimer;
+    function toast(msg, isErr) {
+      if (!toastEl) { toastEl = document.createElement("div"); toastEl.className = "qaj-toast"; toastEl.setAttribute("role", "status"); toastEl.setAttribute("aria-live", "polite"); document.body.appendChild(toastEl); }
+      toastEl.textContent = msg; toastEl.classList.toggle("err", !!isErr); toastEl.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, isErr ? 5200 : 3400);
+    }
+
+    function askKey(errMsg) {
+      return new Promise(function (resolve) {
+        var ov = document.createElement("div");
+        ov.className = "qaj-overlay";
+        ov.innerHTML = '<div class="qaj-dialog" role="dialog" aria-modal="true" aria-labelledby="qajKeyH">' +
+          '<h3 id="qajKeyH">Clave del equipo</h3>' +
+          (errMsg ? '<p class="err">' + escH(errMsg) + '</p>' : '<p>Para mover tareas desde el panel, ingresa la clave del equipo QA. Se recuerda en este navegador.</p>') +
+          '<input type="password" autocomplete="off" aria-label="Clave del equipo">' +
+          '<div class="row"><button type="button" class="cancel">Cancelar</button><button type="button" class="ok">Entrar</button></div></div>';
+        document.body.appendChild(ov);
+        var input = ov.querySelector("input");
+        function close(v) { document.removeEventListener("keydown", onKey, true); ov.remove(); resolve(v); }
+        function ok() { var v = input.value.trim(); if (v) close(v); else input.focus(); }
+        function onKey(e) { if (e.key === "Escape") { e.preventDefault(); close(null); } else if (e.key === "Enter") { e.preventDefault(); ok(); } }
+        ov.querySelector(".ok").addEventListener("click", ok);
+        ov.querySelector(".cancel").addEventListener("click", function () { close(null); });
+        ov.addEventListener("click", function (e) { if (e.target === ov) close(null); });
+        document.addEventListener("keydown", onKey, true);
+        setTimeout(function () { input.focus(); }, 0);
+      });
+    }
+
+    function post(body) {
+      return fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body), redirect: "follow" })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+    }
+
+    // Llama a una acción. Pide la clave si hace falta; si la clave es incorrecta la vuelve a pedir una vez.
+    function call(action, data) {
+      if (!configured()) return Promise.reject(new Error("Los botones aún no están conectados al Sheet (falta el enlace del Apps Script)."));
+      function attempt(key, retried) {
+        var body = { action: action, key: key };
+        Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
+        return post(body).then(function (res) {
+          if (res && res.error === "clave") {
+            clearKey();
+            if (retried) throw new Error("Clave del equipo incorrecta.");
+            return askKey("Clave incorrecta. Inténtalo de nuevo.").then(function (k) {
+              if (!k) throw new Error("cancelado");
+              setKey(k); return attempt(k, true);
+            });
+          }
+          if (!res || !res.ok) throw new Error((res && res.error) || "El Sheet no respondió.");
+          return res;
+        });
+      }
+      var key = getKey();
+      if (key) return attempt(key, false);
+      return askKey().then(function (k) { if (!k) throw new Error("cancelado"); setKey(k); return attempt(k, false); });
+    }
+
+    function equipo() {
+      if (equipoCache) return Promise.resolve(equipoCache);
+      if (!configured()) return Promise.resolve(null);
+      return fetch(API_URL + "?action=equipo", { redirect: "follow" })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res && res.ok && res.equipo && res.equipo.length) { equipoCache = res.equipo; return equipoCache; } return null; })
+        .catch(function () { return null; });
+    }
+
+    // Menú flotante junto a un botón. items: [{ label, sub, value, primary }] o { sep: true }. Resuelve con el value o null.
+    var openMenuEl = null;
+    function closeMenu() { if (openMenuEl) { openMenuEl._close(null); } }
+    function menu(anchor, opts) {
+      closeMenu();
+      return new Promise(function (resolve) {
+        var m = document.createElement("div");
+        m.className = "qaj-menu"; m.setAttribute("role", "menu");
+        m.innerHTML = (opts.title ? '<div class="qaj-title">' + escH(opts.title) + '</div>' : "") +
+          (opts.note ? '<div class="qaj-note">' + escH(opts.note) + '</div>' : "") +
+          opts.items.map(function (it, i) {
+            if (it.sep) return "<hr>";
+            return '<button type="button" role="menuitem" data-i="' + i + '"' + (it.primary ? ' class="primary"' : "") + '>' +
+              '<span>' + escH(it.label) + '</span>' + (it.sub ? '<span class="s">' + escH(it.sub) + '</span>' : "") + '</button>';
+          }).join("");
+        document.body.appendChild(m);
+        var r = anchor.getBoundingClientRect();
+        var top = r.bottom + window.scrollY + 6, left = r.left + window.scrollX;
+        var w = m.offsetWidth || 240, h = m.offsetHeight || 200;
+        if (left + w > window.scrollX + document.documentElement.clientWidth - 8) left = Math.max(8, r.right + window.scrollX - w);
+        if (r.bottom + h + 6 > window.innerHeight && r.top - h - 6 > 0) top = r.top + window.scrollY - h - 6;
+        m.style.top = top + "px"; m.style.left = left + "px";
+        function onDoc(e) { if (!m.contains(e.target) && e.target !== anchor) close(null); }
+        function onKey(e) { if (e.key === "Escape") { e.preventDefault(); close(null); anchor.focus(); } }
+        function close(v) {
+          document.removeEventListener("mousedown", onDoc, true); document.removeEventListener("keydown", onKey, true);
+          if (m.parentNode) m.parentNode.removeChild(m); if (openMenuEl === m) openMenuEl = null; resolve(v);
+        }
+        m._close = close; openMenuEl = m;
+        m.addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-i]"); if (!b) return;
+          e.stopPropagation(); close(opts.items[+b.getAttribute("data-i")].value);
+        });
+        document.addEventListener("mousedown", onDoc, true); document.addEventListener("keydown", onKey, true);
+        var first = m.querySelector("button"); if (first) first.focus();
+      });
+    }
+
+    // Ejecuta una acción mostrando el botón ocupado y el resultado en un aviso.
+    function run(btn, action, data, onDone) {
+      if (btn) { btn.setAttribute("aria-busy", "true"); btn.dataset.qajTxt = btn.innerHTML; btn.innerHTML = "Guardando…"; }
+      return call(action, data).then(function (res) {
+        toast(res.msg || "Listo.");
+        if (onDone) onDone(res);
+      }).catch(function (err) {
+        if (err && err.message === "cancelado") return;
+        toast((err && err.message) || "No se pudo guardar.", true);
+      }).then(function () {
+        if (btn && btn.isConnected) { btn.removeAttribute("aria-busy"); if (btn.dataset.qajTxt) btn.innerHTML = btn.dataset.qajTxt; }
+      });
+    }
+
+    return { configured: configured, call: call, run: run, menu: menu, equipo: equipo, toast: toast, closeMenu: closeMenu };
+  })();
 
   // "Publicar en la web" CSV export of the "Tareas por Ejecutar" tab (gid 777000001).
   var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBYByhSxtY6cQIl_Q4-Rnhm4dznq16fApKEhn2p1wJ6iRXSgYfByhwGLMJDPjKxDX1N9XXUyQvOVIC/pub?gid=777000001&single=true&output=csv";
@@ -526,6 +722,34 @@
     return out;
   }
 
+  // Cambios hechos desde este navegador que la hoja publicada aún no muestra (el CSV tarda unos minutos).
+  var OVERRIDES = {};
+  function applyOverrides(list) {
+    var now = Date.now();
+    list.forEach(function (t) {
+      var o = t.id && OVERRIDES[t.id];
+      if (!o) return;
+      if (o.until < now) { delete OVERRIDES[t.id]; return; }
+      t.estado = o.estado; t.traspaso = o.traspaso;
+    });
+    return list;
+  }
+
+  function startTask(btn, t) {
+    if (!t.id) { QAJ.toast("Esta tarea no tiene ID en la hoja; agrégalo para poder moverla.", true); return; }
+    QAJ.menu(btn, {
+      title: "Pasar a Agiliza & Cumple",
+      note: t.id + " queda En ejecución desde hoy, a nombre de " + t.responsable + ".",
+      items: [{ label: "✅ Sí, la inicié", value: "ok", primary: true }, { label: "Cancelar", value: null }]
+    }).then(function (v) {
+      if (v !== "ok") return;
+      QAJ.run(btn, "traspasar", { pe: t.id }, function () {
+        OVERRIDES[t.id] = { estado: "Traspasada a Agiliza", traspaso: startOfToday(), until: Date.now() + 15 * 60 * 1000 };
+        applyOverrides(TASKS); renderAll();
+      });
+    });
+  }
+
   function pending() { return TASKS.filter(function (t) { return t.estado === "Por ejecutar"; }); }
 
   function matches(t) {
@@ -594,9 +818,10 @@
       '</dl><div class="detail-actions">' +
       '<button type="button" class="mini-btn" data-copy="' + esc(t.key) + '">⇢ Copiar para Agiliza</button>' +
       '<a class="mini-btn ghost" href="https://docs.google.com/spreadsheets/d/1x2y668ilHStOqI3rCCWOMnKEDNDNG6UfM9_XE_3dH5Q/edit#gid=431293435" target="_blank" rel="noopener">Abrir Registro ↗</a>' +
-      '</div><p class="handoff">Al iniciarla: regístrala en Agiliza &amp; Cumple y cambia su estado aquí a "Traspasada a Agiliza" y anota la fecha en la columna L (Fecha traspaso).</p></div>';
+      '</div><p class="handoff">Al iniciarla, aprieta ✅: la tarea pasa sola a Agiliza &amp; Cumple (En ejecución desde hoy) y aquí queda como traspasada.</p></div>';
     return '<article class="task t-' + t.group + '" tabindex="0" role="button" aria-expanded="false" data-key="' + esc(t.key) + '">' +
-      '<div class="task-top"><p class="task-title">' + esc(t.tarea) + '</p><span class="prio ' + esc(t.prioridad) + '">' + esc(t.prioridad) + '</span></div>' +
+      '<div class="task-top"><p class="task-title">' + esc(t.tarea) + '</p><span class="tt-right"><span class="prio ' + esc(t.prioridad) + '">' + esc(t.prioridad) + '</span>' +
+        '<button type="button" class="qaj-btn check" data-start="' + esc(t.key) + '" title="La inicié: pasar a Agiliza &amp; Cumple" aria-label="Iniciar ' + esc(t.id || "tarea") + ' y pasarla a Agiliza &amp; Cumple">✅</button></span></div>' +
       (t.origen ? '<span class="origin">' + esc(t.origen) + '</span>' : "") +
       '<div class="task-meta"><span class="who"><span class="avatar">' + esc(initials(t.responsable)) + '</span><span>' + esc(t.responsable) + '</span></span>' +
       '<span class="due">' + esc(dueText(t)) + '</span></div>' + detail + '</article>';
@@ -702,6 +927,13 @@
     renderMoved();
   });
   $("board").addEventListener("click", function (e) {
+    var start = e.target.closest("[data-start]");
+    if (start) {
+      e.stopPropagation();
+      var st = TASKS.filter(function (x) { return x.key === start.getAttribute("data-start"); })[0];
+      if (st) startTask(start, st);
+      return;
+    }
     var copy = e.target.closest("[data-copy]");
     if (copy) {
       e.stopPropagation();
@@ -740,7 +972,7 @@
         return rows.slice(1);
       });
     return p.then(function (rows) {
-      TASKS = rowsToTasks(rows); lastUpdated = new Date(); setSync("live"); renderAll();
+      TASKS = applyOverrides(rowsToTasks(rows)); lastUpdated = new Date(); setSync("live"); renderAll();
     }).catch(function (err) {
       setSync("error"); renderAll();
       if (window.console) console.warn("No se pudo leer 'Tareas por Ejecutar':", err);
