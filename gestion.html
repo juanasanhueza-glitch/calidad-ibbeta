@@ -140,6 +140,39 @@
   .subhead td { background: transparent !important; color: var(--muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding-top: 18px; cursor: default; text-align: left; }
 
   footer.page { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  /* ---------- Preguntas ---------- */
+  .qgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .q { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .q h3 { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .q .ans { font-size: 20px; font-weight: 700; line-height: 1.25; }
+  .q .ans small { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .q .why { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+  .q .flag { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .flag.ok { background: var(--good-soft); color: var(--good); }
+  .flag.warn { background: var(--warning-soft); color: var(--warning); }
+  .flag.bad { background: var(--critical-soft); color: var(--critical); }
+  .mini { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+  .mrow { display: grid; grid-template-columns: 74px 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+  .mrow .mn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); }
+  .mrow .mt { display: block; height: 10px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .mrow .mb { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .mrow .mb.hi { background: var(--critical); }
+  .mrow .mv { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .mlist { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .mlist li { display: flex; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 4px; }
+  .mlist li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mlist li span:last-child { color: var(--muted); white-space: nowrap; }
+  /* Tabla de posiciones */
+  table.rank { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.rank th { text-align: right; font-size: 11.5px; color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line-strong); }
+  table.rank th:nth-child(-n+2), table.rank td:nth-child(-n+2) { text-align: left; }
+  table.rank td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+  table.rank tr.out td { color: var(--muted); }
+  .mv-up { color: var(--good); font-weight: 700; } .mv-down { color: var(--critical); font-weight: 700; } .mv-eq { color: var(--muted); }
+  .rules { margin: 14px 0 0; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; font-size: 12.5px; color: var(--ink-soft); }
+  .rules ul { margin: 4px 0 0; padding-left: 18px; }
+  @media (max-width: 980px) { .qgrid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .qgrid { grid-template-columns: 1fr; } }
   @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, 1fr); } .bar-row { grid-template-columns: 110px 1fr 44px; } }
   @media (max-width: 560px) { header.top { flex-direction: column; align-items: flex-start; } .meta-block { align-items: flex-start; } }
 </style>
@@ -164,7 +197,27 @@
   <div class="private-note"><span aria-hidden="true">🔒</span><span>Vista de gestión: no aparece en el menú del equipo. Ojo, no es secreta: quien tenga el enlace puede abrirla.</span></div>
   <div class="banner" id="banner" role="status">No se pudo leer el Registro de Tareas. Revisa tu conexión y vuelve a actualizar.</div>
 
-  <section class="kpis" id="kpis" aria-label="Resumen de titulares"></section>
+  <section aria-labelledby="q-h">
+    <h2 id="q-h">Las preguntas del partido</h2>
+    <p class="desc">Cada tarjeta responde una pregunta sobre los titulares. Las barras comparan a los cinco.</p>
+    <div class="qgrid" id="qgrid"></div>
+  </section>
+
+  <section aria-labelledby="rank-h">
+    <h2 id="rank-h">Tabla de posiciones (últimos 30 días)</h2>
+    <p class="desc">¿Quién sube, quién baja y quién queda fuera? La flecha compara con la tabla de hace 7 días.</p>
+    <div class="panel">
+      <table class="rank" id="rank"></table>
+      <div class="rules"><b>Reglas de la tabla</b>
+        <ul>
+          <li><b>Puntos:</b> gol (tarea propia cerrada) = 3 · pase acertado (revisión o firma hecha a otro) = 1.</li>
+          <li><b>Sube o baja</b> según sus puntos de los últimos 30 días, comparado con la tabla de hace 7 días.</li>
+          <li><b>Queda fuera de la tabla</b> si no suma puntos en 30 días.</li>
+          <li><b>🟨 Tarjeta amarilla</b> si tiene en su cancha una tarea con 10 días o más sin movimiento. No resta puntos: avisa.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
   <section aria-labelledby="chart-h">
     <h2 id="chart-h">¿En qué cancha está la pelota?</h2>
@@ -219,9 +272,9 @@
   var AUTO_REFRESH_MS = 5 * 60 * 1000;
 
   // Registro de Tareas (0-indexed)
-  var R = { id: 0, tarea: 1, ejecutor: 2, cargo: 3, fEjec: 5, revisor: 7, aprobador: 13, fCierre: 14, estado: 15, diasRev: 17, diasTot: 20, ultima: 21, diasSin: 22 };
+  var R = { id: 0, tarea: 1, ejecutor: 2, cargo: 3, fEjec: 5, fEntRev: 6, revisor: 7, fResRev: 8, fFirma: 12, aprobador: 13, fCierre: 14, estado: 15, diasRev: 17, diasTot: 20, ultima: 21, diasSin: 22 };
   // Tareas por Ejecutar
-  var T = { id: 0, tarea: 1, resp: 2, compromiso: 6, estado: 7 };
+  var T = { id: 0, tarea: 1, resp: 2, fReg: 5, compromiso: 6, estado: 7 };
 
   var STAGES = [
     { key: "ejec",  label: "Ejecutando" },
@@ -272,6 +325,7 @@
         ejecutor: (r[R.ejecutor] || "").trim(), revisor: (r[R.revisor] || "").trim(), aprobador: (r[R.aprobador] || "").trim(),
         cargo: (r[R.cargo] || "").trim(),
         cierre: parseDMY(r[R.fCierre]) || (estado === "Cerrada" ? ultima : null),
+        inicio: parseDMY(r[R.fEjec]), entRev: parseDMY(r[R.fEntRev]), resRev: parseDMY(r[R.fResRev]), firma: parseDMY(r[R.fFirma]),
         diasRev: num(r[R.diasRev]), diasTot: num(r[R.diasTot]),
         dias: Math.round(sin != null ? sin : (ultima ? Math.max(0, daysBetween(ultima, t0)) : 0))
       });
@@ -285,7 +339,7 @@
       var estado = (r[T.estado] || "").trim() || "Por ejecutar";
       if (estado !== "Por ejecutar") return;
       var due = parseDMY(r[T.compromiso]);
-      out.push({ id: (r[T.id] || "").trim(), tarea: r[T.tarea].trim(), resp: (r[T.resp] || "").trim(), due: due, vencida: !!(due && due < t0) });
+      out.push({ id: (r[T.id] || "").trim(), tarea: r[T.tarea].trim(), resp: (r[T.resp] || "").trim(), reg: parseDMY(r[T.fReg]), due: due, vencida: !!(due && due < t0) });
     });
     return out;
   }
@@ -379,7 +433,7 @@
     // Plain-language headline: who carries the most, and what it is made of.
     var top = ms.map(function (m, i) { return { m: m, p: TITULARES[i] }; }).sort(function (a, b) { return b.m.cancha - a.m.cancha; })[0];
     $("reading").innerHTML = top && top.m.cancha
-      ? 'Mayor carga: <b>' + esc(top.p.nombre) + '</b>, con ' + top.m.cancha + ' tareas en su cancha. ' + readText(top.m) + '.'
+      ? 'Más tareas en su cancha hoy: <b>' + esc(top.p.nombre) + '</b>, con ' + top.m.cancha + '. ' + readText(top.m) + '. (La carga total, que suma lo que falta por ejecutar, está en "¿Quién tiene más carga?").'
       : 'Ningún titular tiene tareas en su cancha.';
     $("avgNote").textContent = "Promedio de los titulares: " + fmt1(mean) + " tareas en cancha.";
   }
@@ -457,9 +511,170 @@
     $("gridBody").innerHTML = html;
   }
 
+  // ---------- Preguntas ----------
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function inRange(d, a, b) { return d && d >= a && d <= b; }
+  function short(n) { var p = String(n).split(" "); return p[0] + (p[1] ? " " + p[1][0] + "." : ""); }
+  function pct(a, b) { return b ? Math.round(a / b * 100) : null; }
+
+  // Pases: work of others that this person must review or sign.
+  function pases(k) {
+    var out = [];
+    REG.forEach(function (t) {
+      if (key(t.ejecutor) === k) return;
+      if (key(t.revisor) === k && (t.entRev || t.estado !== "Pendiente" && t.estado !== "En ejecución")) {
+        var done = !!t.resRev || ["Con observaciones", "En firma", "Cerrada"].indexOf(t.estado) !== -1;
+        out.push({ t: t, rol: "revisar", recibido: t.entRev || t.inicio, hecho: done ? (t.resRev || t.firma || t.cierre) : null });
+      }
+      if (key(t.aprobador) === k && key(t.aprobador) !== key(t.revisor) && (t.firma || t.estado === "En firma" || t.estado === "Cerrada")) {
+        out.push({ t: t, rol: "firmar", recibido: t.firma || t.resRev, hecho: t.estado === "Cerrada" ? (t.cierre || t.firma) : null });
+      }
+    });
+    return out;
+  }
+
+  function stats(p) {
+    var k = key(p.nombre), m = metricsFor(p.nombre), t0 = today();
+    var asEjec = REG.filter(function (t) { return key(t.ejecutor) === k; });
+    var pa = pases(k);
+    var d30 = addDays(t0, -29), d7 = addDays(t0, -6);
+    function points(from, to) {
+      var goles = asEjec.filter(function (t) { return t.estado === "Cerrada" && inRange(t.cierre, from, to); }).length;
+      var acert = pa.filter(function (x) { return inRange(x.hecho, from, to); }).length;
+      return { goles: goles, pases: acert, pts: goles * 3 + acert };
+    }
+    function nuevas(from, to) {
+      return asEjec.filter(function (t) { return inRange(t.inicio, from, to); }).length +
+        m.tpe.filter(function (t) { return inRange(t.reg, from, to); }).length +
+        pa.filter(function (x) { return inRange(x.recibido, from, to); }).length;
+    }
+    var prev8 = 0; for (var w = 1; w <= 8; w++) prev8 += nuevas(addDays(t0, -6 - 7 * w), addDays(t0, -7 * w));
+    var asig30 = asEjec.filter(function (t) { return inRange(t.inicio, d30, t0); });
+    return {
+      p: p, m: m,
+      asignadas: m.asignadas + m.porEjecutar, resueltas: m.cerradas,
+      abiertas: m.enJuego.length + m.porEjecutar,
+      carga: m.cancha + m.porEjecutar,
+      asig30: asig30.length, res30: asig30.filter(function (t) { return t.estado === "Cerrada"; }).length,
+      pasesRec: pa.length, pasesOk: pa.filter(function (x) { return x.hecho; }).length,
+      nuevas7: nuevas(d7, t0), promSemana: prev8 / 8,
+      sinMov: m.mine.filter(function (t) { return t.dias >= 10; }),
+      now: points(d30, t0), before: points(addDays(t0, -36), addDays(t0, -7))
+    };
+  }
+
+  function miniBars(rows, fmtV, hiFn) {
+    var max = Math.max(1, Math.max.apply(null, rows.map(function (r) { return r.v || 0; })));
+    return '<div class="mini">' + rows.map(function (r) {
+      return '<div class="mrow" title="' + esc(r.name + ": " + fmtV(r)) + '"><span class="mn">' + esc(short(r.name)) + '</span>' +
+        '<span class="mt"><span class="mb' + (hiFn && hiFn(r) ? " hi" : "") + '" style="width:' + ((r.v || 0) / max * 100) + '%"></span></span>' +
+        '<span class="mv">' + fmtV(r) + '</span></div>';
+    }).join("") + '</div>';
+  }
+  function card(q, ans, why, flag, body) {
+    return '<article class="q"><h3>' + q + '</h3><div class="ans">' + ans + '</div>' +
+      (flag ? '<span class="flag ' + flag[0] + '">' + flag[1] + '</span>' : "") +
+      (why ? '<p class="why">' + why + '</p>' : "") + (body || "") + '</article>';
+  }
+  function topBy(list, f) { return list.slice().sort(function (a, b) { return f(b) - f(a); })[0]; }
+
+  function renderQuestions() {
+    var S = TITULARES.map(stats);
+    var cards = [];
+
+    // 1. Carga
+    var c = topBy(S, function (s) { return s.carga; });
+    cards.push(card("¿Quién tiene más carga?", esc(c.p.nombre) + ' <small>' + c.carga + ' por mover</small>',
+      'Carga = lo que tiene en su cancha + lo que espera por ejecutar. Asignadas / resueltas en total: ' + c.asignadas + ' / ' + c.resueltas + '.', null,
+      miniBars(S.map(function (s) { return { name: s.p.nombre, v: s.carga, s: s }; }), function (r) { return r.v + " · " + r.s.asignadas + "/" + r.s.resueltas; },
+        function (r) { return r.s === c; })));
+
+    // 2. Rendimiento
+    var withAsig = S.filter(function (s) { return s.asignadas >= 5; }); // con muy pocas tareas el % engaña
+    var r = topBy(withAsig, function (s) { return s.resueltas / s.asignadas; });
+    cards.push(card("¿Quién rinde más? (goles / asignadas)", r ? esc(r.p.nombre) + ' <small>' + pct(r.resueltas, r.asignadas) + '%</small>' : "—",
+      '¿Cuánto de lo que me asignan lo resuelvo? Solo compite quien tiene 5 o más asignadas. Al lado, los últimos 30 días: resueltas de las iniciadas.', null,
+      miniBars(S.map(function (s) { return { name: s.p.nombre, v: pct(s.resueltas, s.asignadas) || 0, s: s }; }),
+        function (x) { return (x.s.asignadas ? x.v + "%" : "—") + " · 30d " + x.s.res30 + "/" + x.s.asig30; })));
+
+    // 3. Banca
+    var banca = S.filter(function (s) { return s.carga === 0 && s.abiertas === 0; });
+    cards.push(card("¿Quién está en la banca?", banca.length ? banca.map(function (s) { return esc(s.p.nombre); }).join(", ") : "Nadie",
+      banca.length ? "Sin tareas asignadas ni pases por revisar. Puede recibir trabajo." : "Todos los titulares tienen algo en juego.",
+      banca.length ? ["warn", "En la banca: " + banca.length] : ["ok", "Todos en cancha"]));
+
+    // 4. Pases
+    var withP = S.filter(function (s) { return s.pasesRec; });
+    var pz = topBy(withP, function (s) { return s.pasesRec; });
+    cards.push(card("¿Quién recibe más pases y cuántos acierta?", pz ? esc(pz.p.nombre) + ' <small>' + pz.pasesOk + ' de ' + pz.pasesRec + ' (' + pct(pz.pasesOk, pz.pasesRec) + '%)</small>' : "—",
+      "Pase = trabajo de otro que le toca revisar o firmar. Acertado = ya lo revisó o firmó.", null,
+      miniBars(S.map(function (s) { return { name: s.p.nombre, v: s.pasesRec, s: s }; }), function (x) { return x.s.pasesOk + "/" + x.v + (x.v ? " · " + pct(x.s.pasesOk, x.v) + "%" : ""); })));
+
+    // 5. Exceso en corto tiempo
+    var exceso = S.filter(function (s) { return s.nuevas7 >= 5 && s.nuevas7 >= 2 * Math.max(1, s.promSemana); });
+    cards.push(card("¿Exceso de trabajo en poco tiempo?", exceso.length ? "Sí: " + exceso.map(function (s) { return esc(s.p.nombre); }).join(", ") : "No",
+      "Tareas y pases nuevos de los últimos 7 días, comparado con su promedio semanal de las 8 semanas anteriores (exceso = el doble o más, y 5 o más).",
+      exceso.length ? ["bad", "Racha de carga"] : ["ok", "Ritmo normal"],
+      miniBars(S.map(function (s) { return { name: s.p.nombre, v: s.nuevas7, s: s }; }), function (x) { return x.v + " (prom. " + fmt1(x.s.promSemana) + ")"; },
+        function (x) { return exceso.indexOf(x.s) !== -1; })));
+
+    // 6. Distribución
+    var mean = S.reduce(function (a, s) { return a + s.carga; }, 0) / S.length;
+    var hi = S.filter(function (s) { return s.carga > mean * 1.5; }), lo = S.filter(function (s) { return s.carga < mean * 0.5; });
+    var mal = hi.length && lo.length;
+    cards.push(card("¿Las tareas están bien distribuidas?", mal ? "No" : "Sí, razonable",
+      mal ? "Cargados: " + hi.map(function (s) { return esc(s.p.nombre) + " (" + s.carga + ")"; }).join(", ") + ". Con espacio: " + lo.map(function (s) { return esc(s.p.nombre) + " (" + s.carga + ")"; }).join(", ") + ". Promedio " + fmt1(mean) + "."
+          : "Nadie supera 1,5 veces el promedio (" + fmt1(mean) + ") mientras otro está bajo la mitad.",
+      mal ? ["bad", "Mal distribuidas"] : ["ok", "Equilibrio"]));
+
+    // 7. Sin movimiento
+    var allStuck = REG.filter(function (t) { return holder(t) && t.dias >= 10; });
+    cards.push(card("¿Cuántas tareas están sin movimiento?", allStuck.length + ' <small>con 10+ días sin avance</small>',
+      "Contando a todos (titulares y refuerzos). Barras: las de cada titular.", allStuck.length ? ["warn", "Revisar"] : ["ok", "Todo se mueve"],
+      miniBars(S.map(function (s) { return { name: s.p.nombre, v: s.sinMov.length, s: s }; }), function (x) { return String(x.v); }, function (x) { return x.v > 0; })));
+
+    // 8. Tiempo máximo
+    var oldest = REG.filter(function (t) { return holder(t) && holder(t).name; }).sort(function (a, b) { return b.dias - a.dias; }).slice(0, 3);
+    cards.push(card("¿Tiempo máximo de una tarea en la cancha?", oldest.length ? oldest[0].dias + ' <small>días sin avance</small>' : "—",
+      oldest.length ? esc(oldest[0].tarea) + " · con " + esc(holder(oldest[0]).name) : "", null,
+      '<ul class="mlist">' + oldest.map(function (t) { return '<li><span>' + esc(t.tarea) + ' · ' + esc(short(holder(t).name)) + '</span><span>' + t.dias + ' d</span></li>'; }).join("") + '</ul>'));
+
+    // 9. Sin responsable
+    var huerfanas = REG.filter(function (t) { var h = holder(t); return h && !h.name; })
+      .map(function (t) { return { txt: t.tarea, why: t.estado === "En revisión" ? "sin revisor" : t.estado === "En firma" ? "sin aprobador" : "sin responsable" }; })
+      .concat(TPE.filter(function (t) { return !t.resp; }).map(function (t) { return { txt: t.tarea, why: "por ejecutar sin responsable" }; }));
+    cards.push(card("¿Hay asignaciones sin responsable?", huerfanas.length ? String(huerfanas.length) : "No",
+      huerfanas.length ? "Tareas abiertas donde nadie tiene la pelota." : "Todas las tareas abiertas tienen a alguien a cargo.",
+      huerfanas.length ? ["bad", "Pelota suelta"] : ["ok", "Todo asignado"],
+      huerfanas.length ? '<ul class="mlist">' + huerfanas.slice(0, 4).map(function (h) { return '<li><span>' + esc(h.txt) + '</span><span>' + h.why + '</span></li>'; }).join("") + '</ul>' : ""));
+
+    $("qgrid").innerHTML = cards.join("");
+    renderRank(S);
+  }
+
+  function renderRank(S) {
+    function order(field) {
+      return S.filter(function (s) { return s[field].pts > 0; }).sort(function (a, b) { return b[field].pts - a[field].pts || b[field].goles - a[field].goles; });
+    }
+    var now = order("now"), before = order("before");
+    var rows = now.map(function (s, i) {
+      var j = before.indexOf(s), mv;
+      if (j === -1) mv = '<span class="mv-up">▲ entra</span>';
+      else if (j > i) mv = '<span class="mv-up">▲ ' + (j - i) + '</span>';
+      else if (j < i) mv = '<span class="mv-down">▼ ' + (i - j) + '</span>';
+      else mv = '<span class="mv-eq">=</span>';
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(s.p.nombre) + '</b>' + (s.sinMov.length ? ' 🟨' : '') + '</td><td>' + s.now.goles + '</td><td>' + s.now.pases + '</td><td><b>' + s.now.pts + '</b></td><td>' + mv + '</td></tr>';
+    });
+    S.filter(function (s) { return s.now.pts === 0; }).forEach(function (s) {
+      rows.push('<tr class="out"><td>—</td><td>' + esc(s.p.nombre) + (s.sinMov.length ? ' 🟨' : '') + '</td><td>0</td><td>0</td><td>0</td><td>' +
+        (before.indexOf(s) !== -1 ? '<span class="mv-down">▼ queda fuera</span>' : 'fuera de la tabla') + '</td></tr>');
+    });
+    $("rank").innerHTML = '<thead><tr><th>#</th><th>Jugador</th><th>Goles</th><th>Pases acertados</th><th>Puntos</th><th>vs hace 7 días</th></tr></thead><tbody>' + rows.join("") + '</tbody>';
+  }
+
   function renderAll() {
     var ms = TITULARES.map(function (p) { return metricsFor(p.nombre); });
-    renderKpis(ms); renderChart(ms); renderGrid(ms);
+    renderQuestions(); renderChart(ms); renderGrid(ms);
   }
 
   // ---------- Events ----------
