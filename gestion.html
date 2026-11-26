@@ -101,6 +101,11 @@
   .seg:only-child { border-radius: 4px; }
   .seg.ejec { background: var(--s-ejec); } .seg.corr { background: var(--s-corr); } .seg.rev { background: var(--s-rev); } .seg.firma { background: var(--s-firma); } .seg.pend { background: var(--s-pend); }
   .seg:hover { filter: brightness(1.1); outline: 2px solid var(--surface); }
+  .seg { display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; color: #fff; overflow: hidden; }
+  .seg.firma, .seg.rev { color: #0b0b0b; }
+  .bar-read { grid-column: 2 / 4; font-size: 12px; color: var(--ink-soft); margin-top: -4px; }
+  .bar-read b { color: var(--ink); }
+  .reading { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; color: var(--ink); }
   .avg-line { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 1.5px dashed var(--muted); pointer-events: none; }
   .bar-total { font-weight: 700; text-align: right; }
   .bar-empty { color: var(--muted); font-size: 12px; }
@@ -165,6 +170,7 @@
     <h2 id="chart-h">¿En qué cancha está la pelota?</h2>
     <p class="desc">Tareas abiertas que cada titular tiene hoy en su cancha, por etapa. "Pendiente sin iniciar" son filas del Registro aún sin fecha de ejecución. La línea punteada marca el promedio de los titulares.</p>
     <div class="panel">
+      <p class="reading" id="reading"></p>
       <div class="legend" id="legend"></div>
       <div class="bars" id="bars"></div>
       <div class="avg-note" id="avgNote"></div>
@@ -362,14 +368,35 @@
       var m = ms[i];
       var segs = STAGES.filter(function (s) { return m.stages[s.key].length; }).map(function (s) {
         var n = m.stages[s.key].length;
-        return '<span class="seg ' + s.key + '" style="width:' + (n / max * 100) + '%" data-tip="' + esc(p.nombre + " · " + s.label + ": " + n + (n === 1 ? " tarea" : " tareas")) + '"></span>';
+        return '<span class="seg ' + s.key + '" style="width:' + (n / max * 100) + '%" data-tip="' + esc(p.nombre + " · " + s.label + ": " + n + (n === 1 ? " tarea" : " tareas")) + '">' + (n / max >= 0.04 ? n : "") + '</span>';
       }).join("");
       return '<div class="bar-row"><span class="bar-name" title="' + esc(p.nombre) + '">' + esc(p.nombre) + '</span>' +
         '<div class="bar-track">' + (segs ? '<div class="bar-stack" role="img" aria-label="' + esc(p.nombre + ": " + STAGES.map(function (s) { return s.label + " " + m.stages[s.key].length; }).join(", ")) + '">' + segs + '</div>' : '<span class="bar-empty">Sin tareas en su cancha</span>') +
         '<span class="avg-line" style="left:' + (mean / max * 100) + '%"></span></div>' +
-        '<span class="bar-total tnum">' + m.cancha + '</span></div>';
+        '<span class="bar-total tnum">' + m.cancha + '</span>' +
+        (m.cancha ? '<div class="bar-read">' + readText(m) + '</div>' : '') + '</div>';
     }).join("");
+    // Plain-language headline: who carries the most, and what it is made of.
+    var top = ms.map(function (m, i) { return { m: m, p: TITULARES[i] }; }).sort(function (a, b) { return b.m.cancha - a.m.cancha; })[0];
+    $("reading").innerHTML = top && top.m.cancha
+      ? 'Mayor carga: <b>' + esc(top.p.nombre) + '</b>, con ' + top.m.cancha + ' tareas en su cancha. ' + readText(top.m) + '.'
+      : 'Ningún titular tiene tareas en su cancha.';
     $("avgNote").textContent = "Promedio de los titulares: " + fmt1(mean) + " tareas en cancha.";
+  }
+
+  // "Juega" = his own tasks (ejecutando, corrigiendo, sin iniciar); "asiste" = others' work he reviews or signs.
+  function readText(m) {
+    var propias = m.stages.ejec.length + m.stages.corr.length + m.stages.pend.length;
+    var asiste = m.stages.rev.length + m.stages.firma.length;
+    var parts = [];
+    if (propias) parts.push('<b>' + propias + '</b> ' + (propias === 1 ? "propia" : "propias") + ' (' + [
+      m.stages.ejec.length ? m.stages.ejec.length + " ejecutando" : "",
+      m.stages.corr.length ? m.stages.corr.length + " corrigiendo" : "",
+      m.stages.pend.length ? m.stages.pend.length + " sin iniciar" : ""].filter(Boolean).join(", ") + ')');
+    var r = m.stages.rev.length, f = m.stages.firma.length;
+    if (asiste) parts.push('<b>' + asiste + '</b> de otros para ' +
+      (r && f ? "revisar (" + r + ") y firmar (" + f + ")" : r ? "revisar" : "firmar"));
+    return parts.join(" · ");
   }
 
   function loadChip(m, mean) {
