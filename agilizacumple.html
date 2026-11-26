@@ -542,7 +542,19 @@
     font-size: 13.5px;
   }
   table.tasks tr:last-child td { border-bottom: none; }
-  table.tasks tbody tr.dimmed { opacity: 0.35; }
+  table.tasks tbody tr.dimmed { display: none; }
+
+  /* ---------- Tarjeta abierta: las tareas del jugador con sus jugadas ---------- */
+  .person-card.open { grid-column: 1 / -1; cursor: default; }
+  .person-card.open .person-top { cursor: pointer; }
+  .card-close { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .card-lists { display: flex; flex-direction: column; gap: 4px; }
+  .quick-group h3 { margin: 6px 0 4px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .quick-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .quick-item .qi-main { min-width: 0; flex: 1 1 320px; }
+  .quick-item .qi-name { font-weight: 600; overflow-wrap: anywhere; }
+  .quick-item .qi-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 3px; }
+  .quick-empty { color: var(--muted); font-size: 12.5px; padding: 6px 0 2px; display: flex; align-items: center; gap: 6px; }
   .task-name { font-weight: 600; color: var(--ink); }
   .task-priority { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   .priority-alta { color: var(--critical); }
@@ -833,7 +845,7 @@
     <div class="section-head">
       <div>
         <h2 id="roster-h">¿Quién tiene la pelota?</h2>
-        <p class="desc">Toca tu tarjeta para ver solo lo que está en tu cancha ahora mismo.</p>
+        <p class="desc">Toca tu tarjeta: se abre con tus tareas y desde ahí pasas la pelota o marcas el gol.</p>
       </div>
       <div class="filter-note" id="filterNote">
         Mostrando solo a <strong id="filterName"></strong>
@@ -1366,7 +1378,32 @@
   });
 
   // ---- roster ----
-  var activeFilter = null;
+  // The open card is remembered in this browser, so each person lands on their own cancha.
+  var PLAYER_STORE = "qaJugador";
+  var activeFilter = (function () { try { return localStorage.getItem(PLAYER_STORE) || null; } catch (e) { return null; } })();
+  function rememberPlayer() { try { if (activeFilter) localStorage.setItem(PLAYER_STORE, activeFilter); else localStorage.removeItem(PLAYER_STORE); } catch (e) {} }
+
+  function cardItem(t, waitingFor) {
+    var extra = waitingFor ? '<span>Esperando a ' + waitingFor + '</span>' : (t.holder ? '<span>' + t.holder.accion + '</span>' : "");
+    return '<div class="quick-item"><div class="qi-main"><div class="qi-name">' + t.tarea + '</div>' +
+      '<div class="qi-meta"><span class="stage-chip ' + STAGE_CLASS[t.estado] + '">' + t.estado + '</span>' + extra +
+      '<span class="days-cell">' + alertIcon(t.alert) + ' ' + t.dias + (t.dias === 1 ? ' día' : ' días') + ' sin avance</span></div></div>' +
+      playCell(t) + '</div>';
+  }
+  function cardLists(p, mine) {
+    var byDays = function (a, b) { return b.dias - a.dias; };
+    mine = mine.slice().sort(byDays);
+    var waiting = openTasks.filter(function (t) { return t.ejecutor === p.id && !(t.holder && t.holder.personId === p.id); }).sort(byDays);
+    return '<div class="card-lists">' +
+      '<div class="quick-group"><h3>La pelota la tienes tú (' + mine.length + ')</h3>' +
+        (mine.length ? mine.map(function (t) { return cardItem(t, null); }).join("") : '<div class="quick-empty">' + alertIcon("ok") + ' Nada en tu cancha ahora mismo.</div>') + '</div>' +
+      (waiting.length ? '<div class="quick-group"><h3>Tus tareas en otra cancha (' + waiting.length + ')</h3>' +
+        waiting.map(function (t) {
+          var h = t.holder && t.holder.personId ? personById(t.holder.personId) : null;
+          return cardItem(t, h ? h.nombre : "que alguien la tome");
+        }).join("") + '</div>' : "") +
+    '</div>';
+  }
 
   function personLoad(personId) {
     return openTasks.filter(function (t) { return t.holder && t.holder.personId === personId; });
@@ -1401,34 +1438,52 @@
             '<span aria-hidden="true">' + ICON_SVG.pass + '</span>Pasa la pelota</span>'
         : '';
 
-      return '<button type="button" class="person-card" data-person="' + p.id + '" aria-pressed="' + (activeFilter === p.id) + '">' +
+      var open = activeFilter === p.id;
+      return '<div class="person-card' + (open ? " open" : "") + '" role="button" tabindex="0" data-person="' + p.id + '" aria-pressed="' + open + '" aria-expanded="' + open + '">' +
         '<div class="person-top">' +
           '<div class="avatar">' + initials(p.nombre) + ballBadge + '</div>' +
           '<div><div class="person-name">' + p.nombre + '</div><div class="person-role">' + p.cargo + '</div></div>' +
+          (open ? '<span class="card-close">Cerrar ✕</span>' : '') +
         '</div>' +
         '<div class="load-row">' +
           '<div><span class="load-count tnum">' + tasks.length + '</span> <span class="load-label">' + (tasks.length === 1 ? "tarea" : "tareas") + '</span></div>' +
           (statusPillHtml || loadPillHtml ? '<div class="pill-group">' + statusPillHtml + loadPillHtml + '</div>' : '') +
         '</div>' +
-        '<div class="person-tasks">' + tasksHtml + '</div>' +
-      '</button>';
+        (open ? cardLists(p, tasks) : '<div class="person-tasks">' + tasksHtml + '</div>') +
+      '</div>';
     }).join("");
     document.getElementById("roster").innerHTML = html;
 
-    Array.prototype.forEach.call(document.querySelectorAll(".person-card"), function (card) {
-      card.addEventListener("click", function () {
-        var id = card.getAttribute("data-person");
-        activeFilter = (activeFilter === id) ? null : id;
-        renderRoster();
-        renderTasks();
-        updateFilterNote();
-      });
-    });
   }
+
+  function toggleCard(card) {
+    var id = card.getAttribute("data-person");
+    activeFilter = (activeFilter === id) ? null : id;
+    rememberPlayer();
+    renderRoster();
+    renderTasks();
+    updateFilterNote();
+    if (activeFilter) {
+      var opened = document.querySelector('.person-card[data-person="' + activeFilter + '"]');
+      if (opened && opened.scrollIntoView) opened.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+  document.getElementById("roster").addEventListener("click", function (e) {
+    if (e.target.closest("[data-pass],[data-goal]")) { onPlayClick(e); return; }
+    var card = e.target.closest(".person-card"); if (!card) return;
+    // Inside an open card only the header closes it, so reading the list doesn't collapse it.
+    if (card.classList.contains("open") && !e.target.closest(".person-top")) return;
+    toggleCard(card);
+  });
+  document.getElementById("roster").addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("person-card")) {
+      e.preventDefault(); toggleCard(e.target);
+    }
+  });
 
   function updateFilterNote() {
     var note = document.getElementById("filterNote");
-    if (activeFilter) {
+    if (activeFilter && personById(activeFilter)) {
       note.classList.add("active");
       document.getElementById("filterName").textContent = personById(activeFilter).nombre;
     } else {
@@ -1437,6 +1492,7 @@
   }
   document.getElementById("clearFilter").addEventListener("click", function () {
     activeFilter = null;
+    rememberPlayer();
     renderRoster();
     renderTasks();
     updateFilterNote();
@@ -1574,13 +1630,14 @@
     });
   }
 
-  document.getElementById("taskBody").addEventListener("click", function (e) {
+  function onPlayClick(e) {
     var b = e.target.closest("[data-pass],[data-goal]");
     if (!b || b.disabled) return;
     var t = taskById(b.getAttribute("data-pass") || b.getAttribute("data-goal"));
     if (!t) return;
     if (b.hasAttribute("data-pass")) openPass(b, t); else openGoal(b, t);
-  });
+  }
+  document.getElementById("taskBody").addEventListener("click", onPlayClick);
 
   document.getElementById("sortDays").addEventListener("click", function () {
     sortDir = sortDir === "desc" ? "asc" : "desc";
@@ -1720,11 +1777,14 @@
 
   function renderAll() {
     deriveTasks();
+    var shownFilter = activeFilter;
+    if (activeFilter && !personById(activeFilter)) activeFilter = null; // stored player not in this data (yet)
     renderKpis();
     renderRoster();
     renderPerformance();
     renderTasks();
     updateFilterNote();
+    if (shownFilter && !activeFilter) activeFilter = shownFilter;
   }
 
   function fmtTime(d) {
