@@ -86,6 +86,12 @@
   .sync-dot.err { background: var(--bad); }
   .btn { font: inherit; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
   .btn:hover { border-color: var(--accent-soft-line); color: var(--accent); }
+  a.btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; margin-right: 6px; }
+  .btn-primary:hover { color: #fff; filter: brightness(1.08); border-color: var(--accent); }
+  :root[data-theme="dark"] .btn-primary, :root[data-theme="dark"] .btn-primary:hover { color: #0e1e30; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary, :root:not([data-theme="light"]) .btn-primary:hover { color: #0e1e30; } }
+  .toolbar > span:last-child { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 
   /* Three cards */
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
@@ -204,6 +210,8 @@
   .people .chip .c { font-family: "Roboto Mono", monospace; font-size: 11px; opacity: .8; margin-left: 4px; }
   .me-note { font-size: 12px; color: var(--ink-soft); margin: -10px 0 16px 2px; }
   .me-note[hidden] { display: none; }
+  .total { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .total b { font-family: "Roboto Mono", monospace; font-weight: 600; color: var(--ink-soft); }
   .semaforo { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-soft); margin: 0 0 12px; }
   .semaforo span { display: inline-flex; align-items: center; gap: 6px; }
   .semaforo i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -230,6 +238,9 @@
   <div class="toolbar">
     <span class="sync" id="sync"><span class="sync-dot"></span> Cargando…</span>
     <span>
+      <a class="btn btn-primary" href="https://docs.google.com/spreadsheets/d/14A8s1eLHnjuFvR94GVBSyzL2UCRgejnU0x5K4nowE50/edit#gid=0" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        Ingresar tareas en la planilla</a>
       <button class="btn" id="reload" type="button">Actualizar</button>
     </span>
   </div>
@@ -315,7 +326,7 @@
   </section>
 
   <footer class="page">
-    Validaciones · Espacio QA. Los datos se ingresan en la planilla «VALIDACIONES – Seguimiento de documentos»; esta página solo los muestra.
+    Validaciones · Espacio QA. Los datos se ingresan en la <a href="https://docs.google.com/spreadsheets/d/14A8s1eLHnjuFvR94GVBSyzL2UCRgejnU0x5K4nowE50/edit#gid=0" target="_blank" rel="noopener">planilla «VALIDACIONES – Seguimiento de documentos»</a> (pestaña Registro); esta página solo los muestra.
   </footer>
 </div>
 
@@ -685,7 +696,8 @@
       var start = t.fejec || t.freg;
       var dur = start ? daysBetween(start, t.fcierre) : null;
       var right = '<span class="pill ok">' + CHECK + "Cerrada " + fmt(t.fcierre) + "</span>" +
-        (dur != null ? '<span class="wait ' + closeClass(dur) + '" title="Desde que se ejecutó (' + fmt(start) + ') hasta el cierre">' + FLAG + "<b>" + dur + "</b> " + (dur === 1 ? "día" : "días") + " en cerrar</span>" : "");
+        (dur != null ? '<span class="wait ' + closeClass(dur) + '" title="Desde que se ejecutó (' + fmt(start) + ') hasta el cierre">' + FLAG + "<b>" + dur + "</b> " + (dur === 1 ? "día" : "días") + " en cerrar</span>" : "") +
+        (t.freg ? '<span class="total" title="Desde la fecha de registro hasta el cierre">Total desde el inicio: <b>' + plural(daysBetween(t.freg, t.fcierre), "día", "días") + "</b> (" + fmt(t.freg) + " → " + fmt(t.fcierre) + ")</span>" : "");
       var who = [];
       if (t.rev) who.push("Revisó: " + esc(t.rev));
       if (t.apr) who.push("Aprobó: " + esc(t.apr));
