@@ -275,6 +275,12 @@
   @media (prefers-reduced-motion: no-preference) {
     .initiative-card:hover .tasks-icon svg { animation: tick .5s ease-out; }
   }
+  .val-icon { background: #efe8fb; color: #6d3fc0; }
+  .val-status { color: #6d3fc0; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .val-icon { background: #2a2140; color: #b9a0f0; }
+    :root:not([data-theme="light"]) .val-status { color: #b9a0f0; }
+  }
   @keyframes tick { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: scale(1); } }
 </style>
 </head>
@@ -337,6 +343,21 @@
         <div class="initiative-meta">
           <span class="initiative-status score-status"><span class="dot"></span><span id="scoreCount">Ver resultado</span></span>
           <span class="initiative-open">Ver marcador →</span>
+        </div>
+      </a>
+
+      <a class="initiative-card" href="validaciones.html">
+        <span class="initiative-icon val-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 15h9"/></svg>
+        </span>
+        <div>
+          <p class="step"><span class="n">★</span>Área</p>
+          <p class="initiative-name">VALIDACIONES</p>
+          <p class="initiative-desc">Protocolos, informes y calificaciones: por ejecutar, entregados a quién y cerrados. Muestra dónde se están quedando los documentos.</p>
+        </div>
+        <div class="initiative-meta">
+          <span class="initiative-status val-status"><span class="dot"></span>Validación y Calificación</span>
+          <span class="initiative-open">Abrir →</span>
         </div>
       </a>
     </div>
