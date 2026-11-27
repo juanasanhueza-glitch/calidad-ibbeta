@@ -107,16 +107,19 @@
   .card .big { font-family: "Roboto Mono", monospace; font-size: 32px; font-weight: 600; line-height: 1; margin: 2px 0 0; font-variant-numeric: tabular-nums; }
   .card .sub { font-size: 12.5px; color: var(--ink-soft); margin: 0; min-height: 1.5em; }
   .card .open { font-size: 12px; font-weight: 600; color: var(--accent); border-top: 1px solid var(--line); padding-top: 10px; }
-  .card.c1 .step .n { background: var(--warn-soft); color: var(--warn); }
-  .card.c2 .step .n { background: var(--accent-soft); color: var(--accent); }
+  .card.c1 .step .n { background: var(--accent-soft); color: var(--accent); }
+  .card.c2 .step .n { background: var(--warn-soft); color: var(--warn); }
   .card.c3 .step .n { background: var(--good-soft); color: var(--good); }
   /* Semáforo sutil en las tarjetas */
   .card { --sem: transparent; background: linear-gradient(180deg, color-mix(in srgb, var(--sem) 9%, var(--surface)) 0%, var(--surface) 70%); overflow: hidden; }
   .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sem); }
-  .card.s-ok { --sem: var(--good); }
-  .card.s-warm { --sem: var(--warn); }
-  .card.s-hot { --sem: var(--bad); }
-  .card .semdot { width: 8px; height: 8px; border-radius: 50%; background: var(--sem); margin-left: auto; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sem) 22%, transparent); }
+  /* Color fijo por etapa: azul = por ejecutar, amarillo = en curso, verde = cerradas */
+  .card.c1 { --sem: var(--accent); }
+  .card.c2 { --sem: #e0a800; }
+  .card.c3 { --sem: var(--good); }
+  :root[data-theme="dark"] .card.c2 { --sem: #f5c542; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card.c2 { --sem: #f5c542; } }
+  .card .semdot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--sem); margin-left: auto; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sem) 22%, transparent); }
   .card.c2.has-tag .semdot { display: none; }
   .card.c2 .tag { position: absolute; top: 16px; right: 16px; font-size: 11px; font-weight: 700; color: var(--bad); background: var(--bad-soft); padding: 2px 8px; border-radius: 999px; }
 
@@ -571,8 +574,6 @@
     };
     ["pe", "en", "ce"].forEach(function (k) {
       var card = document.getElementById("tab-" + k);
-      card.classList.remove("s-ok", "s-warm", "s-hot");
-      if (sem[k]) card.classList.add("s-" + sem[k]);
       card.title = tips[k];
     });
     document.getElementById("tab-en").classList.toggle("has-tag", !tag.hidden);
