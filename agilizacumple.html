@@ -501,6 +501,11 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
     border: 1px solid var(--line);
   }
   .mini-task .t-name { color: var(--ink); font-weight: 500; display: block; margin-bottom: 1px; }
+  .mini-h { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 4px 0 0; }
+  .mini-task.away { background: transparent; border-style: dashed; }
+  .mini-task .who-has { display: block; color: var(--ink-soft); }
+  .mini-task .who-has b { color: var(--ink); font-weight: 600; }
+  .mini-more { font-size: 11.5px; color: var(--accent); font-weight: 600; padding: 2px 2px 0; }
   .empty-note {
     font-size: 12.5px;
     color: var(--good);
@@ -1416,19 +1421,38 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
   function renderRoster() {
     var avgLoad = TEAM.length ? openTasks.length / TEAM.length : 0;
 
-    var html = TEAM.map(function (p) {
+    // Solo entran a la cancha quienes tienen tareas en sus manos o tareas propias esperando respuesta de otros.
+    var inField = TEAM.filter(function (p) {
+      if (activeFilter === p.id) return true;
+      return personLoad(p.id).length || openTasks.some(function (t) { return t.ejecutor === p.id; });
+    });
+    var html = inField.map(function (p) {
       var tasks = personLoad(p.id);
       var worst = "ok";
       tasks.forEach(function (t) { if (t.alert === "critical") worst = "critical"; else if (t.alert === "warning" && worst !== "critical") worst = "warning"; });
 
       var overloaded = tasks.length >= 4 && tasks.length >= avgLoad * 1.8;
 
-      var tasksHtml = tasks.length
-        ? tasks.map(function (t) {
-            return '<div class="mini-task"><span class="t-name">' + t.tarea + '</span>' +
-              alertIcon(t.alert) + ' ' + t.dias + (t.dias === 1 ? ' día' : ' días') + ' sin avance</div>';
-          }).join("")
-        : '<div class="empty-note">' + alertIcon("ok") + ' Sin tareas en tu cancha</div>';
+      var LIM = 4, byDias = function (a, b) { return b.dias - a.dias; };
+      var mineSorted = tasks.slice().sort(byDias);
+      var waitingOut = openTasks.filter(function (t) { return t.ejecutor === p.id && !(t.holder && t.holder.personId === p.id); }).sort(byDias);
+      var diasTxt = function (t) { return alertIcon(t.alert) + ' ' + t.dias + (t.dias === 1 ? ' día' : ' días'); };
+      var more = function (n) { return n > 0 ? '<div class="mini-more">+ ' + n + ' más · toca para ver</div>' : ''; };
+      var tasksHtml =
+        (mineSorted.length
+          ? '<div class="mini-h">En tu cancha (' + mineSorted.length + ')</div>' +
+            mineSorted.slice(0, LIM).map(function (t) {
+              return '<div class="mini-task"><span class="t-name">' + t.tarea + '</span>' + diasTxt(t) + ' sin avance</div>';
+            }).join("") + more(mineSorted.length - LIM)
+          : '') +
+        (waitingOut.length
+          ? '<div class="mini-h">Esperando respuesta (' + waitingOut.length + ')</div>' +
+            waitingOut.slice(0, LIM).map(function (t) {
+              var h = t.holder && t.holder.personId ? personById(t.holder.personId) : null;
+              return '<div class="mini-task away"><span class="t-name">' + t.tarea + '</span>' +
+                '<span class="who-has">En manos de <b>' + (h ? h.nombre : "sin asignar") + '</b></span>' + diasTxt(t) + ' esperando</div>';
+            }).join("") + more(waitingOut.length - LIM)
+          : '');
 
       var ballBadge = tasks.length
         ? '<span class="mini-ball' + (worst !== "ok" ? " " + worst : "") + '" title="Tiene la pelota' + (worst !== "ok" ? " · " + alertLabel(worst).toLowerCase() : "") + '" aria-hidden="true"></span>'
@@ -1450,7 +1474,7 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
           (open ? '<span class="card-close">Cerrar ✕</span>' : '') +
         '</div>' +
         '<div class="load-row">' +
-          '<div><span class="load-count tnum">' + tasks.length + '</span> <span class="load-label">' + (tasks.length === 1 ? "tarea" : "tareas") + '</span></div>' +
+          '<div><span class="load-count tnum">' + tasks.length + '</span> <span class="load-label">en su cancha</span></div>' +
           (statusPillHtml || loadPillHtml ? '<div class="pill-group">' + statusPillHtml + loadPillHtml + '</div>' : '') +
         '</div>' +
         (open ? cardLists(p, tasks) : '<div class="person-tasks">' + tasksHtml + '</div>') +

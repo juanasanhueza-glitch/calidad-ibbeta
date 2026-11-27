@@ -629,6 +629,12 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
   }
   .perf-card.empty { background: var(--surface-2); border-style: dashed; box-shadow: none; }
   .perf-head { display: flex; align-items: center; gap: 10px; }
+  .perf-pos { flex: none; min-width: 34px; height: 26px; padding: 0 7px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Roboto Mono", monospace; font-weight: 700; font-size: 13px; background: var(--line); color: var(--ink-soft); }
+  .perf-pos.p1 { background: #f6e3a1; color: #6b4e00; }
+  .perf-pos.p2 { background: #e3e6ea; color: #3e4550; }
+  .perf-pos.p3 { background: #f0d2b6; color: #6b3a12; }
+  .perf-card.top1 { border-color: #e6c75a; }
   .perf-head .person-name { font-weight: 600; font-size: 13.5px; }
   .perf-head .person-role { font-size: 11.5px; color: var(--muted); }
   .perf-pct-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -798,7 +804,7 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
     <div class="section-head">
       <div>
         <h2 id="perf-h">¿Cuántos goles llevamos?</h2>
-        <p class="desc">Cada tarea cerrada es un gol. El marcador se arma con lo que cada uno registra en el Registro de Tareas: lo que no se anota, no suma.</p>
+        <p class="desc">Cada tarea cerrada es un gol. Tabla de posiciones: ordenada por goles (tareas cerradas) de mayor a menor; si hay empate, manda quien tiene más goles este mes y luego el mayor % de cierre. Se cuentan solo las tareas donde la persona figura como <b>Responsable ejecución</b>.</p>
       </div>
     </div>
     <div id="perfTeam"></div>
@@ -1417,9 +1423,24 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
     });
 
     // Core team always shows (so an empty card nudges people to register their tasks);
-    // anyone else shows only if they execute at least one task. Alphabetical — not a ranking.
+    // anyone else shows only if they execute at least one task.
+    // Tabla de posiciones: goles (cerradas) de mayor a menor; empate → goles del mes, % cierre, nombre. Sin tareas, al final.
+    var perfCache = {};
+    function pf(id) { if (!perfCache[id]) perfCache[id] = perfFor(byPerson[id] || []); return perfCache[id]; }
     var people = TEAM.filter(function (p) { return CORE_IDS.indexOf(p.id) !== -1 || (byPerson[p.id] || []).length; })
-      .slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+      .slice().sort(function (a, b) {
+        var ea = !(byPerson[a.id] || []).length, eb = !(byPerson[b.id] || []).length;
+        if (ea !== eb) return ea ? 1 : -1;
+        var A = pf(a.id), B = pf(b.id);
+        return (B.cerradas - A.cerradas) || (B.mes - A.mes) || (B.pct - A.pct) || a.nombre.localeCompare(b.nombre, "es");
+      });
+    var posOf = {}, lastKey = null, lastPos = 0;
+    people.forEach(function (p, i) {
+      if (!(byPerson[p.id] || []).length) return;
+      var m = pf(p.id), key = m.cerradas + "|" + m.mes + "|" + m.pct;
+      if (key !== lastKey) { lastPos = i + 1; lastKey = key; }
+      posOf[p.id] = lastPos;
+    });
 
     var team = perfFor(TASKS.filter(function (t) { return t.ejecutor; }));
     teamEl.innerHTML = '<div class="perf-team">' +
@@ -1432,7 +1453,9 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
 
     grid.innerHTML = people.map(function (p) {
       var tasks = byPerson[p.id] || [];
-      var head = '<div class="perf-head"><div class="avatar">' + initials(p.nombre) + '</div>' +
+      var pos = posOf[p.id];
+      var head = '<div class="perf-head">' + (pos ? '<span class="perf-pos' + (pos <= 3 && pf(p.id).cerradas > 0 ? " p" + pos : "") + '" title="Posición en la tabla">' + pos + '°</span>' : "") +
+        '<div class="avatar">' + initials(p.nombre) + '</div>' +
         '<div><div class="person-name">' + p.nombre + '</div>' + (p.cargo ? '<div class="person-role">' + p.cargo + '</div>' : "") + '</div></div>';
       if (!tasks.length) {
         return '<div class="perf-card empty">' + head +
@@ -1445,7 +1468,7 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
       m.promRevision = revs.length ? Math.round(revs.reduce(function (s, v) { return s + v; }, 0) / revs.length * 10) / 10 : null;
       var last = lastText(m.ultimo);
       var open = expandedPerson === p.id;
-      return '<div class="perf-card clickable" role="button" tabindex="0" data-person="' + p.id + '" aria-expanded="' + open + '">' + head +
+      return '<div class="perf-card clickable' + (pos === 1 && pf(p.id).cerradas > 0 ? " top1" : "") + '" role="button" tabindex="0" data-person="' + p.id + '" aria-expanded="' + open + '">' + head +
         '<div class="perf-pct-row"><span class="perf-pct tnum">' + fmtPct(m.pct) + '</span>' +
           '<span class="perf-frac">' + m.cerradas + (m.cerradas === 1 ? ' gol' : ' goles') + ' de ' + m.asignadas + '</span></div>' +
         '<div class="perf-bar" role="img" aria-label="' + fmtPct(m.pct) + ' de cierre"><span style="width:' + m.pct + '%"></span></div>' +
