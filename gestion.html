@@ -161,6 +161,8 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
   .mrow .mt { display: block; height: 10px; background: var(--line); border-radius: 4px; overflow: hidden; }
   .mrow .mb { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
   .mrow .mb.hi { background: var(--critical); }
+  .mrow.muted .mn, .mrow.muted .mv { color: var(--muted); font-weight: 400; }
+  .mrow.muted .mt { background: repeating-linear-gradient(135deg, var(--line) 0 4px, transparent 4px 8px); }
   .mrow .mv { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
   .mlist { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
   .mlist li { display: flex; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 4px; }
@@ -570,7 +572,7 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
   function miniBars(rows, fmtV, hiFn) {
     var max = Math.max(1, Math.max.apply(null, rows.map(function (r) { return r.v || 0; })));
     return '<div class="mini">' + rows.map(function (r) {
-      return '<div class="mrow" title="' + esc(r.name + ": " + fmtV(r)) + '"><span class="mn">' + esc(short(r.name)) + '</span>' +
+      return '<div class="mrow' + (r.muted ? " muted" : "") + '" title="' + esc(r.name + ": " + fmtV(r)) + '"><span class="mn">' + esc(short(r.name)) + '</span>' +
         '<span class="mt"><span class="mb' + (hiFn && hiFn(r) ? " hi" : "") + '" style="width:' + ((r.v || 0) / max * 100) + '%"></span></span>' +
         '<span class="mv">' + fmtV(r) + '</span></div>';
     }).join("") + '</div>';
@@ -598,8 +600,14 @@ try { if (!localStorage.getItem("qaClaveEquipo")) location.replace("espacioqa.ht
     var r = topBy(withAsig, function (s) { return s.resueltas / s.asignadas; });
     cards.push(card("¿Quién rinde más? (goles / asignadas)", r ? esc(r.p.nombre) + ' <small>' + pct(r.resueltas, r.asignadas) + '%</small>' : "—",
       '¿Cuánto de lo que me asignan lo resuelvo? Solo compite quien tiene 5 o más asignadas. Al lado, los últimos 30 días: resueltas de las iniciadas.', null,
-      miniBars(S.map(function (s) { return { name: s.p.nombre, v: pct(s.resueltas, s.asignadas) || 0, s: s }; }),
-        function (x) { return (x.s.asignadas ? x.v + "%" : "—") + " · 30d " + x.s.res30 + "/" + x.s.asig30; })));
+      miniBars(S.map(function (s) {
+          var pocas = s.asignadas < 5;
+          return { name: s.p.nombre, v: pocas ? 0 : (pct(s.resueltas, s.asignadas) || 0), s: s, muted: pocas };
+        }),
+        function (x) {
+          if (x.muted) return (x.s.asignadas ? "pocas tareas (" + x.s.resueltas + "/" + x.s.asignadas + ")" : "sin tareas") + " · no compite";
+          return x.v + "% · 30d " + x.s.res30 + "/" + x.s.asig30;
+        })));
 
     // 3. Banca
     var banca = S.filter(function (s) { return s.carga === 0 && s.abiertas === 0; });
