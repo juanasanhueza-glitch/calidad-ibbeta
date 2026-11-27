@@ -110,6 +110,14 @@
   .card.c1 .step .n { background: var(--warn-soft); color: var(--warn); }
   .card.c2 .step .n { background: var(--accent-soft); color: var(--accent); }
   .card.c3 .step .n { background: var(--good-soft); color: var(--good); }
+  /* Semáforo sutil en las tarjetas */
+  .card { --sem: transparent; background: linear-gradient(180deg, color-mix(in srgb, var(--sem) 9%, var(--surface)) 0%, var(--surface) 70%); overflow: hidden; }
+  .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sem); }
+  .card.s-ok { --sem: var(--good); }
+  .card.s-warm { --sem: var(--warn); }
+  .card.s-hot { --sem: var(--bad); }
+  .card .semdot { width: 8px; height: 8px; border-radius: 50%; background: var(--sem); margin-left: auto; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sem) 22%, transparent); }
+  .card.c2.has-tag .semdot { display: none; }
   .card.c2 .tag { position: absolute; top: 16px; right: 16px; font-size: 11px; font-weight: 700; color: var(--bad); background: var(--bad-soft); padding: 2px 8px; border-radius: 999px; }
 
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); }
@@ -251,7 +259,7 @@
 
   <div class="cards" role="tablist" aria-label="Etapas">
     <button class="card c1" role="tab" id="tab-pe" aria-controls="panel-pe" aria-selected="false" data-panel="pe">
-      <p class="step"><span class="n">1</span>Por ejecutar</p>
+      <p class="step"><span class="n">1</span>Por ejecutar<span class="semdot" aria-hidden="true"></span></p>
       <p class="title">Tareas por ejecutar</p>
       <p class="big" id="n-pe">–</p>
       <p class="sub" id="s-pe">&nbsp;</p>
@@ -259,14 +267,14 @@
     </button>
     <button class="card c2" role="tab" id="tab-en" aria-controls="panel-en" aria-selected="true" data-panel="en">
       <span class="tag" id="tag-en" hidden></span>
-      <p class="step"><span class="n">2</span>En curso</p>
+      <p class="step"><span class="n">2</span>En curso<span class="semdot" aria-hidden="true"></span></p>
       <p class="title">Ejecutadas y entregadas a…</p>
       <p class="big" id="n-en">–</p>
       <p class="sub" id="s-en">&nbsp;</p>
       <span class="open">¿Quién las tiene? →</span>
     </button>
     <button class="card c3" role="tab" id="tab-ce" aria-controls="panel-ce" aria-selected="false" data-panel="ce">
-      <p class="step"><span class="n">3</span>Terminadas</p>
+      <p class="step"><span class="n">3</span>Terminadas<span class="semdot" aria-hidden="true"></span></p>
       <p class="title">Tareas cerradas</p>
       <p class="big" id="n-ce">–</p>
       <p class="sub" id="s-ce">&nbsp;</p>
@@ -343,7 +351,7 @@
   var HOT = 10, WARM = 5; // días esperando: rojo / ámbar
 
   // Columnas de la pestaña Registro (base 0)
-  var C = { id:0, doc:1, tipo:2, cod:3, resp:4, prio:5, freg:6, fcomp:7, fejec:8, rev:9, frev:10, fobs:11, freent:12, apr:13, fapr:14, fcierre:15, obs:16 };
+  var C = { id:0, doc:1, tipo:2, cod:3, ed:4, resp:5, prio:6, freg:7, fcomp:8, fejec:9, rev:10, frev:11, fobs:12, freent:13, apr:14, fapr:15, fcierre:16, obs:17 };
 
   var demo = /[?&]demo=1\b/.test(location.search);
 
@@ -352,7 +360,7 @@
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function demoRows() {
     var R = function (id, doc, tipo, cod, resp, prio, reg, comp, ejec, rev, frev, fobs, freent, apr, fapr, fcie) {
-      return [id, doc, tipo, cod, resp, prio, reg, comp, ejec, rev, frev, fobs, freent, apr, fapr, fcie, ""];
+      return [id, doc, tipo, cod, "Ed.01", resp, prio, reg, comp, ejec, rev, frev, fobs, freent, apr, fapr, fcie, ""];
     };
     var J = "Joscelyn Bazaes", N = "Janneth Biloune", S = "Susana Carreño", A = "Ana Obreque", L = "Lidia Rivero", D = "Davis Martínez Muñoz";
     return [
@@ -406,7 +414,7 @@
   function toTask(c) {
     var g = function (k) { return (c[C[k]] || "").trim(); };
     var t = {
-      id: g("id"), doc: g("doc"), tipo: g("tipo"), cod: g("cod"), resp: g("resp"), prio: g("prio"),
+      id: g("id"), doc: g("doc"), tipo: g("tipo"), cod: g("cod"), ed: g("ed"), resp: g("resp"), prio: g("prio"),
       freg: parseDate(g("freg")), fcomp: parseDate(g("fcomp")), fejec: parseDate(g("fejec")),
       rev: g("rev"), frev: parseDate(g("frev")), fobs: parseDate(g("fobs")), freent: parseDate(g("freent")),
       apr: g("apr"), fapr: parseDate(g("fapr")), fcierre: parseDate(g("fcierre")), obs: g("obs")
@@ -530,6 +538,29 @@
     document.getElementById("n-ce").textContent = ce.length;
     document.getElementById("s-ce").textContent = ce.length ? plural(mes, "cerrada", "cerradas") + " este mes" : "Aún no hay cerradas";
 
+    // Semáforo de cada tarjeta
+    var porVencer = pe.filter(function (t) { return t.fcomp && t.fcomp >= TODAY && daysBetween(TODAY, t.fcomp) <= 7; }).length;
+    var maxWait = en.reduce(function (m, t) { return Math.max(m, t.days || 0); }, 0);
+    var cierres = ce.map(function (t) { var st = t.fejec || t.freg; return st ? daysBetween(st, t.fcierre) : null; }).filter(function (d) { return d != null; });
+    var promCierre = cierres.length ? cierres.reduce(function (a, b) { return a + b; }, 0) / cierres.length : null;
+    var sem = {
+      pe: !pe.length ? "ok" : vencidas ? "hot" : porVencer ? "warm" : "ok",
+      en: !en.length ? "ok" : dayClass(maxWait),
+      ce: promCierre == null ? "" : closeClass(Math.round(promCierre))
+    };
+    var tips = {
+      pe: sem.pe === "hot" ? "Hay tareas vencidas" : sem.pe === "warm" ? "Hay tareas que vencen esta semana" : "Al día",
+      en: sem.en === "hot" ? "Hay documentos esperando 10 días o más" : sem.en === "warm" ? "Hay documentos esperando 5 a 9 días" : "Todo con menos de 5 días de espera",
+      ce: promCierre == null ? "" : "Promedio de cierre: " + promCierre.toFixed(1).replace(".", ",") + " días desde ejecutada"
+    };
+    ["pe", "en", "ce"].forEach(function (k) {
+      var card = document.getElementById("tab-" + k);
+      card.classList.remove("s-ok", "s-warm", "s-hot");
+      if (sem[k]) card.classList.add("s-" + sem[k]);
+      card.title = tips[k];
+    });
+    document.getElementById("tab-en").classList.toggle("has-tag", !tag.hidden);
+
     renderPE(pe); renderEN(en, byWho); renderCE(ce);
   }
 
@@ -563,7 +594,7 @@
   function metaBase(t) {
     var parts = [];
     if (t.tipo) parts.push(esc(t.tipo));
-    if (t.cod) parts.push(esc(t.cod));
+    if (t.cod) parts.push(esc(t.cod) + (t.ed && !/^n\/?a$/i.test(t.ed) ? " " + esc(t.ed) : ""));
     parts.push("Ejecuta: " + esc(t.resp || "—"));
     if (t.prio) parts.push("Prioridad " + esc(t.prio));
     return parts.join('<span class="sep">·</span>');
