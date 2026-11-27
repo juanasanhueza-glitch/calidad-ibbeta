@@ -127,7 +127,7 @@
   .sw.rev { background: var(--rev); } .sw.apr { background: var(--apr); } .sw.fix { background: var(--fix); }
 
   .who { display: grid; gap: 6px; margin-bottom: 22px; }
-  .who-row { display: grid; grid-template-columns: minmax(130px, 220px) 1fr 190px; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; background: none; font: inherit; color: inherit; text-align: left; width: 100%; }
+  .who-row { display: grid; grid-template-columns: minmax(130px, 220px) 1fr 240px; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; background: none; font: inherit; color: inherit; text-align: left; width: 100%; }
   .who-row:hover { background: var(--surface-2); }
   .who-row[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-soft-line); }
   .who-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -141,6 +141,7 @@
   .who-meta b { font-family: "Roboto Mono", monospace; }
   .who-meta b.hot { color: var(--bad); }
   .who-meta b.warm { color: var(--warn); }
+  .who-meta b.ok { color: var(--good); }
   @media (max-width: 640px) {
     .who-row { grid-template-columns: 1fr auto; }
     .who-row .bar { grid-column: 1 / -1; grid-row: 2; }
@@ -183,6 +184,13 @@
   .days { font-family: "Roboto Mono", monospace; font-size: 12px; color: var(--ink-soft); }
   .days.hot { color: var(--bad); font-weight: 600; }
   .days.warm { color: var(--warn); font-weight: 600; }
+  .wait { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; white-space: nowrap; }
+  .wait svg { flex: none; }
+  .wait b { font-family: "Roboto Mono", monospace; font-size: 15px; }
+  .wait.ok { color: var(--good); background: var(--good-soft); border-color: transparent; }
+  .wait.warm { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+  .wait.hot { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
+  .who-meta .clk { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
   @media (max-width: 600px) { .item { grid-template-columns: 1fr; } .item .r { grid-row: auto; grid-column: 1; align-items: flex-start; flex-direction: row; flex-wrap: wrap; } }
 
   .stages { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
@@ -190,6 +198,17 @@
   .stage .k { font-size: 11.5px; color: var(--muted); margin: 0; }
   .stage .v { font-family: "Roboto Mono", monospace; font-size: 20px; font-weight: 600; margin: 0; }
 
+  .people { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 18px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .people .lab { font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+  .people .chip { font-size: 12.5px; padding: 5px 12px; }
+  .people .chip .c { font-family: "Roboto Mono", monospace; font-size: 11px; opacity: .8; margin-left: 4px; }
+  .me-note { font-size: 12px; color: var(--ink-soft); margin: -10px 0 16px 2px; }
+  .me-note[hidden] { display: none; }
+  .semaforo { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-soft); margin: 0 0 12px; }
+  .semaforo span { display: inline-flex; align-items: center; gap: 6px; }
+  .semaforo i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .semaforo i.ok { background: var(--good); } .semaforo i.warm { background: var(--warn); } .semaforo i.hot { background: var(--bad); }
+  .done-ic { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; background: var(--good-soft); color: var(--good); vertical-align: -6px; margin-right: 8px; }
   .empty { text-align: center; color: var(--muted); padding: 26px 10px; border: 1px dashed var(--line-strong); border-radius: 10px; }
   .notice { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 12.5px; }
   .notice[hidden] { display: none; }
@@ -215,6 +234,9 @@
     </span>
   </div>
   <div class="notice" id="notice" hidden></div>
+
+  <div class="people" id="people" role="group" aria-label="Ver por persona"><span class="lab">Ver por persona:</span></div>
+  <p class="me-note" id="me-note" hidden></p>
 
   <div class="cards" role="tablist" aria-label="Etapas">
     <button class="card c1" role="tab" id="tab-pe" aria-controls="panel-pe" aria-selected="false" data-panel="pe">
@@ -278,6 +300,7 @@
     <div class="speed" id="speed"></div>
 
     <p class="sub-h" id="list-en-h">Todos los documentos entregados</p>
+    <div class="semaforo"><span><i class="ok"></i>Menos de 5 días</span><span><i class="warm"></i>5 a 9 días</span><span><i class="hot"></i>10 días o más</span></div>
     <div class="filters" id="f-en"></div>
     <div class="list" id="l-en"></div>
   </section>
@@ -286,6 +309,7 @@
   <section class="panel" id="panel-ce" role="tabpanel" aria-labelledby="tab-ce" hidden>
     <h2>Tareas cerradas</h2>
     <p class="desc">Documentos aprobados y cerrados, del más reciente al más antiguo, con los días que tomó cada uno.</p>
+    <div class="semaforo"><span><i class="ok"></i>Cerrada en 10 días o menos</span><span><i class="warm"></i>11 a 20 días</span><span><i class="hot"></i>Más de 20 días</span></div>
     <div class="filters" id="f-ce"></div>
     <div class="list" id="l-ce"></div>
   </section>
@@ -301,7 +325,7 @@
 
   // ===== Configuración =====
   // Enlace CSV de "Publicar en la web" (pestaña Registro). Si queda vacío, se usa el enlace por ID.
-  var PUB_CSV_URL = "";
+  var PUB_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQXk3poHH9653wD31eU255p1e1hPHmB0bZ0Qd7U6Zo6qmn1fJVKCPuAfKk6jLw6zpwJCHpaSQh87QsO/pub?gid=0&single=true&output=csv";
   var SHEET_ID = "14A8s1eLHnjuFvR94GVBSyzL2UCRgejnU0x5K4nowE50";
   var GVIZ_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&headers=1&sheet=Registro";
   var AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -332,9 +356,9 @@
       R("VAL-09","Informe validación proceso Producto Y","Informe","IV-PRY-01",L,"Media",dAgo(35),"",dAgo(20),J,dAgo(19),dAgo(6),"","","",""),
       R("VAL-10","Protocolo calificación IQ lavadora","Protocolo","IQ-LAV-01",A,"Baja",dAgo(18),"",dAgo(7),N,dAgo(6),"","","","",""),
       R("VAL-11","Informe calificación OQ estufa","Informe","OQ-EST-02",S,"Media",dAgo(22),"",dAgo(3),"","","","","","",""),
-      R("VAL-12","Protocolo validación sistema agua purificada","Protocolo","PV-AP-04",D,"Alta",dAgo(70),"",dAgo(50),J,dAgo(48),"","",N,dAgo(40),dAgo(22)),
+      R("VAL-12","Protocolo validación sistema agua purificada","Protocolo","PV-AP-04",D,"Alta",dAgo(50),"",dAgo(37),J,dAgo(36),"","",N,dAgo(30),dAgo(22)),
       R("VAL-13","Informe validación limpieza mezcladora","Informe","IV-MZ-02",S,"Media",dAgo(55),"",dAgo(45),J,dAgo(44),dAgo(38),dAgo(33),N,dAgo(31),dAgo(15)),
-      R("VAL-14","Calificación PQ blistera 2","Calificación de equipo (IQ/OQ/PQ)","PQ-BL2-01",A,"Media",dAgo(40),"",dAgo(26),J,dAgo(25),"","",N,dAgo(14),dAgo(4))
+      R("VAL-14","Calificación PQ blistera 2","Calificación de equipo (IQ/OQ/PQ)","PQ-BL2-01",A,"Media",dAgo(20),"",dAgo(10),J,dAgo(9),"","",N,dAgo(14),dAgo(4))
     ];
   }
 
@@ -408,9 +432,29 @@
   function avg(a) { if (!a.length) return null; return a.reduce(function (s, x) { return s + x; }, 0) / a.length; }
 
   // ===== Estado de la vista =====
+  var me = "";
+  try { me = localStorage.getItem("val-me") || ""; } catch (e) {}
+  var qp = location.search.match(/[?&]persona=([^&]+)/);
+  if (qp) me = decodeURIComponent(qp[1].replace(/\+/g, " "));
   var TASKS = [], selectedWho = null, filters = { pe: "", en: "", ce: "" }, query = "";
 
-  function dayClass(d) { return d == null ? "" : d >= HOT ? "hot" : d >= WARM ? "warm" : ""; }
+  function dayClass(d) { return d == null ? "" : d >= HOT ? "hot" : d >= WARM ? "warm" : "ok"; }
+  var CLOSE_WARM = 11, CLOSE_HOT = 21; // días desde ejecutada hasta el cierre
+  function closeClass(d) { return d == null ? "" : d >= CLOSE_HOT ? "hot" : d >= CLOSE_WARM ? "warm" : "ok"; }
+  var CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
+  var FLAG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>';
+  var CLOCK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function pendingVerb(t) {
+    if (t.kind === "rev") return "sin revisar";
+    if (t.kind === "apr") return "sin aprobar";
+    if (t.etapa === "Corrigiendo") return "sin corregir";
+    return "sin entregar";
+  }
+  function waitBadge(t) {
+    if (t.days == null) return "";
+    return '<span class="wait ' + dayClass(t.days) + '" title="Desde el ' + fmt(t.since) + '">' + CLOCK +
+      "<b>" + t.days + "</b> " + (t.days === 1 ? "día" : "días") + " " + pendingVerb(t) + "</span>";
+  }
   function kindLabel(t) {
     if (t.kind === "rev") return "Entregado a " + esc(t.waiting) + " · para revisión";
     if (t.kind === "apr") return "Entregado a " + esc(t.waiting) + " · para aprobación";
@@ -418,10 +462,44 @@
     return "Ejecutado · " + esc(t.waiting) + " debe entregarlo";
   }
 
+  function short(name) { var w = (name || "").split(" "); return w.slice(0, 2).join(" "); }
+  function involved(t, n) { return t.resp === n || t.waiting === n || t.rev === n || t.apr === n; }
+
+  function renderPeople() {
+    var count = {};
+    TASKS.forEach(function (t) {
+      [t.resp, t.rev, t.apr].forEach(function (n) { if (n) count[n] = 0; });
+    });
+    TASKS.forEach(function (t) {
+      if (t.etapa !== "Cerrada" && t.waiting && count.hasOwnProperty(t.waiting)) count[t.waiting]++;
+    });
+    if (me && !count.hasOwnProperty(me) && TASKS.length) me = "";
+    var names = Object.keys(count).sort(function (a, b) { return a.localeCompare(b); });
+    var el = document.getElementById("people");
+    var html = '<span class="lab">Ver por persona:</span><button class="chip" type="button" data-v="" aria-pressed="' + (!me) + '">Todo el equipo</button>';
+    names.forEach(function (n) {
+      html += '<button class="chip" type="button" data-v="' + esc(n) + '" aria-pressed="' + (me === n) + '" title="' + esc(n) + '">' + esc(short(n)) +
+        (count[n] ? '<span class="c">' + count[n] + "</span>" : "") + "</button>";
+    });
+    el.innerHTML = html;
+    el.querySelectorAll(".chip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        me = b.getAttribute("data-v"); selectedWho = null; filters = { pe: "", en: "", ce: "" };
+        try { localStorage.setItem("val-me", me); } catch (e) {}
+        render();
+      });
+    });
+    var note = document.getElementById("me-note");
+    if (me) { note.hidden = false; note.innerHTML = "Mostrando solo lo de <b>" + esc(me) + "</b>: lo que ejecuta, lo que tiene que revisar o aprobar, y lo que ya cerró. El número junto a cada nombre son los documentos que hoy están en sus manos."; }
+    else note.hidden = true;
+  }
+
   function render() {
-    var pe = TASKS.filter(function (t) { return t.etapa === "Por ejecutar"; });
-    var en = TASKS.filter(function (t) { return t.etapa !== "Por ejecutar" && t.etapa !== "Cerrada"; });
-    var ce = TASKS.filter(function (t) { return t.etapa === "Cerrada"; });
+    renderPeople();
+    var mine = function (t) { return !me || involved(t, me); };
+    var pe = TASKS.filter(function (t) { return t.etapa === "Por ejecutar" && (!me || t.resp === me); });
+    var en = TASKS.filter(function (t) { return t.etapa !== "Por ejecutar" && t.etapa !== "Cerrada" && mine(t); });
+    var ce = TASKS.filter(function (t) { return t.etapa === "Cerrada" && mine(t); });
 
     // Tarjetas
     var vencidas = pe.filter(function (t) { return t.fcomp && t.fcomp < TODAY; }).length;
@@ -430,6 +508,10 @@
     document.getElementById("n-en").textContent = en.length;
     var hot = en.filter(function (t) { return t.days >= HOT; }).length;
     var byWho = groupWaiting(en);
+    if (me) {
+      var enMis = en.filter(function (t) { return t.waiting === me; }).length;
+      document.getElementById("s-en").textContent = en.length ? enMis + " en sus manos · " + (en.length - enMis) + " en manos de otros" : "Nada entregado por ahora";
+    } else
     document.getElementById("s-en").textContent = en.length ? "Repartidas entre " + plural(byWho.length, "persona", "personas") : "Nada entregado por ahora";
     var tag = document.getElementById("tag-en");
     if (hot) { tag.hidden = false; tag.textContent = plural(hot, "detenida", "detenidas") + " " + HOT + "+ días"; } else tag.hidden = true;
@@ -444,7 +526,7 @@
     var g = {};
     en.forEach(function (t) {
       var k = t.waiting; g[k] = g[k] || { name: k, rev: 0, apr: 0, fix: 0, total: 0, oldest: 0, sum: 0 };
-      g[k][t.kind]++; g[k].total++; g[k].sum += (t.days || 0); g[k].oldest = Math.max(g[k].oldest, t.days || 0);
+      g[k][t.kind]++; g[k].total++; g[k].sum += (t.days || 0); if (!g[k].oldestTask || (t.days || 0) > g[k].oldest) { g[k].oldest = t.days || 0; g[k].oldestTask = t; }
     });
     return Object.keys(g).map(function (k) { return g[k]; })
       .sort(function (a, b) { return (b.total - a.total) || (b.oldest - a.oldest) || a.name.localeCompare(b.name); });
@@ -454,7 +536,7 @@
     var el = document.getElementById(container);
     var names = {}; list.forEach(function (t) { if (t[field]) names[t[field]] = (names[t[field]] || 0) + 1; });
     var keys = Object.keys(names).sort();
-    if (keys.length < 2) { el.innerHTML = ""; return; }
+    if (me || keys.length < 2) { el.innerHTML = ""; return; }
     var html = '<button class="chip" type="button" data-v="" aria-pressed="' + (!filters[key]) + '">Todos</button>';
     keys.forEach(function (n) { html += '<button class="chip" type="button" data-v="' + esc(n) + '" aria-pressed="' + (filters[key] === n) + '">' + esc(first(n)) + " · " + names[n] + "</button>"; });
     el.innerHTML = html;
@@ -464,7 +546,7 @@
   }
 
   function itemHTML(t, right, meta) {
-    return '<div class="item"><p class="t"><span class="id">' + esc(t.id) + "</span>" + esc(t.doc) + "</p>" +
+    return '<div class="item"><p class="t">' + (t._done ? '<span class="done-ic">' + CHECK + "</span>" : "") + '<span class="id">' + esc(t.id) + "</span>" + esc(t.doc) + "</p>" +
       '<p class="m">' + meta + "</p>" + '<div class="r">' + right + "</div></div>";
   }
   function metaBase(t) {
@@ -501,7 +583,18 @@
   function renderEN(en, byWho) {
     // Respuesta principal
     var ans = document.getElementById("answer"), txt = document.getElementById("answer-text");
-    if (!byWho.length) {
+    if (me) {
+      var mio = en.filter(function (t) { return t.waiting === me; });
+      var otros = byWho.filter(function (g) { return g.name !== me; });
+      var parts = [];
+      if (mio.length) {
+        var old = mio.reduce(function (m, t) { return Math.max(m, t.days || 0); }, 0);
+        parts.push("<strong>" + esc(first(me)) + "</strong> tiene " + plural(mio.length, "documento", "documentos") + " en sus manos (el más antiguo lleva <strong>" + plural(old, "día", "días") + "</strong>).");
+      } else parts.push("<strong>" + esc(first(me)) + "</strong> no tiene documentos pendientes en sus manos.");
+      if (otros.length) parts.push("Sus documentos esperan a: " + otros.map(function (g) { return "<strong>" + esc(g.name) + "</strong> (" + g.total + ")"; }).join(", ") + ".");
+      ans.classList.toggle("ok", !mio.length || mio.every(function (t) { return (t.days || 0) < WARM; }));
+      txt.innerHTML = en.length ? parts.join(" ") : "<strong>Nada en curso</strong> para " + esc(me) + ".";
+    } else if (!byWho.length) {
       ans.classList.add("ok");
       txt.innerHTML = "<strong>No hay documentos esperando.</strong> Todo lo ejecutado ya está cerrado.";
     } else {
@@ -514,7 +607,7 @@
       ans.classList.toggle("ok", top.total === 1 && top.oldest < WARM);
       txt.innerHTML = "Hoy la mayor espera está con <strong>" + esc(top.name) + "</strong>: tiene " +
         plural(top.total, "documento", "documentos") + " (" + reason.join(", ") + "), el " + share + "% de lo entregado. " +
-        "El más antiguo lleva <strong>" + plural(top.oldest, "día", "días") + "</strong> esperando.";
+        "El más antiguo lleva <strong>" + plural(top.oldest, "día", "días") + "</strong> " + pendingVerb(top.oldestTask) + ".";
     }
 
     // Etapas
@@ -538,7 +631,7 @@
       return '<button type="button" class="who-row" data-name="' + esc(g.name) + '" aria-pressed="' + (selectedWho === g.name) + '">' +
         '<span class="who-name">' + esc(g.name) + (i === 0 && byWho.length > 1 && g.total > byWho[1].total ? '<span class="top">Mayor espera</span>' : "") + "</span>" +
         '<span class="bar">' + bar + '<span class="n">' + g.total + "</span></span>" +
-        '<span class="who-meta">más antiguo <b class="' + dayClass(g.oldest) + '">' + g.oldest + "d</b> · prom. <b>" + prom + "d</b></span></button>";
+        '<span class="who-meta"><span class="clk ' + '">' + CLOCK + '</span> más antiguo <b class="' + dayClass(g.oldest) + '">' + plural(g.oldest, "día", "días") + "</b> · prom. <b>" + prom + "</b></span></button>";
     }).join("");
     who.querySelectorAll(".who-row").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -576,7 +669,7 @@
     if (!list.length) { el.innerHTML = '<div class="empty">No hay documentos entregados.</div>'; return; }
     el.innerHTML = list.map(function (t) {
       var right = '<span class="pill ' + t.kind + '">' + kindLabel(t) + "</span>" +
-        '<span class="days ' + dayClass(t.days) + '">' + (t.days == null ? "" : "esperando " + plural(t.days, "día", "días")) + "</span>";
+        waitBadge(t);
       var meta = metaBase(t) + '<span class="sep">·</span>desde ' + fmt(t.since);
       return itemHTML(t, right, meta);
     }).join("");
@@ -591,11 +684,12 @@
     el.innerHTML = list.map(function (t) {
       var start = t.fejec || t.freg;
       var dur = start ? daysBetween(start, t.fcierre) : null;
-      var right = '<span class="pill ok">Cerrada ' + fmt(t.fcierre) + "</span>" +
-        (dur != null ? '<span class="days">' + plural(dur, "día", "días") + " desde ejecutada</span>" : "");
+      var right = '<span class="pill ok">' + CHECK + "Cerrada " + fmt(t.fcierre) + "</span>" +
+        (dur != null ? '<span class="wait ' + closeClass(dur) + '" title="Desde que se ejecutó (' + fmt(start) + ') hasta el cierre">' + FLAG + "<b>" + dur + "</b> " + (dur === 1 ? "día" : "días") + " en cerrar</span>" : "");
       var who = [];
       if (t.rev) who.push("Revisó: " + esc(t.rev));
       if (t.apr) who.push("Aprobó: " + esc(t.apr));
+      t = Object.assign({}, t, { _done: true });
       return itemHTML(t, right, metaBase(t) + (who.length ? '<span class="sep">·</span>' + who.join('<span class="sep">·</span>') : ""));
     }).join("");
   }
