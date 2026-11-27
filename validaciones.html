@@ -355,6 +355,22 @@
 
   var demo = /[?&]demo=1\b/.test(location.search);
 
+  // Ubica cada columna por el título del encabezado, para que agregar o mover columnas en la planilla no rompa la página.
+  function norm(x) { return (x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim(); }
+  var HEAD = {
+    id: /^id$/, doc: /^documento/, tipo: /^tipo/, cod: /^codigo/, ed: /^edicion/, resp: /^responsable/, prio: /^prioridad/,
+    freg: /^fecha registro/, fcomp: /^fecha compromiso/, fejec: /^fecha ejecutado/, rev: /^entregado a .*revision/,
+    frev: /^fecha entrega a revision/, fobs: /^fecha devuelto/, freent: /^fecha reentrega/, apr: /^entregado a .*aprobacion/,
+    fapr: /^fecha entrega a aprobacion/, fcierre: /^fecha aprobado/, obs: /^observaciones/
+  };
+  function mapColumns(header) {
+    var h = header.map(norm), found = {};
+    Object.keys(HEAD).forEach(function (k) {
+      for (var i = 0; i < h.length; i++) if (HEAD[k].test(h[i])) { found[k] = i; break; }
+    });
+    if (found.doc != null && found.resp != null) Object.keys(found).forEach(function (k) { C[k] = found[k]; });
+  }
+
   // ===== Datos de ejemplo (solo con ?demo=1) =====
   function dAgo(n) { var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - n); return pad(d.getDate()) + "/" + pad(d.getMonth()+1) + "/" + d.getFullYear(); }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -762,7 +778,9 @@
       return r.text();
     });
     p.then(function (text) {
-      var rows = demo ? demoRows() : parseCSV(text).slice(1);
+      var all = demo ? null : parseCSV(text);
+      if (all && all.length) mapColumns(all[0]);
+      var rows = demo ? demoRows() : all.slice(1);
       if (!demo && text && /^\s*<!DOCTYPE|<html/i.test(text)) throw new Error("sin acceso");
       TASKS = rows.filter(function (c) { return c && (c[C.doc] || "").trim(); }).map(toTask);
       document.getElementById("notice").hidden = true;
